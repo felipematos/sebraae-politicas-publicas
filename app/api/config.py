@@ -80,10 +80,10 @@ async def reset_channels() -> Dict[str, Any]:
 async def bulk_update_channels(channels: Dict[str, bool]) -> Dict[str, Any]:
     """
     Atualiza multiplos canais de uma vez
-    
+
     Args:
         channels: Dicionario com {canal_name: enabled}
-    
+
     Returns:
         Novo status de todos os canais
     """
@@ -95,13 +95,68 @@ async def bulk_update_channels(channels: Dict[str, bool]) -> Dict[str, Any]:
                 status_code=400,
                 detail=f"Canal invalido: {channel}"
             )
-    
+
     # Atualizar
     for channel, enabled in channels.items():
         settings.SEARCH_CHANNELS_ENABLED[channel] = enabled
-    
+
     return {
         "mensagem": "Canais atualizados com sucesso",
         "status": settings.SEARCH_CHANNELS_ENABLED,
+        "timestamp": __import__("datetime").datetime.now().isoformat()
+    }
+
+
+@router.get("/config/search-channels")
+async def get_search_channels_config() -> Dict[str, Any]:
+    """
+    Retorna a configuracao das ferramentas de pesquisa
+
+    Returns:
+        Configuracao atual das ferramentas (perplexity, jina, tavily, serper, deep_research)
+    """
+    return {
+        "search_channels_enabled": settings.SEARCH_CHANNELS_ENABLED,
+        "total_habilitadas": sum(1 for v in settings.SEARCH_CHANNELS_ENABLED.values() if v),
+        "total_ferramentas": len(settings.SEARCH_CHANNELS_ENABLED)
+    }
+
+
+@router.put("/config/search-channels")
+async def update_search_channels_config(config: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Atualiza a configuracao das ferramentas de pesquisa
+
+    Args:
+        config: Dicionario contendo 'search_channels_enabled' com {ferramenta: enabled}
+
+    Returns:
+        Nova configuracao salva
+    """
+    if "search_channels_enabled" not in config:
+        raise HTTPException(
+            status_code=400,
+            detail="Campo 'search_channels_enabled' obrigatorio"
+        )
+
+    search_channels = config["search_channels_enabled"]
+
+    # Validar todas as ferramentas
+    valid_channels = list(settings.SEARCH_CHANNELS_ENABLED.keys())
+    for channel in search_channels.keys():
+        if channel not in valid_channels:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Ferramenta invalida: {channel}. Ferramentas validas: {valid_channels}"
+            )
+
+    # Atualizar configuracao
+    for channel, enabled in search_channels.items():
+        settings.SEARCH_CHANNELS_ENABLED[channel] = enabled
+
+    return {
+        "mensagem": "Configuracao das ferramentas atualizada com sucesso",
+        "search_channels_enabled": settings.SEARCH_CHANNELS_ENABLED,
+        "total_habilitadas": sum(1 for v in settings.SEARCH_CHANNELS_ENABLED.values() if v),
         "timestamp": __import__("datetime").datetime.now().isoformat()
     }

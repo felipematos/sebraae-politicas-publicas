@@ -36,12 +36,21 @@ function dashboardApp() {
         search_channels: {},
         canais_ativos: 0,
         total_canais: 0,
+        ferramentas_config: {
+            perplexity: true,
+            jina: true,
+            tavily: true,
+            serper: true,
+            deep_research: true
+        },
+        salvando_config: false,
 
         // Inicializacao
         async init() {
             await this.carregar_falhas();
             await this.carregar_resultados();
             await this.carregar_canais();
+            await this.carregar_ferramentas_config();
             await this.atualizar_stats();
             // Atualizar stats a cada 3 segundos quando pesquisa ativa, 10 segundos se inativa
             setInterval(() => this.atualizar_stats(), 3000);
@@ -371,6 +380,52 @@ function dashboardApp() {
             } catch (erro) {
                 console.error('Erro ao resetar canais:', erro);
                 alert(`Erro: ${erro.message}`);
+            }
+        },
+
+        // Gerenciar Ferramentas de Pesquisa
+        async carregar_ferramentas_config() {
+            try {
+                const response = await fetch('/api/config/search-channels');
+                if (response.ok) {
+                    const config = await response.json();
+                    this.ferramentas_config = {
+                        perplexity: config.search_channels_enabled?.perplexity ?? true,
+                        jina: config.search_channels_enabled?.jina ?? true,
+                        tavily: config.search_channels_enabled?.tavily ?? true,
+                        serper: config.search_channels_enabled?.serper ?? true,
+                        deep_research: config.search_channels_enabled?.deep_research ?? true
+                    };
+                }
+            } catch (erro) {
+                console.warn('Nao foi possivel carregar configuracao das ferramentas:', erro);
+                // Manter configuracao padrao
+            }
+        },
+
+        async salvar_ferramentas_config() {
+            this.salvando_config = true;
+            try {
+                const response = await fetch('/api/config/search-channels', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        search_channels_enabled: this.ferramentas_config
+                    })
+                });
+
+                if (response.ok) {
+                    alert('✓ Configuração das ferramentas salva com sucesso!');
+                } else {
+                    throw new Error(`Erro ${response.status}: Nao foi possivel salvar configuracao`);
+                }
+            } catch (erro) {
+                console.error('Erro ao salvar configuracao:', erro);
+                alert(`✗ Erro ao salvar: ${erro.message}`);
+            } finally {
+                this.salvando_config = false;
             }
         },
 

@@ -225,35 +225,126 @@
             </div>
 
             <!-- Aba Ferramentas -->
-            <div x-show="aba_ativa === 'ferramentas'" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-xl font-bold mb-2" style="color: #1f2937;">Perplexity AI</h3>
-                    <p class="mb-4" style="color: #374151;">Chat com busca online para pesquisa de politicas e tendencias</p>
-                    <div class="space-y-2 text-sm" style="color: #374151;">
-                        <p><strong style="color: #1f2937;">Status:</strong> <span class="text-green-700">Ativo</span></p>
-                        <p><strong style="color: #1f2937;">Modelo:</strong> pplx-7b-online</p>
-                        <p><strong style="color: #1f2937;">Capacidade:</strong> Pesquisa Web + Analise</p>
+            <div x-show="aba_ativa === 'ferramentas'" class="space-y-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold" style="color: #1f2937;">Ferramentas de Pesquisa Ativas</h2>
+                    <button @click="salvar_ferramentas_config()"
+                            :disabled="salvando_config"
+                            :class="salvando_config ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'"
+                            class="bg-green-600 text-white px-4 py-2 rounded-lg font-medium text-sm">
+                        <span x-show="!salvando_config">Salvar Configuração</span>
+                        <span x-show="salvando_config">Salvando...</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <!-- Perplexity -->
+                    <div class="bg-white rounded-lg shadow p-6 border-2" :class="ferramentas_config.perplexity ? 'border-green-500' : 'border-gray-200'">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-lg font-bold" style="color: #1f2937;">Perplexity</h3>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" x-model="ferramentas_config.perplexity" class="w-5 h-5">
+                            </label>
+                        </div>
+                        <p class="text-sm mb-3" style="color: #374151;">Chat com busca online</p>
+                        <div class="space-y-1 text-xs" style="color: #374151;">
+                            <p><strong>Modelo:</strong> pplx-7b-online</p>
+                            <p><strong>Capacidade:</strong> Web + IA</p>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-200">
+                            <p :class="ferramentas_config.perplexity ? 'text-green-700' : 'text-gray-500'" class="text-xs font-medium">
+                                <span x-text="ferramentas_config.perplexity ? '✓ Habilitada' : '✗ Desabilitada'"></span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Jina AI -->
+                    <div class="bg-white rounded-lg shadow p-6 border-2" :class="ferramentas_config.jina ? 'border-green-500' : 'border-gray-200'">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-lg font-bold" style="color: #1f2937;">Jina AI</h3>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" x-model="ferramentas_config.jina" class="w-5 h-5">
+                            </label>
+                        </div>
+                        <p class="text-sm mb-3" style="color: #374151;">Busca e extração</p>
+                        <div class="space-y-1 text-xs" style="color: #374151;">
+                            <p><strong>Capacidade:</strong> Busca + Conteúdo</p>
+                            <p><strong>Precisão:</strong> Alta</p>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-200">
+                            <p :class="ferramentas_config.jina ? 'text-green-700' : 'text-gray-500'" class="text-xs font-medium">
+                                <span x-text="ferramentas_config.jina ? '✓ Habilitada' : '✗ Desabilitada'"></span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Tavily -->
+                    <div class="bg-white rounded-lg shadow p-6 border-2" :class="ferramentas_config.tavily ? 'border-green-500' : 'border-gray-200'">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-lg font-bold" style="color: #1f2937;">Tavily</h3>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" x-model="ferramentas_config.tavily" class="w-5 h-5">
+                            </label>
+                        </div>
+                        <p class="text-sm mb-3" style="color: #374151;">Busca focada em pesquisa</p>
+                        <div class="space-y-1 text-xs" style="color: #374151;">
+                            <p><strong>Tipo:</strong> Busca Especializada</p>
+                            <p><strong>Velocidade:</strong> Rápida</p>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-200">
+                            <p :class="ferramentas_config.tavily ? 'text-green-700' : 'text-gray-500'" class="text-xs font-medium">
+                                <span x-text="ferramentas_config.tavily ? '✓ Habilitada' : '✗ Desabilitada'"></span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Serper -->
+                    <div class="bg-white rounded-lg shadow p-6 border-2" :class="ferramentas_config.serper ? 'border-green-500' : 'border-gray-200'">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-lg font-bold" style="color: #1f2937;">Serper</h3>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" x-model="ferramentas_config.serper" class="w-5 h-5">
+                            </label>
+                        </div>
+                        <p class="text-sm mb-3" style="color: #374151;">API Google Search</p>
+                        <div class="space-y-1 text-xs" style="color: #374151;">
+                            <p><strong>Base:</strong> Google SERPs</p>
+                            <p><strong>Cobertura:</strong> Ampla</p>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-200">
+                            <p :class="ferramentas_config.serper ? 'text-green-700' : 'text-gray-500'" class="text-xs font-medium">
+                                <span x-text="ferramentas_config.serper ? '✓ Habilitada' : '✗ Desabilitada'"></span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Deep Research -->
+                    <div class="bg-white rounded-lg shadow p-6 border-2" :class="ferramentas_config.deep_research ? 'border-green-500' : 'border-gray-200'">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-lg font-bold" style="color: #1f2937;">Deep Research</h3>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" x-model="ferramentas_config.deep_research" class="w-5 h-5">
+                            </label>
+                        </div>
+                        <p class="text-sm mb-3" style="color: #374151;">Pesquisa profunda acadêmica</p>
+                        <div class="space-y-1 text-xs" style="color: #374151;">
+                            <p><strong>Fontes:</strong> Academia + Web</p>
+                            <p><strong>Confiabilidade:</strong> Muito Alta</p>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-200">
+                            <p :class="ferramentas_config.deep_research ? 'text-green-700' : 'text-gray-500'" class="text-xs font-medium">
+                                <span x-text="ferramentas_config.deep_research ? '✓ Habilitada' : '✗ Desabilitada'"></span>
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-xl font-bold mb-2" style="color: #1f2937;">Jina AI</h3>
-                    <p class="mb-4" style="color: #374151;">Busca web e extracao de conteudo de paginas</p>
-                    <div class="space-y-2 text-sm" style="color: #374151;">
-                        <p><strong style="color: #1f2937;">Status:</strong> <span class="text-green-700">Ativo</span></p>
-                        <p><strong style="color: #1f2937;">Capacidade:</strong> Busca + Extracao de Conteudo</p>
-                        <p><strong style="color: #1f2937;">Precisao:</strong> Alta</p>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-xl font-bold mb-2" style="color: #1f2937;">Deep Research</h3>
-                    <p class="mb-4" style="color: #374151;">Pesquisa profunda em fontes academicas e confiables</p>
-                    <div class="space-y-2 text-sm" style="color: #374151;">
-                        <p><strong style="color: #1f2937;">Status:</strong> <span class="text-green-700">Ativo</span></p>
-                        <p><strong style="color: #1f2937;">Fontes:</strong> Academia + Web</p>
-                        <p><strong style="color: #1f2937;">Confiabilidade:</strong> Muito Alta</p>
-                    </div>
+                <!-- Info sobre configuração -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+                    <p class="text-sm" style="color: #1f2937;">
+                        <strong>Dica:</strong> Use os toggles acima para habilitar ou desabilitar cada ferramenta de pesquisa.
+                        Ferramentas desabilitadas não serão utilizadas nas buscas, economizando tempo e custos de API.
+                    </p>
                 </div>
             </div>
 
