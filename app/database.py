@@ -287,6 +287,60 @@ async def get_estatisticas_falha(falha_id: int) -> Dict[str, Any]:
     return stats
 
 
+async def inserir_fila_pesquisa(entrada: Dict[str, Any]) -> int:
+    """Insere uma entrada na fila de pesquisas"""
+    query = """
+    INSERT INTO fila_pesquisas (falha_id, query, idioma, ferramenta, status, criado_em)
+    VALUES (?, ?, ?, ?, ?, ?)
+    """
+
+    params = (
+        entrada.get("falha_id"),
+        entrada.get("query"),
+        entrada.get("idioma"),
+        entrada.get("ferramenta"),
+        entrada.get("status", "pendente"),
+        entrada.get("criado_em")
+    )
+
+    await db.execute(query, params)
+    return 1
+
+
+async def listar_fila_pesquisas(status: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Lista entradas na fila de pesquisas"""
+    if status:
+        query = "SELECT * FROM fila_pesquisas WHERE status = ? ORDER BY id"
+        return await db.fetch_all(query, (status,))
+    else:
+        query = "SELECT * FROM fila_pesquisas ORDER BY id"
+        return await db.fetch_all(query)
+
+
+async def deletar_fila_pesquisa(entrada_id: int) -> None:
+    """Deleta uma entrada da fila"""
+    query = "DELETE FROM fila_pesquisas WHERE id = ?"
+    await db.execute(query, (entrada_id,))
+
+
+async def contar_fila_pesquisas(status: Optional[str] = None) -> int:
+    """Conta total de entradas na fila"""
+    if status:
+        query = "SELECT COUNT(*) as total FROM fila_pesquisas WHERE status = ?"
+        result = await db.fetch_one(query, (status,))
+    else:
+        query = "SELECT COUNT(*) as total FROM fila_pesquisas"
+        result = await db.fetch_one(query)
+
+    return result['total'] if result else 0
+
+
+async def atualizar_status_fila(entrada_id: int, novo_status: str) -> None:
+    """Atualiza status de uma entrada na fila"""
+    query = "UPDATE fila_pesquisas SET status = ? WHERE id = ?"
+    await db.execute(query, (novo_status, entrada_id))
+
+
 # Script para inicializar o banco
 if __name__ == "__main__":
     import asyncio
