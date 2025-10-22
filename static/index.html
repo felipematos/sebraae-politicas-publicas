@@ -15,12 +15,12 @@
             <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center">
                     <div>
-                        <h1 class="text-3xl font-bold text-blue-600">Sebrae - Pesquisa de Politicas Publicas</h1>
-                        <p class="text-gray-600 mt-1">Identificacao de Falhas de Mercado e Solucoes</p>
+                        <h1 class="text-3xl font-bold" style="color: #1e3a8a;">Sebrae - Pesquisa de Politicas Publicas</h1>
+                        <p class="mt-1" style="color: #374151;">Identificacao de Falhas de Mercado e Solucoes</p>
                     </div>
                     <div class="text-right">
-                        <p class="text-sm font-medium text-gray-600">Status do Sistema</p>
-                        <p class="text-lg font-bold" :class="ativo ? 'text-green-600' : 'text-red-600'">
+                        <p class="text-sm font-medium" style="color: #374151;">Status do Sistema</p>
+                        <p class="text-lg font-bold" :class="ativo ? 'text-green-700' : 'text-red-700'">
                             <span x-text="ativo ? 'Ativo' : 'Inativo'"></span>
                         </p>
                     </div>
@@ -30,8 +30,8 @@
                 <div class="mt-6">
                     <div class="flex justify-between items-center mb-2">
                         <div>
-                            <span class="text-sm font-medium">Progresso de Processamento</span>
-                            <p class="text-xs text-gray-600 mt-1" x-text="status_pesquisa.mensagem"></p>
+                            <span class="text-sm font-medium" style="color: #1f2937;">Progresso de Processamento</span>
+                            <p class="text-xs mt-1" style="color: #374151;" x-text="status_pesquisa.mensagem"></p>
                         </div>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
@@ -39,7 +39,7 @@
                              :style="`width: ${percentual_processamento}%`"></div>
                     </div>
                     <div class="text-right mt-1 mb-3">
-                        <span class="text-sm font-medium" x-text="`${percentual_processamento.toFixed(1)}%`"></span>
+                        <span class="text-sm font-medium" style="color: #1f2937;" x-text="`${percentual_processamento.toFixed(1)}%`"></span>
                     </div>
 
                     <!-- Botões de Controle -->
@@ -81,25 +81,25 @@
             <!-- Stats Cards -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <div class="bg-white rounded-lg shadow p-6">
-                    <p class="text-gray-600 text-sm font-medium">Total de Falhas</p>
-                    <p class="text-3xl font-bold text-blue-600 mt-2" x-text="stats.total_falhas"></p>
+                    <p class="text-sm font-medium" style="color: #374151;">Total de Falhas</p>
+                    <p class="text-3xl font-bold text-blue-700 mt-2" x-text="stats.total_falhas"></p>
                 </div>
 
                 <div class="bg-white rounded-lg shadow p-6">
-                    <p class="text-gray-600 text-sm font-medium">Fila Pendente</p>
-                    <p class="text-3xl font-bold text-yellow-600 mt-2" x-text="stats.total_pendentes"></p>
-                    <p class="text-xs text-gray-600 mt-1" x-text="`${stats.total_processando} em andamento`"></p>
+                    <p class="text-sm font-medium" style="color: #374151;">Fila Pendente</p>
+                    <p class="text-3xl font-bold text-yellow-700 mt-2" x-text="stats.total_pendentes"></p>
+                    <p class="text-xs mt-1" style="color: #374151;" x-text="`${stats.total_processando} em andamento`"></p>
                 </div>
 
                 <div class="bg-white rounded-lg shadow p-6">
-                    <p class="text-gray-600 text-sm font-medium">Concluídas</p>
-                    <p class="text-3xl font-bold text-green-600 mt-2" x-text="stats.total_concluidas"></p>
-                    <p class="text-xs text-red-600 mt-1" x-text="`${stats.total_erros} com erro`"></p>
+                    <p class="text-sm font-medium" style="color: #374151;">Concluídas</p>
+                    <p class="text-3xl font-bold text-green-700 mt-2" x-text="stats.total_concluidas"></p>
+                    <p class="text-xs text-red-700 mt-1" x-text="`${stats.total_erros} com erro`"></p>
                 </div>
 
                 <div class="bg-white rounded-lg shadow p-6">
-                    <p class="text-gray-600 text-sm font-medium">Resultados Encontrados</p>
-                    <p class="text-3xl font-bold text-purple-600 mt-2" x-text="stats.total_resultados"></p>
+                    <p class="text-sm font-medium" style="color: #374151;">Resultados Encontrados</p>
+                    <p class="text-3xl font-bold text-purple-700 mt-2" x-text="stats.total_resultados"></p>
                 </div>
             </div>
 
@@ -127,7 +127,7 @@
             <!-- Aba Falhas -->
             <div x-show="aba_ativa === 'falhas'" class="space-y-4">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold">Falhas de Mercado Mapeadas</h2>
+                    <h2 class="text-2xl font-bold" style="color: #1f2937;">Falhas de Mercado Mapeadas</h2>
                     <button @click="carregar_falhas()"
                             class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
                         Atualizar
@@ -138,36 +138,36 @@
                     <table class="w-full">
                         <thead class="bg-gray-100 border-b border-gray-200">
                             <tr>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">ID</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Titulo</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Pilar</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Resultados</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Score Medio</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Acoes</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium" style="color: #1f2937;">ID</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium" style="color: #1f2937;">Titulo</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium" style="color: #1f2937;">Pilar</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium" style="color: #1f2937;">Resultados</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium" style="color: #1f2937;">Score Medio</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium" style="color: #1f2937;">Acoes</th>
                             </tr>
                         </thead>
                         <tbody>
                             <template x-for="falha in falhas" :key="falha.id">
                                 <tr class="border-b border-gray-200 hover:bg-gray-50">
-                                    <td class="px-6 py-4 text-sm" x-text="falha.id"></td>
-                                    <td class="px-6 py-4 text-sm font-medium" x-text="falha.titulo"></td>
+                                    <td class="px-6 py-4 text-sm" style="color: #1f2937;" x-text="falha.id"></td>
+                                    <td class="px-6 py-4 text-sm font-medium" style="color: #1f2937;" x-text="falha.titulo"></td>
                                     <td class="px-6 py-4 text-sm">
                                         <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
                                               x-text="falha.pilar"></span>
                                     </td>
-                                    <td class="px-6 py-4 text-sm" x-text="falha.total_resultados || 0"></td>
+                                    <td class="px-6 py-4 text-sm" style="color: #1f2937;" x-text="falha.total_resultados || 0"></td>
                                     <td class="px-6 py-4 text-sm">
                                         <div class="flex items-center space-x-2">
                                             <div class="w-24 bg-gray-200 rounded-full h-2">
                                                 <div class="bg-green-600 h-2 rounded-full"
                                                      :style="`width: ${(falha.confidence_medio || 0) * 100}%`"></div>
                                             </div>
-                                            <span x-text="`${(falha.confidence_medio || 0).toFixed(2)}`"></span>
+                                            <span style="color: #1f2937;" x-text="`${(falha.confidence_medio || 0).toFixed(2)}`"></span>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 text-sm">
                                         <button @click="ver_detalhes_falha(falha.id)"
-                                                class="text-blue-600 hover:text-blue-900 font-medium">
+                                                class="text-blue-700 hover:text-blue-900 font-medium">
                                             Ver Detalhes
                                         </button>
                                     </td>
@@ -181,7 +181,7 @@
             <!-- Aba Resultados -->
             <div x-show="aba_ativa === 'resultados'" class="space-y-4">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold">Resultados de Pesquisa</h2>
+                    <h2 class="text-2xl font-bold" style="color: #1f2937;">Resultados de Pesquisa</h2>
                     <div class="flex space-x-2">
                         <input type="number" x-model="filtro_score_min" placeholder="Score minimo"
                                class="px-3 py-2 border border-gray-300 rounded-lg">
@@ -197,20 +197,20 @@
                         <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
                             <div class="flex justify-between items-start mb-3">
                                 <div>
-                                    <h3 class="text-lg font-bold" x-text="resultado.titulo"></h3>
-                                    <p class="text-sm text-gray-600" x-text="resultado.fonte_url"></p>
+                                    <h3 class="text-lg font-bold" style="color: #1f2937;" x-text="resultado.titulo"></h3>
+                                    <p class="text-sm" style="color: #374151;" x-text="resultado.fonte_url"></p>
                                 </div>
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
                                       x-text="`${(resultado.confidence_score * 100).toFixed(0)}%`"></span>
                             </div>
-                            <p class="text-gray-700 mb-4" x-text="resultado.descricao"></p>
-                            <div class="flex justify-between items-center text-sm text-gray-600">
+                            <p class="mb-4" style="color: #374151;" x-text="resultado.descricao"></p>
+                            <div class="flex justify-between items-center text-sm" style="color: #374151;">
                                 <div class="space-x-4">
                                     <span x-text="`Idioma: ${resultado.idioma}`"></span>
                                     <span x-text="`Ferramenta: ${resultado.ferramenta_origem}`"></span>
                                 </div>
                                 <button @click="deletar_resultado(resultado.id)"
-                                        class="text-red-600 hover:text-red-900 font-medium">
+                                        class="text-red-700 hover:text-red-900 font-medium">
                                     Deletar
                                 </button>
                             </div>
@@ -222,32 +222,32 @@
             <!-- Aba Ferramentas -->
             <div x-show="aba_ativa === 'ferramentas'" class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-xl font-bold mb-2">Perplexity AI</h3>
-                    <p class="text-gray-600 mb-4">Chat com busca online para pesquisa de politicas e tendencias</p>
-                    <div class="space-y-2 text-sm">
-                        <p><strong>Status:</strong> <span class="text-green-600">Ativo</span></p>
-                        <p><strong>Modelo:</strong> pplx-7b-online</p>
-                        <p><strong>Capacidade:</strong> Pesquisa Web + Analise</p>
+                    <h3 class="text-xl font-bold mb-2" style="color: #1f2937;">Perplexity AI</h3>
+                    <p class="mb-4" style="color: #374151;">Chat com busca online para pesquisa de politicas e tendencias</p>
+                    <div class="space-y-2 text-sm" style="color: #374151;">
+                        <p><strong style="color: #1f2937;">Status:</strong> <span class="text-green-700">Ativo</span></p>
+                        <p><strong style="color: #1f2937;">Modelo:</strong> pplx-7b-online</p>
+                        <p><strong style="color: #1f2937;">Capacidade:</strong> Pesquisa Web + Analise</p>
                     </div>
                 </div>
 
                 <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-xl font-bold mb-2">Jina AI</h3>
-                    <p class="text-gray-600 mb-4">Busca web e extracao de conteudo de paginas</p>
-                    <div class="space-y-2 text-sm">
-                        <p><strong>Status:</strong> <span class="text-green-600">Ativo</span></p>
-                        <p><strong>Capacidade:</strong> Busca + Extracao de Conteudo</p>
-                        <p><strong>Precisao:</strong> Alta</p>
+                    <h3 class="text-xl font-bold mb-2" style="color: #1f2937;">Jina AI</h3>
+                    <p class="mb-4" style="color: #374151;">Busca web e extracao de conteudo de paginas</p>
+                    <div class="space-y-2 text-sm" style="color: #374151;">
+                        <p><strong style="color: #1f2937;">Status:</strong> <span class="text-green-700">Ativo</span></p>
+                        <p><strong style="color: #1f2937;">Capacidade:</strong> Busca + Extracao de Conteudo</p>
+                        <p><strong style="color: #1f2937;">Precisao:</strong> Alta</p>
                     </div>
                 </div>
 
                 <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-xl font-bold mb-2">Deep Research</h3>
-                    <p class="text-gray-600 mb-4">Pesquisa profunda em fontes academicas e confiables</p>
-                    <div class="space-y-2 text-sm">
-                        <p><strong>Status:</strong> <span class="text-green-600">Ativo</span></p>
-                        <p><strong>Fontes:</strong> Academia + Web</p>
-                        <p><strong>Confiabilidade:</strong> Muito Alta</p>
+                    <h3 class="text-xl font-bold mb-2" style="color: #1f2937;">Deep Research</h3>
+                    <p class="mb-4" style="color: #374151;">Pesquisa profunda em fontes academicas e confiables</p>
+                    <div class="space-y-2 text-sm" style="color: #374151;">
+                        <p><strong style="color: #1f2937;">Status:</strong> <span class="text-green-700">Ativo</span></p>
+                        <p><strong style="color: #1f2937;">Fontes:</strong> Academia + Web</p>
+                        <p><strong style="color: #1f2937;">Confiabilidade:</strong> Muito Alta</p>
                     </div>
                 </div>
             </div>
@@ -258,7 +258,7 @@
              @click="modal_falha_aberta = false">
             <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4" @click.stop>
                 <div class="flex justify-between items-center p-6 border-b border-gray-200">
-                    <h2 class="text-2xl font-bold">Detalhes da Falha</h2>
+                    <h2 class="text-2xl font-bold" style="color: #1f2937;">Detalhes da Falha</h2>
                     <button @click="modal_falha_aberta = false" class="text-gray-400 hover:text-gray-600">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -268,31 +268,31 @@
 
                 <div class="p-6 space-y-4">
                     <div>
-                        <h3 class="text-lg font-bold" x-text="falha_selecionada?.titulo"></h3>
-                        <p class="text-gray-600" x-text="falha_selecionada?.descricao"></p>
+                        <h3 class="text-lg font-bold" style="color: #1f2937;" x-text="falha_selecionada?.titulo"></h3>
+                        <p style="color: #374151;" x-text="falha_selecionada?.descricao"></p>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <p class="text-sm font-medium text-gray-600">Pilar</p>
-                            <p class="text-lg font-bold" x-text="falha_selecionada?.pilar"></p>
+                            <p class="text-sm font-medium" style="color: #374151;">Pilar</p>
+                            <p class="text-lg font-bold" style="color: #1f2937;" x-text="falha_selecionada?.pilar"></p>
                         </div>
                         <div>
-                            <p class="text-sm font-medium text-gray-600">Dica de Busca</p>
-                            <p class="text-lg" x-text="falha_selecionada?.dica_busca"></p>
+                            <p class="text-sm font-medium" style="color: #374151;">Dica de Busca</p>
+                            <p class="text-lg" style="color: #1f2937;" x-text="falha_selecionada?.dica_busca"></p>
                         </div>
                     </div>
 
                     <div>
-                        <h4 class="font-bold mb-2">Resultados Encontrados</h4>
+                        <h4 class="font-bold mb-2" style="color: #1f2937;">Resultados Encontrados</h4>
                         <div class="space-y-2 max-h-64 overflow-y-auto">
                             <template x-for="resultado in resultados_falha_selecionada" :key="resultado.id">
                                 <div class="bg-gray-50 p-3 rounded border border-gray-200">
-                                    <p class="font-medium" x-text="resultado.titulo"></p>
-                                    <p class="text-sm text-gray-600" x-text="resultado.descricao"></p>
-                                    <div class="flex justify-between items-center mt-2 text-sm">
-                                        <span class="text-gray-600" x-text="`Score: ${(resultado.confidence_score * 100).toFixed(0)}%`"></span>
-                                        <span class="text-gray-600" x-text="resultado.ferramenta_origem"></span>
+                                    <p class="font-medium" style="color: #1f2937;" x-text="resultado.titulo"></p>
+                                    <p class="text-sm" style="color: #374151;" x-text="resultado.descricao"></p>
+                                    <div class="flex justify-between items-center mt-2 text-sm" style="color: #374151;">
+                                        <span x-text="`Score: ${(resultado.confidence_score * 100).toFixed(0)}%`"></span>
+                                        <span x-text="resultado.ferramenta_origem"></span>
                                     </div>
                                 </div>
                             </template>
