@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     TAVILY_API_KEY: Optional[str] = None
     SERPER_API_KEY: Optional[str] = None
     ANTHROPIC_API_KEY: Optional[str] = None  # Para avaliar relevancia com Claude
+    OPENAI_API_KEY: Optional[str] = None  # Para gerar embeddings
 
     # Canais de pesquisa ativos (pode ser controlado via UI)
     SEARCH_CHANNELS_ENABLED: dict = {
@@ -67,6 +68,18 @@ class Settings(BaseSettings):
     # Ferramentas de pesquisa
     FERRAMENTAS: list[str] = ["perplexity", "jina", "deep_research"]
 
+    # ChromaDB - Banco de dados vetorial para RAG
+    CHROMA_PERSIST_PATH: str = "chroma_db"  # Diretório para salvar dados
+    EMBEDDING_MODEL: str = "text-embedding-3-small"  # Modelo OpenAI
+    EMBEDDING_DIMENSION: int = 1536  # Dimensão dos embeddings
+    USAR_VECTOR_DB: bool = True  # Ativar/desativar banco vetorial
+
+    # RAG - Configurações de busca semântica
+    RAG_ENABLED: bool = True  # Ativar/desativar RAG
+    RAG_SIMILARITY_THRESHOLD: float = 0.7  # Threshold para resultados similares
+    RAG_TOP_K_RESULTS: int = 5  # Número de resultados similares a buscar
+    RAG_SIMILARITY_THRESHOLD_DEDUP: float = 0.85  # Threshold para deduplicação
+
 
 # Instancia global de configuracoes
 settings = Settings()
@@ -82,3 +95,9 @@ def get_static_path() -> Path:
     """Retorna o caminho do diretorio static"""
     base_dir = Path(__file__).parent.parent
     return base_dir / "static"
+
+
+def get_chroma_path() -> Path:
+    """Retorna o caminho absoluto para o ChromaDB"""
+    base_dir = Path(__file__).parent.parent
+    return base_dir / settings.CHROMA_PERSIST_PATH
