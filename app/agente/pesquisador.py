@@ -22,6 +22,8 @@ from app.agente.deduplicador import Deduplicador
 from app.integracao.perplexity_api import PerplexityClient
 from app.integracao.jina_api import JinaClient
 from app.integracao.deep_research_mcp import DeepResearchClient
+from app.integracao.tavily_api import TavilyClient
+from app.integracao.serper_api import SerperClient
 
 
 class AgentePesquisador:
@@ -64,6 +66,30 @@ class AgentePesquisador:
         except Exception as e:
             print(f"Aviso: Jina client nao inicializado: {e}")
             self.jina_client = None
+
+        # Tavily (opcional)
+        try:
+            if settings.TAVILY_API_KEY:
+                self.tavily_client = TavilyClient(
+                    settings.TAVILY_API_KEY
+                )
+            else:
+                self.tavily_client = None
+        except Exception as e:
+            print(f"Aviso: Tavily client nao inicializado: {e}")
+            self.tavily_client = None
+
+        # Serper (opcional)
+        try:
+            if settings.SERPER_API_KEY:
+                self.serper_client = SerperClient(
+                    settings.SERPER_API_KEY
+                )
+            else:
+                self.serper_client = None
+        except Exception as e:
+            print(f"Aviso: Serper client nao inicializado: {e}")
+            self.serper_client = None
 
         # Deep Research nao precisa de API key (usa MCP)
         self.deep_research_client = DeepResearchClient()
@@ -196,6 +222,11 @@ class AgentePesquisador:
 
         for ferramenta in ferramentas:
             try:
+                # Verificar se canal esta habilitado
+                if not settings.SEARCH_CHANNELS_ENABLED.get(ferramenta, False):
+                    print(f"Canal {ferramenta} desabilitado, pulando...")
+                    continue
+
                 if ferramenta == "perplexity" and self.perplexity_client:
                     resultado = await self.perplexity_client.pesquisar(
                         query=query,
@@ -209,6 +240,22 @@ class AgentePesquisador:
                         query=query,
                         idioma=idioma,
                         max_resultados=10
+                    )
+                    resultados.extend(resultado)
+
+                elif ferramenta == "tavily" and self.tavily_client:
+                    resultado = await self.tavily_client.pesquisar(
+                        query=query,
+                        idioma=idioma,
+                        max_resultados=5
+                    )
+                    resultados.extend(resultado)
+
+                elif ferramenta == "serper" and self.serper_client:
+                    resultado = await self.serper_client.pesquisar(
+                        query=query,
+                        idioma=idioma,
+                        max_resultados=5
                     )
                     resultados.extend(resultado)
 

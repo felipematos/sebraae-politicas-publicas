@@ -12,6 +12,8 @@ from app.config import settings
 from app.integracao.perplexity_api import PerplexityClient
 from app.integracao.jina_api import JinaClient
 from app.integracao.deep_research_mcp import DeepResearchClient
+from app.integracao.tavily_api import TavilyClient
+from app.integracao.serper_api import SerperClient
 
 router = APIRouter(tags=["Health Check"])
 
@@ -202,6 +204,96 @@ class HealthChecker:
                 "tempo_teste": datetime.now().isoformat()
             }
 
+    async def test_tavily(self) -> Dict[str, Any]:
+        """Testa Tavily API"""
+        try:
+            if not settings.TAVILY_API_KEY:
+                return {
+                    "status": "warning",
+                    "servico": "Tavily Search",
+                    "mensagem": "Tavily API não configurada",
+                    "detalhes": "API key não foi definida nas configurações",
+                    "tempo_teste": datetime.now().isoformat()
+                }
+
+            client = TavilyClient(settings.TAVILY_API_KEY)
+
+            resultado = await client.pesquisar(
+                query="public policy innovation Brazil",
+                idioma="en",
+                max_resultados=3
+            )
+
+            if resultado and len(resultado) > 0:
+                return {
+                    "status": "ok",
+                    "servico": "Tavily Search",
+                    "mensagem": "Tavily API respondendo normalmente",
+                    "detalhes": f"Retornou {len(resultado)} resultado(s)",
+                    "tempo_teste": datetime.now().isoformat()
+                }
+            else:
+                return {
+                    "status": "warning",
+                    "servico": "Tavily Search",
+                    "mensagem": "Tavily respondeu mas sem resultados",
+                    "detalhes": "API retornou vazio",
+                    "tempo_teste": datetime.now().isoformat()
+                }
+        except Exception as e:
+            return {
+                "status": "error",
+                "servico": "Tavily Search",
+                "mensagem": "Tavily API indisponível",
+                "detalhes": str(e),
+                "tempo_teste": datetime.now().isoformat()
+            }
+
+    async def test_serper(self) -> Dict[str, Any]:
+        """Testa Serper API (Google Search)"""
+        try:
+            if not settings.SERPER_API_KEY:
+                return {
+                    "status": "warning",
+                    "servico": "Serper (Google Search)",
+                    "mensagem": "Serper API não configurada",
+                    "detalhes": "API key não foi definida nas configurações",
+                    "tempo_teste": datetime.now().isoformat()
+                }
+
+            client = SerperClient(settings.SERPER_API_KEY)
+
+            resultado = await client.pesquisar(
+                query="public policy innovation Brazil",
+                idioma="en",
+                max_resultados=3
+            )
+
+            if resultado and len(resultado) > 0:
+                return {
+                    "status": "ok",
+                    "servico": "Serper (Google Search)",
+                    "mensagem": "Serper API respondendo normalmente",
+                    "detalhes": f"Retornou {len(resultado)} resultado(s)",
+                    "tempo_teste": datetime.now().isoformat()
+                }
+            else:
+                return {
+                    "status": "warning",
+                    "servico": "Serper (Google Search)",
+                    "mensagem": "Serper respondeu mas sem resultados",
+                    "detalhes": "API retornou vazio",
+                    "tempo_teste": datetime.now().isoformat()
+                }
+        except Exception as e:
+            return {
+                "status": "error",
+                "servico": "Serper (Google Search)",
+                "mensagem": "Serper API indisponível",
+                "detalhes": str(e),
+                "tempo_teste": datetime.now().isoformat()
+            }
+
     async def run_all_tests(self) -> Dict[str, Any]:
         """Executa todos os testes em paralelo"""
         # Executar testes em paralelo
@@ -209,6 +301,8 @@ class HealthChecker:
             self.test_database(),
             self.test_perplexity(),
             self.test_jina(),
+            self.test_tavily(),
+            self.test_serper(),
             self.test_deep_research(),
             return_exceptions=True
         )

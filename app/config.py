@@ -30,7 +30,18 @@ class Settings(BaseSettings):
     # APIs externas
     JINA_API_KEY: str
     PERPLEXITY_API_KEY: str
+    TAVILY_API_KEY: Optional[str] = None
+    SERPER_API_KEY: Optional[str] = None
     ANTHROPIC_API_KEY: Optional[str] = None  # Para avaliar relevancia com Claude
+
+    # Canais de pesquisa ativos (pode ser controlado via UI)
+    SEARCH_CHANNELS_ENABLED: dict = {
+        "perplexity": True,
+        "jina": True,
+        "tavily": True,
+        "serper": True,
+        "deep_research": True
+    }
 
     # Processamento
     MAX_WORKERS: int = 5

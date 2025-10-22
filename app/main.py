@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 
 from app.config import settings, get_static_path
 from app.database import db
-from app.api import falhas, resultados, pesquisas, health_check
+from app.api import falhas, resultados, pesquisas, health_check, config
 from app.agente.processador import Processador
 
 
@@ -85,6 +85,7 @@ app.include_router(falhas.router, prefix=settings.API_PREFIX)
 app.include_router(resultados.router, prefix=settings.API_PREFIX)
 app.include_router(pesquisas.router, prefix=settings.API_PREFIX)
 app.include_router(health_check.router, prefix=settings.API_PREFIX)
+app.include_router(config.router, prefix=settings.API_PREFIX)
 
 # Montar pasta static
 try:

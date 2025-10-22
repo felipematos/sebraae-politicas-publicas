@@ -33,11 +33,15 @@ function dashboardApp() {
         filtro_score_min: 0.5,
         health_check_executando: false,
         health_check_resultado: null,
+        search_channels: {},
+        canais_ativos: 0,
+        total_canais: 0,
 
         // Inicializacao
         async init() {
             await this.carregar_falhas();
             await this.carregar_resultados();
+            await this.carregar_canais();
             await this.atualizar_stats();
             // Atualizar stats a cada 3 segundos quando pesquisa ativa, 10 segundos se inativa
             setInterval(() => this.atualizar_stats(), 3000);
@@ -307,6 +311,66 @@ function dashboardApp() {
                 }
             } catch (erro) {
                 console.error('Erro na requisicao:', erro);
+            }
+        },
+
+        // Gerenciamento de canais de pesquisa
+        async carregar_canais() {
+            try {
+                const response = await fetch('/api/config/channels');
+                if (response.ok) {
+                    const dados = await response.json();
+                    this.search_channels = dados.channels;
+                    this.canais_ativos = dados.canais_ativos;
+                    this.total_canais = dados.total_canais;
+                } else {
+                    console.error('Erro carregando canais:', response.status);
+                }
+            } catch (erro) {
+                console.error('Erro na requisicao:', erro);
+            }
+        },
+
+        async alternar_canal(canal) {
+            try {
+                const novo_estado = !this.search_channels[canal];
+                const response = await fetch(`/api/config/channels/${canal}?enabled=${novo_estado}`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    await this.carregar_canais();
+                    console.log(`Canal ${canal} alterado para ${novo_estado}`);
+                } else {
+                    const erro = await response.json();
+                    alert(`Erro ao alternar canal: ${erro.detail || 'Erro desconhecido'}`);
+                }
+            } catch (erro) {
+                console.error('Erro ao alternar canal:', erro);
+                alert(`Erro: ${erro.message}`);
+            }
+        },
+
+        async resetar_canais() {
+            if (!confirm('Tem certeza que deseja reabilitar TODOS os canais?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/config/channels/reset', {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    await this.carregar_canais();
+                    alert('Todos os canais foram reabilitados');
+                } else {
+                    const erro = await response.json();
+                    alert(`Erro: ${erro.detail || 'Erro desconhecido'}`);
+                }
+            } catch (erro) {
+                console.error('Erro ao resetar canais:', erro);
+                alert(`Erro: ${erro.message}`);
             }
         },
 
