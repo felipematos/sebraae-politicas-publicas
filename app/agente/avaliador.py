@@ -5,7 +5,8 @@ Calcula confidence scores usando multiplos fatores
 """
 import re
 import asyncio
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Tuple
+from app.config import settings
 
 
 # Stop words em portugues para remover ao extrair palavras-chave
@@ -155,10 +156,15 @@ def calcular_score_ponderado(
 
 
 class Avaliador:
-    """Avaliador de confianca para resultados de pesquisa"""
+    """Avaliador de confianca para resultados de pesquisa com suporte a RAG"""
 
-    def __init__(self):
-        """Inicializa o avaliador com configuracoes padroes"""
+    def __init__(self, vector_store=None):
+        """
+        Inicializa o avaliador com configuracoes padroes
+
+        Args:
+            vector_store: Instância do VectorStore para RAG (opcional)
+        """
         # Score de confiabilidade por fonte
         self.fontes_confiabilidade = {
             "perplexity": 0.95,  # Muito confiavel
@@ -173,6 +179,10 @@ class Avaliador:
 
         # Cache de avaliacoes (opcional, para evitar reavaliar)
         self.cache = {}
+
+        # VectorStore para RAG (opcional)
+        self.vector_store = vector_store
+        self.rag_enabled = vector_store is not None and settings.RAG_ENABLED
 
     def get_confiabilidade_fonte(self, nome_fonte: str) -> float:
         """
@@ -198,11 +208,123 @@ class Avaliador:
         # Default para desconhecidas
         return self.fontes_confiabilidade["unknown"]
 
+    async def buscar_contexto_rag(
+        self,
+        resultado: Dict[str, Any],
+        top_k: int = 3
+    ) -> List[Tuple[Dict[str, Any], float]]:
+        """
+        Busca resultados similares no histório usando vector store
+
+        Args:
+            resultado: Resultado atual para comparar
+            top_k: Número de resultados similares a retornar
+
+        Returns:
+            Lista de (metadados_resultado_similar, similarity_score)
+        """
+        if not self.rag_enabled:
+            return []
+
+        try:
+            # Preparar texto para busca
+            texto_busca = f"{resultado.get('titulo', '')} {resultado.get('descricao', '')}"
+
+            # Buscar no vector store
+            similares = await self.vector_store.search_resultados(
+                query=texto_busca,
+                n_results=top_k
+            )
+
+            return similares
+
+        except Exception as e:
+            print(f"Erro buscando contexto RAG: {e}")
+            return []
+
+    async def _ajustar_score_com_rag(
+        self,
+        score_base: float,
+        resultado: Dict[str, Any],
+        top_k: int = 3
+    ) -> Tuple[float, Dict[str, Any]]:
+        """
+        Ajusta score baseado em contexto RAG histórico
+
+        Lógica:
+        - Se resultado muito similar de alta qualidade existe → boost de 0.1
+        - Se resultado muito similar de baixa qualidade existe → redução de 0.15
+
+        Args:
+            score_base: Score calculado sem RAG
+            resultado: Resultado para avaliar
+            top_k: Número de resultados similares a considerar
+
+        Returns:
+            (score_ajustado, info_rag) - Tupla com score ajustado e informações RAG
+        """
+        info_rag = {
+            "rag_aplicado": False,
+            "similares_encontrados": 0,
+            "ajuste_aplicado": 0.0,
+            "motivo": "RAG desabilitado"
+        }
+
+        if not self.rag_enabled:
+            return score_base, info_rag
+
+        try:
+            # Buscar similares
+            similares = await self.buscar_contexto_rag(resultado, top_k)
+
+            if not similares:
+                info_rag["motivo"] = "Nenhum similar encontrado"
+                return score_base, info_rag
+
+            info_rag["similares_encontrados"] = len(similares)
+            info_rag["rag_aplicado"] = True
+
+            # Analisar similares encontrados
+            score_ajustado = score_base
+            ajuste = 0.0
+
+            for similar_meta, similarity in similares:
+                # Considerar apenas similares com alta similaridade
+                if similarity < settings.RAG_SIMILARITY_THRESHOLD:
+                    continue
+
+                # Score anterior do similar (se disponível)
+                score_anterior = similar_meta.get("confidence_score", 0.5)
+
+                if score_anterior > 0.75:
+                    # Resultado similar de alta qualidade → boost
+                    ajuste += 0.1
+                    info_rag["motivo"] = f"Boost por similar alta qualidade (sim={similarity:.2f})"
+
+                elif score_anterior < 0.5:
+                    # Resultado similar de baixa qualidade → redução
+                    ajuste -= 0.15
+                    info_rag["motivo"] = f"Redução por similar baixa qualidade (sim={similarity:.2f})"
+
+            # Aplicar ajuste cumulativo (máx +0.2 ou -0.3)
+            ajuste = max(-0.3, min(0.2, ajuste))
+            score_ajustado = max(0.0, min(1.0, score_base + ajuste))
+
+            info_rag["ajuste_aplicado"] = round(ajuste, 3)
+
+            return score_ajustado, info_rag
+
+        except Exception as e:
+            print(f"Erro ajustando score com RAG: {e}")
+            info_rag["motivo"] = f"Erro: {str(e)}"
+            return score_base, info_rag
+
     async def avaliar(
         self,
         resultado: Dict[str, Any],
         query: str,
-        num_ocorrencias: int = 1
+        num_ocorrencias: int = 1,
+        usar_rag: bool = False
     ) -> float:
         """
         Avalia um resultado individual e retorna confidence score
@@ -211,12 +333,13 @@ class Avaliador:
             resultado: Dicionario com titulo, descricao, url, fonte
             query: Query para avaliar relevancia
             num_ocorrencias: Numero de vezes que apareceu
+            usar_rag: Se deve usar RAG para ajustar score
 
         Returns:
             Score entre 0.0 e 1.0
         """
         # Verificar cache
-        cache_key = f"{resultado.get('url', '')}-{query}"
+        cache_key = f"{resultado.get('url', '')}-{query}-rag={usar_rag}"
         if cache_key in self.cache:
             return self.cache[cache_key]
 
@@ -237,15 +360,45 @@ class Avaliador:
             confiabilidade_fonte=confiabilidade
         )
 
+        # Aplicar ajuste com RAG se solicitado
+        if usar_rag:
+            score_final, _ = await self._ajustar_score_com_rag(score_final, resultado)
+
         # Guardar em cache
         self.cache[cache_key] = score_final
 
         return score_final
 
+    async def avaliar_com_rag(
+        self,
+        resultado: Dict[str, Any],
+        query: str,
+        num_ocorrencias: int = 1
+    ) -> Tuple[float, Dict[str, Any]]:
+        """
+        Avalia um resultado usando contexto RAG
+
+        Args:
+            resultado: Dicionario com titulo, descricao, url, fonte
+            query: Query para avaliar relevancia
+            num_ocorrencias: Numero de vezes que apareceu
+
+        Returns:
+            Tupla (score_final, info_rag)
+        """
+        # Calcular score base
+        score_base = await self.avaliar(resultado, query, num_ocorrencias, usar_rag=False)
+
+        # Ajustar com RAG
+        score_ajustado, info_rag = await self._ajustar_score_com_rag(score_base, resultado)
+
+        return score_ajustado, info_rag
+
     async def avaliar_batch(
         self,
         resultados: List[Dict[str, Any]],
-        query: str
+        query: str,
+        usar_rag: bool = False
     ) -> List[float]:
         """
         Avalia multiplos resultados em paralelo
@@ -253,17 +406,41 @@ class Avaliador:
         Args:
             resultados: Lista de resultados
             query: Query para avaliar
+            usar_rag: Se deve usar RAG para ajustar scores
 
         Returns:
             Lista de scores correspondentes aos resultados
         """
         tarefas = [
-            self.avaliar(resultado, query)
+            self.avaliar(resultado, query, usar_rag=usar_rag)
             for resultado in resultados
         ]
 
         scores = await asyncio.gather(*tarefas)
         return scores
+
+    async def avaliar_batch_com_rag(
+        self,
+        resultados: List[Dict[str, Any]],
+        query: str
+    ) -> List[Tuple[float, Dict[str, Any]]]:
+        """
+        Avalia multiplos resultados em paralelo usando RAG
+
+        Args:
+            resultados: Lista de resultados
+            query: Query para avaliar
+
+        Returns:
+            Lista de tuplas (score, info_rag)
+        """
+        tarefas = [
+            self.avaliar_com_rag(resultado, query)
+            for resultado in resultados
+        ]
+
+        resultados_rag = await asyncio.gather(*tarefas)
+        return resultados_rag
 
     def limpar_cache(self):
         """Limpa o cache de avaliacoes"""
