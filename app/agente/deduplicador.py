@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 Deduplicador de resultados de pesquisa
-Detecta e remove duplicados usando hash e similaridade
+Detecta e remove duplicados usando hash e similaridade (Jaccard e semântica)
 """
 import hashlib
 import re
-from typing import Dict, List, Any, Set
+import asyncio
+from typing import Dict, List, Any, Set, Tuple, Optional
+from app.config import settings
 
 
 def normalizar_para_hash(texto: str) -> str:
@@ -85,22 +87,27 @@ def calcular_similaridade(texto1: str, texto2: str) -> float:
 
 
 class Deduplicador:
-    """Deduplicador de resultados usando hash e similaridade"""
+    """Deduplicador de resultados usando hash, similaridade Jaccard e semântica"""
 
-    def __init__(self, threshold: float = 0.80):
+    def __init__(self, threshold: float = 0.80, vector_store=None):
         """
         Inicializa o deduplicador
 
         Args:
-            threshold: Threshold de similaridade para considerar como duplicado (0-1)
+            threshold: Threshold de similaridade Jaccard para considerar como duplicado (0-1)
+            vector_store: Instância do VectorStore para deduplicação semântica (opcional)
         """
         self.threshold = threshold
+        self.vector_store = vector_store
 
         # Set de hashes de conteudo ja vistos
         self.hashes_vistos: Dict[str, Dict[str, Any]] = {}
 
         # Contador de ocorrencias por hash (para boost de score)
         self.contador_hashes: Dict[str, int] = {}
+
+        # Flag para usar deduplicacao semantica
+        self.usar_semantica = vector_store is not None and settings.RAG_ENABLED
 
     def _extrair_conteudo_relevante(self, resultado: Dict[str, Any]) -> str:
         """
@@ -118,6 +125,105 @@ class Deduplicador:
         # Concatenar titulo e descricao para deduplicacao
         conteudo = f"{titulo} {descricao}"
         return conteudo
+
+    async def _encontrar_duplicata_semantica(
+        self,
+        resultado: Dict[str, Any]
+    ) -> Optional[Tuple[Dict[str, Any], float]]:
+        """
+        Encontra uma possível duplicata usando similaridade semântica
+
+        Args:
+            resultado: Resultado para comparar
+
+        Returns:
+            Tupla (resultado_duplicado, similarity) ou None
+        """
+        if not self.usar_semantica or not self.vector_store:
+            return None
+
+        try:
+            conteudo = self._extrair_conteudo_relevante(resultado)
+
+            # Buscar similares no vector store
+            similares = await self.vector_store.search_resultados(
+                query=conteudo,
+                n_results=3
+            )
+
+            if not similares:
+                return None
+
+            # Retornar o mais similar que ultrapassa threshold semântico
+            for similar_meta, similarity in similares:
+                if similarity >= settings.RAG_SIMILARITY_THRESHOLD_DEDUP:
+                    # Criar resultado parcial do metadado para retorno
+                    resultado_similar = {
+                        "titulo": similar_meta.get("titulo", ""),
+                        "descricao": similar_meta.get("descricao", ""),
+                        "url": similar_meta.get("url", ""),
+                        "fonte": similar_meta.get("fonte", ""),
+                        "confidence_score": similar_meta.get("confidence_score", 0.5)
+                    }
+                    return (resultado_similar, similarity)
+
+            return None
+
+        except Exception as e:
+            print(f"Erro na busca semântica de duplicatas: {e}")
+            return None
+
+    async def remover_duplicatas_semanticas(
+        self,
+        resultados: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """
+        Remove duplicatas usando similaridade semântica
+
+        Mantém o resultado de maior qualidade quando duplicatas são encontradas.
+
+        Args:
+            resultados: Lista de resultados
+
+        Returns:
+            Lista de resultados sem duplicatas semânticas
+        """
+        if not self.usar_semantica:
+            return resultados
+
+        resultados_unicos = []
+        visitados = set()
+
+        for resultado in resultados:
+            url = resultado.get("url", "")
+
+            # Skip se já processado
+            if url in visitados:
+                continue
+
+            # Buscar duplicata semântica
+            duplicata = await self._encontrar_duplicata_semantica(resultado)
+
+            if duplicata:
+                resultado_duplicado, similarity = duplicata
+
+                # Manter o resultado de maior qualidade (maior score/confidence)
+                score_atual = resultado.get("confidence_score", resultado.get("score", 0.5))
+                score_duplicado = resultado_duplicado.get("confidence_score", resultado_duplicado.get("score", 0.5))
+
+                if score_atual >= score_duplicado:
+                    resultados_unicos.append(resultado)
+                else:
+                    resultados_unicos.append(resultado_duplicado)
+
+                # Marcar ambas URLs como visitadas
+                visitados.add(url)
+                visitados.add(resultado_duplicado.get("url", ""))
+            else:
+                resultados_unicos.append(resultado)
+                visitados.add(url)
+
+        return resultados_unicos
 
     def eh_novo(self, resultado: Dict[str, Any]) -> bool:
         """
