@@ -26,15 +26,51 @@
                     </div>
                 </div>
 
-                <!-- Progress Bar -->
+                <!-- Progress Bar e Status -->
                 <div class="mt-6">
-                    <div class="flex justify-between mb-2">
-                        <span class="text-sm font-medium">Progresso de Processamento</span>
-                        <span class="text-sm font-medium" x-text="`${percentual_processamento.toFixed(0)}%`"></span>
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <span class="text-sm font-medium">Progresso de Processamento</span>
+                            <p class="text-xs text-gray-600 mt-1" x-text="status_pesquisa.mensagem"></p>
+                        </div>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
                         <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
                              :style="`width: ${percentual_processamento}%`"></div>
+                    </div>
+                    <div class="text-right mt-1 mb-3">
+                        <span class="text-sm font-medium" x-text="`${percentual_processamento.toFixed(1)}%`"></span>
+                    </div>
+
+                    <!-- Botões de Controle -->
+                    <div class="flex gap-3">
+                        <button @click="iniciar_pesquisas()"
+                                :disabled="pesquisa_iniciando || status_pesquisa.ativo"
+                                :class="pesquisa_iniciando || status_pesquisa.ativo ? 'opacity-50 cursor-not-allowed bg-green-500' : 'hover:bg-green-700 bg-green-600'"
+                                class="text-white px-4 py-2 rounded-lg font-medium text-sm transition">
+                            <span x-show="!pesquisa_iniciando && !status_pesquisa.ativo">Iniciar Pesquisas</span>
+                            <span x-show="pesquisa_iniciando">Iniciando...</span>
+                            <span x-show="!pesquisa_iniciando && status_pesquisa.ativo">Pesquisa em Andamento</span>
+                        </button>
+
+                        <button @click="pausar_pesquisas()"
+                                :disabled="!status_pesquisa.ativo"
+                                :class="!status_pesquisa.ativo ? 'opacity-50 cursor-not-allowed bg-yellow-400' : 'hover:bg-yellow-600 bg-yellow-500'"
+                                class="text-white px-4 py-2 rounded-lg font-medium text-sm transition">
+                            Pausar
+                        </button>
+
+                        <button @click="retomar_pesquisas()"
+                                :disabled="status_pesquisa.ativo"
+                                :class="status_pesquisa.ativo ? 'opacity-50 cursor-not-allowed bg-blue-400' : 'hover:bg-blue-700 bg-blue-600'"
+                                class="text-white px-4 py-2 rounded-lg font-medium text-sm transition">
+                            Retomar
+                        </button>
+
+                        <button @click="reiniciar_pesquisas()"
+                                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition">
+                            Reiniciar Tudo
+                        </button>
                     </div>
                 </div>
             </div>
@@ -51,12 +87,14 @@
 
                 <div class="bg-white rounded-lg shadow p-6">
                     <p class="text-gray-600 text-sm font-medium">Fila Pendente</p>
-                    <p class="text-3xl font-bold text-yellow-600 mt-2" x-text="stats.fila_pendente"></p>
+                    <p class="text-3xl font-bold text-yellow-600 mt-2" x-text="stats.total_pendentes"></p>
+                    <p class="text-xs text-gray-600 mt-1" x-text="`${stats.total_processando} em andamento`"></p>
                 </div>
 
                 <div class="bg-white rounded-lg shadow p-6">
-                    <p class="text-gray-600 text-sm font-medium">Processadas</p>
-                    <p class="text-3xl font-bold text-green-600 mt-2" x-text="stats.processadas"></p>
+                    <p class="text-gray-600 text-sm font-medium">Concluídas</p>
+                    <p class="text-3xl font-bold text-green-600 mt-2" x-text="stats.total_concluidas"></p>
+                    <p class="text-xs text-red-600 mt-1" x-text="`${stats.total_erros} com erro`"></p>
                 </div>
 
                 <div class="bg-white rounded-lg shadow p-6">

@@ -2,6 +2,7 @@
 """
 Aplicacao FastAPI principal
 """
+import asyncio
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -10,19 +11,64 @@ from contextlib import asynccontextmanager
 from app.config import settings, get_static_path
 from app.database import db
 from app.api import falhas, resultados, pesquisas
+from app.agente.processador import Processador
+
+
+# Variaveis globais para controle do worker
+worker_task = None
+
+
+async def worker_processador():
+    """
+    Task assincron que processa fila continuamente
+    Roda a cada intervalo (default 30 segundos)
+    """
+    processador = Processador(max_workers=3)
+    intervalo = 30  # segundos entre iteracoes
+
+    print("[WORKER] Iniciado processador de fila...")
+
+    try:
+        while True:
+            try:
+                # Processar lote pendente
+                await processador.processar_lote()
+
+                # Aguardar antes da proxima iteracao
+                await asyncio.sleep(intervalo)
+            except Exception as e:
+                print(f"[WORKER] Erro ao processar lote: {e}")
+                # Continuar processando mesmo com erros
+                await asyncio.sleep(intervalo)
+
+    except asyncio.CancelledError:
+        print("[WORKER] Processador encerrado")
+        raise
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle da aplicacao"""
+    global worker_task
+
     # Startup: Inicializar tabelas
     await db.init_tables()
     print(f"OK {settings.APP_NAME} iniciado!")
     print(f"DB {db.db_path}")
 
+    # Iniciar worker em background
+    worker_task = asyncio.create_task(worker_processador())
+
     yield
 
-    # Shutdown
+    # Shutdown: Cancelar worker
+    if worker_task:
+        worker_task.cancel()
+        try:
+            await worker_task
+        except asyncio.CancelledError:
+            pass
+
     print("Aplicacao encerrada")
 
 

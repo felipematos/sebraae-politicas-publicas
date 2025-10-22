@@ -14,9 +14,19 @@ function dashboardApp() {
             total_falhas: 50,
             fila_pendente: 0,
             processadas: 0,
-            total_resultados: 0
+            total_resultados: 0,
+            total_pendentes: 0,
+            total_processando: 0,
+            total_concluidas: 0,
+            total_erros: 0
         },
         percentual_processamento: 0,
+        status_pesquisa: {
+            ativo: false,
+            porcentagem: 0.0,
+            mensagem: "Nenhuma pesquisa em progresso"
+        },
+        pesquisa_iniciando: false,
         modal_falha_aberta: false,
         falha_selecionada: null,
         resultados_falha_selecionada: [],
@@ -27,8 +37,8 @@ function dashboardApp() {
             await this.carregar_falhas();
             await this.carregar_resultados();
             await this.atualizar_stats();
-            // Atualizar stats a cada 5 segundos
-            setInterval(() => this.atualizar_stats(), 5000);
+            // Atualizar stats a cada 3 segundos quando pesquisa ativa, 10 segundos se inativa
+            setInterval(() => this.atualizar_stats(), 3000);
         },
 
         // Carregar dados da API
@@ -62,6 +72,18 @@ function dashboardApp() {
 
         async atualizar_stats() {
             try {
+                // Atualizar status de pesquisas em tempo real
+                const res_status = await fetch('/api/pesquisas/status');
+                if (res_status.ok) {
+                    const status = await res_status.json();
+                    this.status_pesquisa = status;
+                    this.stats.total_pendentes = status.total_pendentes;
+                    this.stats.total_processando = status.total_processando;
+                    this.stats.total_concluidas = status.total_concluidas;
+                    this.stats.total_erros = status.total_erros;
+                    this.percentual_processamento = status.porcentagem;
+                }
+
                 // Atualizar falhas
                 const res_falhas = await fetch('/api/falhas');
                 if (res_falhas.ok) {
@@ -76,16 +98,127 @@ function dashboardApp() {
                     this.stats.total_resultados = resultados.length;
                 }
 
-                // Mock: fila pendente e processadas
-                this.stats.fila_pendente = Math.max(0, Math.random() * 100);
-                this.stats.processadas = Math.max(0, 100 - this.stats.fila_pendente);
-
-                // Calcular percentual
-                const total_possivel = 6000; // 50 falhas x 8 idiomas x 3 ferramentas x ~5 variacoes
-                this.percentual_processamento = (this.stats.processadas / total_possivel) * 100;
-
             } catch (erro) {
                 console.error('Erro atualizando stats:', erro);
+            }
+        },
+
+        // Iniciar pesquisas
+        async iniciar_pesquisas(falhas_ids = null, idiomas = null, ferramentas = null) {
+            if (this.pesquisa_iniciando) {
+                alert('Pesquisa já em andamento ou iniciando...');
+                return;
+            }
+
+            if (!confirm('Iniciar pesquisa em todas as falhas? Isto pode levar várias horas.')) {
+                return;
+            }
+
+            this.pesquisa_iniciando = true;
+
+            try {
+                const payload = {
+                    falhas_ids: falhas_ids,
+                    idiomas: idiomas,
+                    ferramentas: ferramentas,
+                    prioridade: 0
+                };
+
+                const response = await fetch('/api/pesquisas/iniciar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const resultado = await response.json();
+                    alert(`Pesquisa iniciada!\n\nQueries criadas: ${resultado.queries_criadas}\nTempo estimado: ${resultado.tempo_estimado_minutos} minutos`);
+
+                    // Atualizar stats imediatamente
+                    await this.atualizar_stats();
+
+                } else {
+                    const erro = await response.json();
+                    alert(`Erro ao iniciar pesquisa: ${erro.detail || 'Erro desconhecido'}`);
+                }
+            } catch (erro) {
+                console.error('Erro ao iniciar pesquisa:', erro);
+                alert(`Erro: ${erro.message}`);
+            } finally {
+                this.pesquisa_iniciando = false;
+            }
+        },
+
+        // Pausar pesquisas
+        async pausar_pesquisas() {
+            if (!confirm('Pausar pesquisas em andamento?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/pesquisas/pausar', {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    const resultado = await response.json();
+                    alert(resultado.mensagem);
+                    await this.atualizar_stats();
+                } else {
+                    const erro = await response.json();
+                    alert(`Erro: ${erro.detail || 'Erro desconhecido'}`);
+                }
+            } catch (erro) {
+                console.error('Erro ao pausar pesquisas:', erro);
+                alert(`Erro: ${erro.message}`);
+            }
+        },
+
+        // Retomar pesquisas
+        async retomar_pesquisas() {
+            try {
+                const response = await fetch('/api/pesquisas/retomar', {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    const resultado = await response.json();
+                    alert(resultado.mensagem);
+                    await this.atualizar_stats();
+                } else {
+                    const erro = await response.json();
+                    alert(`Erro: ${erro.detail || 'Erro desconhecido'}`);
+                }
+            } catch (erro) {
+                console.error('Erro ao retomar pesquisas:', erro);
+                alert(`Erro: ${erro.message}`);
+            }
+        },
+
+        // Reiniciar pesquisas
+        async reiniciar_pesquisas() {
+            if (!confirm('ATENÇÃO: Isto vai limpar TODA a fila e todos os resultados encontrados até agora!\n\nTem certeza?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/pesquisas/reiniciar', {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    const resultado = await response.json();
+                    alert(resultado.mensagem);
+                    await this.atualizar_stats();
+                } else {
+                    const erro = await response.json();
+                    alert(`Erro: ${erro.detail || 'Erro desconhecido'}`);
+                }
+            } catch (erro) {
+                console.error('Erro ao reiniciar pesquisas:', erro);
+                alert(`Erro: ${erro.message}`);
             }
         },
 

@@ -20,6 +20,8 @@ async def iniciar_pesquisa(pesquisa: PesquisaIniciar):
     Se falhas_ids nao for fornecido, pesquisa todas as 50 falhas.
     Se idiomas nao for fornecido, usa os 8 idiomas configurados.
     """
+    from app.agente.pesquisador import AgentePesquisador
+
     # IDs das falhas a pesquisar
     if pesquisa.falhas_ids:
         falhas_ids = pesquisa.falhas_ids
@@ -32,7 +34,7 @@ async def iniciar_pesquisa(pesquisa: PesquisaIniciar):
     if pesquisa.idiomas:
         idiomas = pesquisa.idiomas
     else:
-        idiomas = ["pt", "en", "es", "fr", "de", "it", "ar", "ko", "he"]
+        idiomas = ["pt", "en", "es", "fr", "de", "it", "ar", "ko"]
 
     # Ferramentas a usar
     if pesquisa.ferramentas:
@@ -40,21 +42,31 @@ async def iniciar_pesquisa(pesquisa: PesquisaIniciar):
     else:
         ferramentas = ["perplexity", "jina", "deep_research"]
 
-    # Gerar queries (por enquanto, um placeholder - sera implementado no agente)
-    num_queries = 5
-    total_queries = len(falhas_ids) * len(idiomas) * len(ferramentas) * num_queries
+    # Criar agente pesquisador
+    agente = AgentePesquisador()
 
-    # Criar entradas na fila (AQUI sera chamado AgentePesquisador.popular_fila())
-    # Por enquanto, apenas retornamos um job ID
+    # Popular fila de pesquisas
+    try:
+        total_queries = await agente.popular_fila(
+            falhas_ids=falhas_ids,
+            idiomas_filtro=idiomas,
+            ferramentas_filtro=ferramentas
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao popular fila: {str(e)}"
+        )
+
+    # Calcular tempo estimado (5 segundos por query com rate limiting)
+    tempo_estimado = max(1, (total_queries * 5) // 60)
     job_id = str(uuid.uuid4())
-
-    tempo_estimado = (total_queries * 5) // 60  # 5 segundos por query (com rate limiting)
 
     return {
         "job_id": job_id,
-        "status": "pendente",
+        "status": "iniciada",
         "queries_criadas": total_queries,
-        "tempo_estimado_minutos": max(1, tempo_estimado)
+        "tempo_estimado_minutos": tempo_estimado
     }
 
 
@@ -97,49 +109,133 @@ async def status_pesquisa():
     Obter status atual do processamento de pesquisas
     """
     # Contar pesquisas em cada estado
-    pendentes = await db.fetch_one(
-        "SELECT COUNT(*) as total FROM fila_pesquisas WHERE status = 'pendente'"
-    )
-    processando = await db.fetch_one(
-        "SELECT COUNT(*) as total FROM fila_pesquisas WHERE status = 'processando'"
-    )
-    concluidas = await db.fetch_one(
-        "SELECT COUNT(*) as total FROM historico_pesquisas WHERE status = 'concluido'"
-    )
-    erros = await db.fetch_one(
-        "SELECT COUNT(*) as total FROM historico_pesquisas WHERE status = 'erro'"
-    )
+    try:
+        pendentes = await db.fetch_one(
+            "SELECT COUNT(*) as total FROM fila_pesquisas WHERE status = 'pendente'"
+        )
+        processando = await db.fetch_one(
+            "SELECT COUNT(*) as total FROM fila_pesquisas WHERE status = 'processando'"
+        )
+        completas = await db.fetch_one(
+            "SELECT COUNT(*) as total FROM fila_pesquisas WHERE status = 'completa'"
+        )
+        erros_fila = await db.fetch_one(
+            "SELECT COUNT(*) as total FROM fila_pesquisas WHERE status = 'erro'"
+        )
 
-    total_pendentes = pendentes["total"]
-    total_processando = processando["total"]
-    total_concluidas = concluidas["total"]
-    total_erros = erros["total"]
-    total_tarefas = total_pendentes + total_processando + total_concluidas
+        # Contar resultados encontrados
+        resultados = await db.fetch_one(
+            "SELECT COUNT(*) as total FROM resultados_pesquisa"
+        )
 
-    if total_tarefas == 0:
-        porcentagem = 0.0
-    else:
-        porcentagem = (total_concluidas / total_tarefas) * 100
+        total_pendentes = pendentes["total"] if pendentes else 0
+        total_processando = processando["total"] if processando else 0
+        total_completas = completas["total"] if completas else 0
+        total_erros = erros_fila["total"] if erros_fila else 0
+        total_resultados = resultados["total"] if resultados else 0
+        total_tarefas = total_pendentes + total_processando + total_completas + total_erros
 
-    # Determinar mensagem e se ainda esta ativo
-    ativo = total_pendentes + total_processando > 0
+        if total_tarefas == 0:
+            porcentagem = 0.0
+        else:
+            porcentagem = ((total_completas + total_erros) / total_tarefas) * 100
 
-    if ativo:
-        mensagem = f"Processando: {total_processando} em andamento, {total_pendentes} pendentes"
-    elif total_tarefas > 0:
-        mensagem = f"Concluido: {total_concluidas} resultados, {total_erros} erros"
-    else:
-        mensagem = "Nenhuma pesquisa em progresso"
+        # Determinar mensagem e se ainda esta ativo
+        ativo = total_pendentes + total_processando > 0
 
-    return {
-        "ativo": ativo,
-        "porcentagem": round(porcentagem, 1),
-        "mensagem": mensagem,
-        "total_pendentes": total_pendentes,
-        "total_processando": total_processando,
-        "total_concluidas": total_concluidas,
-        "total_erros": total_erros
-    }
+        if ativo:
+            mensagem = f"Processando: {total_processando} em andamento, {total_pendentes} na fila, {total_resultados} resultados encontrados"
+        elif total_tarefas > 0:
+            mensagem = f"Concluído: {total_resultados} resultados encontrados, {total_erros} erros"
+        else:
+            mensagem = "Nenhuma pesquisa em progresso"
+
+        return {
+            "ativo": ativo,
+            "porcentagem": round(porcentagem, 1),
+            "mensagem": mensagem,
+            "total_pendentes": total_pendentes,
+            "total_processando": total_processando,
+            "total_concluidas": total_completas,
+            "total_erros": total_erros
+        }
+    except Exception as e:
+        # Se erro na consulta, retornar valores padrao
+        return {
+            "ativo": False,
+            "porcentagem": 0.0,
+            "mensagem": f"Erro ao obter status: {str(e)}",
+            "total_pendentes": 0,
+            "total_processando": 0,
+            "total_concluidas": 0,
+            "total_erros": 0
+        }
+
+
+@router.post("/pesquisas/pausar")
+async def pausar_pesquisa():
+    """
+    Pausar pesquisas em andamento (marca como 'pendente' novamente)
+    """
+    try:
+        # Atualizar todos os itens 'processando' de volta para 'pendente'
+        await db.execute(
+            "UPDATE fila_pesquisas SET status = 'pendente' WHERE status = 'processando'"
+        )
+        return {
+            "status": "sucesso",
+            "mensagem": "Pesquisas pausadas com sucesso"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao pausar pesquisas: {str(e)}"
+        )
+
+
+@router.post("/pesquisas/retomar")
+async def retomar_pesquisa():
+    """
+    Retomar pesquisas pausadas (o worker as processará novamente)
+    """
+    try:
+        # Contar items pendentes
+        pendentes = await db.fetch_one(
+            "SELECT COUNT(*) as total FROM fila_pesquisas WHERE status = 'pendente'"
+        )
+        return {
+            "status": "sucesso",
+            "mensagem": f"Pesquisas retomadas. {pendentes['total']} itens na fila.",
+            "total_pendentes": pendentes['total']
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao retomar pesquisas: {str(e)}"
+        )
+
+
+@router.post("/pesquisas/reiniciar")
+async def reiniciar_pesquisas():
+    """
+    Reiniciar pesquisas (limpa fila e resultados)
+    """
+    try:
+        # Limpar fila
+        await db.execute("DELETE FROM fila_pesquisas")
+
+        # Limpar resultados
+        await db.execute("DELETE FROM resultados_pesquisa")
+
+        return {
+            "status": "sucesso",
+            "mensagem": "Pesquisas reiniciadas. Fila e resultados limpos."
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao reiniciar pesquisas: {str(e)}"
+        )
 
 
 @router.get("/pesquisas/historico")
