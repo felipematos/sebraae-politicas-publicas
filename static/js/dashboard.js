@@ -27,6 +27,7 @@ function dashboardApp() {
             mensagem: "Nenhuma pesquisa em progresso"
         },
         pesquisa_iniciando: false,
+        pesquisa_pausada: false,
         modal_falha_aberta: false,
         falha_selecionada: null,
         resultados_falha_selecionada: [],
@@ -130,6 +131,7 @@ function dashboardApp() {
             }
 
             this.pesquisa_iniciando = true;
+            this.pesquisa_pausada = false;
 
             try {
                 const payload = {
@@ -180,6 +182,7 @@ function dashboardApp() {
                 if (response.ok) {
                     const resultado = await response.json();
                     alert(resultado.mensagem);
+                    this.pesquisa_pausada = true;
                     await this.atualizar_stats();
                 } else {
                     const erro = await response.json();
@@ -201,6 +204,7 @@ function dashboardApp() {
                 if (response.ok) {
                     const resultado = await response.json();
                     alert(resultado.mensagem);
+                    this.pesquisa_pausada = false;
                     await this.atualizar_stats();
                 } else {
                     const erro = await response.json();
@@ -209,6 +213,15 @@ function dashboardApp() {
             } catch (erro) {
                 console.error('Erro ao retomar pesquisas:', erro);
                 alert(`Erro: ${erro.message}`);
+            }
+        },
+
+        // Alternar pausa/retoma
+        async alternar_pausa_retoma() {
+            if (this.pesquisa_pausada) {
+                await this.retomar_pesquisas();
+            } else {
+                await this.pausar_pesquisas();
             }
         },
 

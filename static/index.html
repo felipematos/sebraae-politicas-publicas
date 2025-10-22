@@ -53,18 +53,12 @@
                             <span x-show="!pesquisa_iniciando && status_pesquisa.ativo">Pesquisa em Andamento</span>
                         </button>
 
-                        <button @click="pausar_pesquisas()"
-                                :disabled="!status_pesquisa.ativo"
-                                :class="!status_pesquisa.ativo ? 'opacity-50 cursor-not-allowed bg-yellow-400' : 'hover:bg-yellow-600 bg-yellow-500'"
+                        <button @click="alternar_pausa_retoma()"
+                                :disabled="!status_pesquisa.ativo && !pesquisa_pausada"
+                                :class="(!status_pesquisa.ativo && !pesquisa_pausada) ? 'opacity-50 cursor-not-allowed bg-gray-400' : pesquisa_pausada ? 'hover:bg-blue-700 bg-blue-600' : 'hover:bg-yellow-600 bg-yellow-500'"
                                 class="text-white px-4 py-2 rounded-lg font-medium text-sm transition">
-                            Pausar
-                        </button>
-
-                        <button @click="retomar_pesquisas()"
-                                :disabled="status_pesquisa.ativo"
-                                :class="status_pesquisa.ativo ? 'opacity-50 cursor-not-allowed bg-blue-400' : 'hover:bg-blue-700 bg-blue-600'"
-                                class="text-white px-4 py-2 rounded-lg font-medium text-sm transition">
-                            Retomar
+                            <span x-show="pesquisa_pausada">Retomar</span>
+                            <span x-show="!pesquisa_pausada">Pausar</span>
                         </button>
 
                         <button @click="reiniciar_pesquisas()"
