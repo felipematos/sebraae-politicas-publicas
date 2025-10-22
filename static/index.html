@@ -121,6 +121,11 @@
                             class="py-4 px-1 font-medium text-sm border-b-2 border-transparent">
                         Ferramentas de Pesquisa
                     </button>
+                    <button @click="aba_ativa = 'health'"
+                            :class="aba_ativa === 'health' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'"
+                            class="py-4 px-1 font-medium text-sm border-b-2 border-transparent">
+                        Health Check
+                    </button>
                 </nav>
             </div>
 
@@ -249,6 +254,75 @@
                         <p><strong style="color: #1f2937;">Fontes:</strong> Academia + Web</p>
                         <p><strong style="color: #1f2937;">Confiabilidade:</strong> Muito Alta</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- Aba Health Check -->
+            <div x-show="aba_ativa === 'health'" class="space-y-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold" style="color: #1f2937;">Verificação de Saúde do Sistema</h2>
+                    <button @click="executar_health_check()"
+                            :disabled="health_check_executando"
+                            :class="health_check_executando ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'"
+                            class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium">
+                        <span x-show="!health_check_executando">Executar Verificação</span>
+                        <span x-show="health_check_executando">Executando...</span>
+                    </button>
+                </div>
+
+                <!-- Resumo Geral -->
+                <div x-show="health_check_resultado" class="bg-white rounded-lg shadow p-6 mb-4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="text-center">
+                            <p class="text-sm font-medium" style="color: #374151;">Status Geral</p>
+                            <p :class="health_check_resultado?.status_geral === 'ok' ? 'text-green-700' : health_check_resultado?.status_geral === 'warning' ? 'text-yellow-700' : 'text-red-700'"
+                               class="text-2xl font-bold mt-2 capitalize" x-text="health_check_resultado?.status_geral"></p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm font-medium" style="color: #374151;">Sucessos</p>
+                            <p class="text-2xl font-bold text-green-700 mt-2" x-text="health_check_resultado?.resumo?.sucesso"></p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm font-medium" style="color: #374151;">Avisos</p>
+                            <p class="text-2xl font-bold text-yellow-700 mt-2" x-text="health_check_resultado?.resumo?.avisos"></p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm font-medium" style="color: #374151;">Erros</p>
+                            <p class="text-2xl font-bold text-red-700 mt-2" x-text="health_check_resultado?.resumo?.erros"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detalhes dos Testes -->
+                <div x-show="health_check_resultado" class="space-y-3">
+                    <template x-for="teste in health_check_resultado?.testes" :key="teste.servico">
+                        <div class="bg-white rounded-lg shadow p-4 border-l-4"
+                             :class="teste.status === 'ok' ? 'border-l-green-500' : teste.status === 'warning' ? 'border-l-yellow-500' : 'border-l-red-500'">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <h3 class="font-bold text-lg" style="color: #1f2937;" x-text="teste.servico"></h3>
+                                    <p style="color: #374151;" x-text="teste.mensagem"></p>
+                                </div>
+                                <span :class="teste.status === 'ok' ? 'bg-green-100 text-green-800' : teste.status === 'warning' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'"
+                                      class="px-3 py-1 rounded-full text-sm font-medium capitalize" x-text="teste.status"></span>
+                            </div>
+                            <p class="text-sm" style="color: #4b5563;">
+                                <strong style="color: #1f2937;">Detalhes:</strong>
+                                <span x-text="teste.detalhes"></span>
+                            </p>
+                            <p class="text-xs text-gray-500 mt-2" x-text="`Testado em: ${new Date(teste.tempo_teste).toLocaleString('pt-BR')}`"></p>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Mensagem quando não executado -->
+                <div x-show="!health_check_resultado" class="bg-white rounded-lg shadow p-8 text-center">
+                    <p style="color: #374151;" class="text-lg">
+                        Clique em "Executar Verificação" para testar a saúde de todos os serviços do sistema.
+                    </p>
+                    <p style="color: #6b7280;" class="text-sm mt-2">
+                        Os testes incluem: Database, Perplexity AI, Jina AI e Deep Research.
+                    </p>
                 </div>
             </div>
         </main>

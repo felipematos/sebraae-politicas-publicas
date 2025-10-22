@@ -31,6 +31,8 @@ function dashboardApp() {
         falha_selecionada: null,
         resultados_falha_selecionada: [],
         filtro_score_min: 0.5,
+        health_check_executando: false,
+        health_check_resultado: null,
 
         // Inicializacao
         async init() {
@@ -219,6 +221,38 @@ function dashboardApp() {
             } catch (erro) {
                 console.error('Erro ao reiniciar pesquisas:', erro);
                 alert(`Erro: ${erro.message}`);
+            }
+        },
+
+        // Health Check
+        async executar_health_check() {
+            if (this.health_check_executando) {
+                return;
+            }
+
+            this.health_check_executando = true;
+            this.health_check_resultado = null;
+
+            try {
+                const response = await fetch('/api/health/check', {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    const resultado = await response.json();
+                    this.health_check_resultado = resultado;
+
+                    // Mostrar resumo no console
+                    console.log('Health Check Resultado:', resultado);
+
+                } else {
+                    alert('Erro ao executar health check');
+                }
+            } catch (erro) {
+                console.error('Erro ao executar health check:', erro);
+                alert(`Erro: ${erro.message}`);
+            } finally {
+                this.health_check_executando = false;
             }
         },
 
