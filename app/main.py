@@ -3,15 +3,18 @@
 Aplicacao FastAPI principal
 """
 import asyncio
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 
-from app.config import settings, get_static_path
+from app.config import settings, get_static_path, get_chroma_path
 from app.database import db
 from app.api import falhas, resultados, pesquisas, health_check, config, vector_search
 from app.agente.processador import Processador
+from app.vector.vector_store import get_vector_store
+from app.vector.embeddings import EmbeddingClient
 
 
 # Variaveis globais para controle do worker
@@ -55,6 +58,16 @@ async def lifespan(app: FastAPI):
     await db.init_tables()
     print(f"OK {settings.APP_NAME} iniciado!")
     print(f"DB {db.db_path}")
+
+    # Inicializar vector store se habilitado
+    if settings.RAG_ENABLED or settings.USAR_VECTOR_DB:
+        try:
+            embedding_client = EmbeddingClient(api_key=settings.OPENAI_API_KEY)
+            persist_path = get_chroma_path()
+            await get_vector_store(persist_path=persist_path, embedding_client=embedding_client)
+            print(f"✓ Vector Store inicializado em {persist_path}")
+        except Exception as e:
+            print(f"⚠ Aviso: Vector Store não inicializado: {e}")
 
     # Iniciar worker em background
     worker_task = asyncio.create_task(worker_processador())
