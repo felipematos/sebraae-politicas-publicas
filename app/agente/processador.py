@@ -216,8 +216,11 @@ class Processador:
         """
         try:
             # Calcular hash
-            conteudo = f"{resultado.get('titulo', '')} {resultado.get('descricao', '')}"
-            hash_conteudo = gerar_hash_conteudo(conteudo)
+            hash_conteudo = gerar_hash_conteudo(
+                titulo=resultado.get('titulo', ''),
+                descricao=resultado.get('descricao', ''),
+                fonte=resultado.get('url', '')
+            )
 
             # Preparar para inserir
             dados = {

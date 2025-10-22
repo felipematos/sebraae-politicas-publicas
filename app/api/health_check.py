@@ -27,11 +27,11 @@ class HealthChecker:
         try:
             client = PerplexityClient(settings.PERPLEXITY_API_KEY)
 
-            # Fazer uma pesquisa simples
+            # Fazer uma pesquisa com mais contexto para melhor resultado
             resultado = await client.pesquisar(
-                query="Qual é a capital da França?",
+                query="políticas públicas educação inovação Brasil",
                 idioma="pt",
-                max_resultados=1
+                max_resultados=3
             )
 
             if resultado and len(resultado) > 0:
@@ -62,31 +62,65 @@ class HealthChecker:
     async def test_jina(self) -> Dict[str, Any]:
         """Testa Jina API"""
         try:
-            client = JinaClient(settings.JINA_API_KEY)
+            import httpx
+            from urllib.parse import quote
 
-            # Fazer uma busca simples
-            resultado = await client.search_web(
-                query="python programming",
-                idioma="en",
-                max_resultados=3
-            )
+            # Testar diretamente para diagnosticar melhor
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                search_query = "technology news"
+                encoded_query = quote(search_query)
 
-            if resultado and len(resultado) > 0:
-                return {
-                    "status": "ok",
-                    "servico": "Jina AI",
-                    "mensagem": "Jina API respondendo normalmente",
-                    "detalhes": f"Retornou {len(resultado)} resultado(s)",
-                    "tempo_teste": datetime.now().isoformat()
-                }
-            else:
-                return {
-                    "status": "warning",
-                    "servico": "Jina AI",
-                    "mensagem": "Jina respondeu mas sem resultados",
-                    "detalhes": "API retornou vazio",
-                    "tempo_teste": datetime.now().isoformat()
-                }
+                response = await client.get(
+                    f"https://s.jina.ai/{encoded_query}",
+                    headers={"Authorization": f"Bearer {settings.JINA_API_KEY}"}
+                )
+
+                if response.status_code == 402:
+                    return {
+                        "status": "error",
+                        "servico": "Jina AI",
+                        "mensagem": "Jina API - Saldo insuficiente",
+                        "detalhes": "Conta sem créditos. Por favor recarregue a conta.",
+                        "tempo_teste": datetime.now().isoformat()
+                    }
+                elif response.status_code == 200:
+                    # Contar resultados na resposta
+                    try:
+                        data = response.json()
+                        items = data.get("results", []) or data.get("data", []) or []
+                        if items:
+                            return {
+                                "status": "ok",
+                                "servico": "Jina AI",
+                                "mensagem": "Jina API respondendo normalmente",
+                                "detalhes": f"Retornou {len(items)} resultado(s)",
+                                "tempo_teste": datetime.now().isoformat()
+                            }
+                        else:
+                            return {
+                                "status": "warning",
+                                "servico": "Jina AI",
+                                "mensagem": "Jina respondeu mas sem resultados",
+                                "detalhes": "API retornou estrutura vazia",
+                                "tempo_teste": datetime.now().isoformat()
+                            }
+                    except:
+                        return {
+                            "status": "warning",
+                            "servico": "Jina AI",
+                            "mensagem": "Jina respondeu com formato inesperado",
+                            "detalhes": "Não foi possível parsear resposta",
+                            "tempo_teste": datetime.now().isoformat()
+                        }
+                else:
+                    return {
+                        "status": "error",
+                        "servico": "Jina AI",
+                        "mensagem": f"Jina API retornou erro {response.status_code}",
+                        "detalhes": response.text[:100],
+                        "tempo_teste": datetime.now().isoformat()
+                    }
+
         except Exception as e:
             return {
                 "status": "error",
