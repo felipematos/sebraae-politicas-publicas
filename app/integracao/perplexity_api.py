@@ -13,7 +13,7 @@ class PerplexityClient:
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.base_url = "https://api.perplexity.ai"
-        self.model = "pplx-7b-online"
+        self.model = "sonar"  # Updated from deprecated pplx-7b-online
         self.timeout = httpx.Timeout(60.0)
 
     async def pesquisar(

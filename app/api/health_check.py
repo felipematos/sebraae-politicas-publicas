@@ -104,8 +104,8 @@ class HealthChecker:
             # Teste básico de inicialização
             resultado = await client.pesquisar(
                 query="machine learning applications",
-                fontes="web",
-                max_resultados=2
+                sources="web",
+                num_results=2
             )
 
             if resultado and len(resultado) > 0:
