@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Pesquisa de Politicas Publicas Sebrae</title>
+    <script defer src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="bg-gray-50 text-gray-900">
+    <div x-data="dashboardApp()" class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-3xl font-bold text-blue-600">Sebrae - Pesquisa de Politicas Publicas</h1>
+                        <p class="text-gray-600 mt-1">Identificacao de Falhas de Mercado e Solucoes</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-medium text-gray-600">Status do Sistema</p>
+                        <p class="text-lg font-bold" :class="ativo ? 'text-green-600' : 'text-red-600'">
+                            <span x-text="ativo ? 'Ativo' : 'Inativo'"></span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="mt-6">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-sm font-medium">Progresso de Processamento</span>
+                        <span class="text-sm font-medium" x-text="`${percentual_processamento.toFixed(0)}%`"></span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                             :style="`width: ${percentual_processamento}%`"></div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <p class="text-gray-600 text-sm font-medium">Total de Falhas</p>
+                    <p class="text-3xl font-bold text-blue-600 mt-2" x-text="stats.total_falhas"></p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <p class="text-gray-600 text-sm font-medium">Fila Pendente</p>
+                    <p class="text-3xl font-bold text-yellow-600 mt-2" x-text="stats.fila_pendente"></p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <p class="text-gray-600 text-sm font-medium">Processadas</p>
+                    <p class="text-3xl font-bold text-green-600 mt-2" x-text="stats.processadas"></p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <p class="text-gray-600 text-sm font-medium">Resultados Encontrados</p>
+                    <p class="text-3xl font-bold text-purple-600 mt-2" x-text="stats.total_resultados"></p>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="mb-6 border-b border-gray-200">
+                <nav class="flex space-x-8">
+                    <button @click="aba_ativa = 'falhas'"
+                            :class="aba_ativa === 'falhas' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'"
+                            class="py-4 px-1 font-medium text-sm border-b-2 border-transparent">
+                        Falhas de Mercado
+                    </button>
+                    <button @click="aba_ativa = 'resultados'"
+                            :class="aba_ativa === 'resultados' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'"
+                            class="py-4 px-1 font-medium text-sm border-b-2 border-transparent">
+                        Resultados
+                    </button>
+                    <button @click="aba_ativa = 'ferramentas'"
+                            :class="aba_ativa === 'ferramentas' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'"
+                            class="py-4 px-1 font-medium text-sm border-b-2 border-transparent">
+                        Ferramentas de Pesquisa
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Aba Falhas -->
+            <div x-show="aba_ativa === 'falhas'" class="space-y-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">Falhas de Mercado Mapeadas</h2>
+                    <button @click="carregar_falhas()"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
+                        Atualizar
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-lg shadow overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-100 border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">ID</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Titulo</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Pilar</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Resultados</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Score Medio</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Acoes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="falha in falhas" :key="falha.id">
+                                <tr class="border-b border-gray-200 hover:bg-gray-50">
+                                    <td class="px-6 py-4 text-sm" x-text="falha.id"></td>
+                                    <td class="px-6 py-4 text-sm font-medium" x-text="falha.titulo"></td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                                              x-text="falha.pilar"></span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm" x-text="falha.total_resultados || 0"></td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <div class="flex items-center space-x-2">
+                                            <div class="w-24 bg-gray-200 rounded-full h-2">
+                                                <div class="bg-green-600 h-2 rounded-full"
+                                                     :style="`width: ${(falha.confidence_medio || 0) * 100}%`"></div>
+                                            </div>
+                                            <span x-text="`${(falha.confidence_medio || 0).toFixed(2)}`"></span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <button @click="ver_detalhes_falha(falha.id)"
+                                                class="text-blue-600 hover:text-blue-900 font-medium">
+                                            Ver Detalhes
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Aba Resultados -->
+            <div x-show="aba_ativa === 'resultados'" class="space-y-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">Resultados de Pesquisa</h2>
+                    <div class="flex space-x-2">
+                        <input type="number" x-model="filtro_score_min" placeholder="Score minimo"
+                               class="px-3 py-2 border border-gray-300 rounded-lg">
+                        <button @click="carregar_resultados()"
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
+                            Filtrar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4">
+                    <template x-for="resultado in resultados" :key="resultado.id">
+                        <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h3 class="text-lg font-bold" x-text="resultado.titulo"></h3>
+                                    <p class="text-sm text-gray-600" x-text="resultado.fonte_url"></p>
+                                </div>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
+                                      x-text="`${(resultado.confidence_score * 100).toFixed(0)}%`"></span>
+                            </div>
+                            <p class="text-gray-700 mb-4" x-text="resultado.descricao"></p>
+                            <div class="flex justify-between items-center text-sm text-gray-600">
+                                <div class="space-x-4">
+                                    <span x-text="`Idioma: ${resultado.idioma}`"></span>
+                                    <span x-text="`Ferramenta: ${resultado.ferramenta_origem}`"></span>
+                                </div>
+                                <button @click="deletar_resultado(resultado.id)"
+                                        class="text-red-600 hover:text-red-900 font-medium">
+                                    Deletar
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Aba Ferramentas -->
+            <div x-show="aba_ativa === 'ferramentas'" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-bold mb-2">Perplexity AI</h3>
+                    <p class="text-gray-600 mb-4">Chat com busca online para pesquisa de politicas e tendencias</p>
+                    <div class="space-y-2 text-sm">
+                        <p><strong>Status:</strong> <span class="text-green-600">Ativo</span></p>
+                        <p><strong>Modelo:</strong> pplx-7b-online</p>
+                        <p><strong>Capacidade:</strong> Pesquisa Web + Analise</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-bold mb-2">Jina AI</h3>
+                    <p class="text-gray-600 mb-4">Busca web e extracao de conteudo de paginas</p>
+                    <div class="space-y-2 text-sm">
+                        <p><strong>Status:</strong> <span class="text-green-600">Ativo</span></p>
+                        <p><strong>Capacidade:</strong> Busca + Extracao de Conteudo</p>
+                        <p><strong>Precisao:</strong> Alta</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-bold mb-2">Deep Research</h3>
+                    <p class="text-gray-600 mb-4">Pesquisa profunda em fontes academicas e confiables</p>
+                    <div class="space-y-2 text-sm">
+                        <p><strong>Status:</strong> <span class="text-green-600">Ativo</span></p>
+                        <p><strong>Fontes:</strong> Academia + Web</p>
+                        <p><strong>Confiabilidade:</strong> Muito Alta</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Modal Detalhes Falha -->
+        <div x-show="modal_falha_aberta" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+             @click="modal_falha_aberta = false">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4" @click.stop>
+                <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                    <h2 class="text-2xl font-bold">Detalhes da Falha</h2>
+                    <button @click="modal_falha_aberta = false" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="p-6 space-y-4">
+                    <div>
+                        <h3 class="text-lg font-bold" x-text="falha_selecionada?.titulo"></h3>
+                        <p class="text-gray-600" x-text="falha_selecionada?.descricao"></p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Pilar</p>
+                            <p class="text-lg font-bold" x-text="falha_selecionada?.pilar"></p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Dica de Busca</p>
+                            <p class="text-lg" x-text="falha_selecionada?.dica_busca"></p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold mb-2">Resultados Encontrados</h4>
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                            <template x-for="resultado in resultados_falha_selecionada" :key="resultado.id">
+                                <div class="bg-gray-50 p-3 rounded border border-gray-200">
+                                    <p class="font-medium" x-text="resultado.titulo"></p>
+                                    <p class="text-sm text-gray-600" x-text="resultado.descricao"></p>
+                                    <div class="flex justify-between items-center mt-2 text-sm">
+                                        <span class="text-gray-600" x-text="`Score: ${(resultado.confidence_score * 100).toFixed(0)}%`"></span>
+                                        <span class="text-gray-600" x-text="resultado.ferramenta_origem"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 p-6 border-t border-gray-200">
+                    <button @click="modal_falha_aberta = false"
+                            class="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
