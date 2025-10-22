@@ -5,12 +5,15 @@ Carrega variaveis de ambiente do arquivo .env
 """
 import os
 from pathlib import Path
+from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 from typing import Optional
 
 
 class Settings(BaseSettings):
     """Configuracoes globais da aplicacao"""
+
+    model_config = ConfigDict(env_file=".env", case_sensitive=True)
 
     # Ambiente
     ENV: str = "development"
@@ -46,11 +49,6 @@ class Settings(BaseSettings):
 
     # Ferramentas de pesquisa
     FERRAMENTAS: list[str] = ["perplexity", "jina", "deep_research"]
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
 
 
 # Instancia global de configuracoes
