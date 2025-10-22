@@ -75,6 +75,8 @@ CREATE TABLE falhas_mercado (
 - SQLite 3.x
 - Jina AI
 - Perplexity AI
+- Tavily API
+- Serper API
 - Claude Code
 - Claude Chat
 - Kibo UI components (based on Shadcn)

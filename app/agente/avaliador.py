@@ -268,3 +268,100 @@ class Avaliador:
     def limpar_cache(self):
         """Limpa o cache de avaliacoes"""
         self.cache = {}
+
+    async def avaliar_qualidade_conjunto(
+        self,
+        resultados: List[Dict[str, Any]],
+        query: str
+    ) -> Dict[str, Any]:
+        """
+        Avalia a qualidade geral de um conjunto de resultados
+        Usa heurísticas inteligentes para decidir se precisa continuar buscando
+
+        Args:
+            resultados: Lista de resultados acumulados
+            query: Query da pesquisa
+
+        Returns:
+            Dicionário com:
+            - qualidade_geral: Score 0-1 da qualidade geral
+            - confianca: Nível de confiança nos resultados
+            - diversidade: Score de diversidade das fontes
+            - recomendacao: "parar", "continuar" ou "talvez"
+            - motivo: Explicação da recomendação
+        """
+        if not resultados:
+            return {
+                "qualidade_geral": 0.0,
+                "confianca": 0.0,
+                "diversidade": 0.0,
+                "recomendacao": "continuar",
+                "motivo": "Nenhum resultado encontrado ainda"
+            }
+
+        # Avaliar todos os resultados
+        scores = await self.avaliar_batch(resultados, query)
+
+        # Calcular métricas
+        qualidade_geral = sum(scores) / len(scores) if scores else 0.0
+        melhor_score = max(scores) if scores else 0.0
+        piores_scores = sorted(scores)[:max(1, len(scores)//3)]
+        media_piores = sum(piores_scores) / len(piores_scores)
+
+        # Diversidade de fontes
+        fontes = [r.get("fonte", "unknown") for r in resultados]
+        fontes_unicas = len(set(fontes))
+        diversidade = min(1.0, fontes_unicas / 5.0)  # Max 5 fontes é 100% diversidade
+
+        # Confiança: baseada em qualidade geral + consistência
+        # Se todos os scores são altos e altos, alta confiança
+        # Se há muito spread, baixa confiança
+        score_spread = max(scores) - min(scores) if scores else 0.0
+        consistencia = 1.0 - min(1.0, score_spread)  # Menos spread = mais consistência
+        confianca = (qualidade_geral * 0.7) + (consistencia * 0.3)
+
+        # Lógica inteligente para decisão
+        motivos = []
+        recomendacao = "continuar"
+
+        if qualidade_geral >= 0.75:
+            motivos.append("Qualidade geral excelente")
+            if confianca >= 0.70 and diversidade >= 0.6:
+                recomendacao = "parar"
+                motivos.append("Confiança e diversidade adequadas")
+            else:
+                recomendacao = "talvez"
+                if diversidade < 0.6:
+                    motivos.append("Diversidade de fontes ainda limitada")
+        elif qualidade_geral >= 0.60:
+            motivos.append("Qualidade razoável")
+            if confianca >= 0.75 and diversidade >= 0.8:
+                recomendacao = "talvez"
+                motivos.append("Resultados consistentes mas qualidade poderia melhorar")
+            else:
+                recomendacao = "continuar"
+        else:
+            motivos.append(f"Qualidade baixa ({qualidade_geral:.2f})")
+            recomendacao = "continuar"
+
+        # Verificação de redundância: se muitos resultados similares, pode parar antes
+        duplicatas = len(resultados) - len(set(r.get("url", "") for r in resultados))
+        if duplicatas > len(resultados) * 0.5:
+            motivos.append("Alta redundância entre resultados")
+            if recomendacao == "continuar" and qualidade_geral >= 0.50:
+                recomendacao = "talvez"
+
+        motivo_final = " | ".join(motivos) if motivos else "Avaliação padrão"
+
+        return {
+            "qualidade_geral": round(qualidade_geral, 3),
+            "confianca": round(confianca, 3),
+            "diversidade": round(diversidade, 3),
+            "consistencia": round(consistencia, 3),
+            "num_resultados": len(resultados),
+            "fontes_unicas": fontes_unicas,
+            "recomendacao": recomendacao,
+            "motivo": motivo_final,
+            "melhor_score": round(melhor_score, 3),
+            "media_piores": round(media_piores, 3)
+        }

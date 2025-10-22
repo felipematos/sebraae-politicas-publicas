@@ -166,12 +166,23 @@ class Processador:
             return False
 
         try:
-            # Executar pesquisa
-            resultados = await self.agente_pesquisador.executar_pesquisa(
+            # Executar pesquisa adaptativa (que também funciona com busca tradicional se desativada)
+            resposta_pesquisa = await self.agente_pesquisador.executar_pesquisa_adaptativa(
                 query=entrada["query"],
                 idioma=entrada["idioma"],
                 ferramentas=[entrada["ferramenta"]]
             )
+
+            # Extrair resultados da resposta
+            resultados = resposta_pesquisa.get("resultados", [])
+
+            # Log dos metrics da pesquisa adaptativa
+            if resposta_pesquisa.get("modo") == "adaptativo":
+                print(f"\n[PROCESSADOR] Entrada {entrada['id']}: {resposta_pesquisa.get('num_buscas', 0)} buscas, "
+                      f"qualidade={resposta_pesquisa.get('qualidade', 0):.3f}, "
+                      f"confianca={resposta_pesquisa.get('confianca', 0):.3f}, "
+                      f"diversidade={resposta_pesquisa.get('diversidade', 0):.3f}")
+                print(f"[PROCESSADOR] Motivo da parada: {resposta_pesquisa.get('motivo_parada', 'desconhecido')}")
 
             # Avaliar e processar resultados
             resultados_processados = []

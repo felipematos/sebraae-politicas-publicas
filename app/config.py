@@ -53,6 +53,12 @@ class Settings(BaseSettings):
     MIN_CONFIDENCE_THRESHOLD: float = 0.3
     QUERIES_PER_FALHA: int = 5
 
+    # Busca Adaptativa (inteligente com LLM)
+    MIN_BUSCAS_POR_FALHA: int = 2  # Mínimo obrigatório
+    MAX_BUSCAS_POR_FALHA: int = 8  # Máximo permitido
+    QUALIDADE_MINIMA_PARA_PARAR: float = 0.75  # Score mínimo para parar (0-1)
+    USAR_BUSCA_ADAPTATIVA: bool = True  # Ativar/desativar busca inteligente
+
     # Idiomas suportados
     IDIOMAS: list[str] = [
         "pt", "en", "es", "fr", "de", "it", "ar", "ko", "he"

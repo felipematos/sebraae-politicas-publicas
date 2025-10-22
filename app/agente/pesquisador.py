@@ -278,6 +278,147 @@ class AgentePesquisador:
 
         return resultados
 
+    async def executar_pesquisa_adaptativa(
+        self,
+        query: str,
+        idioma: str = "pt",
+        ferramentas: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """
+        Executa pesquisa inteligente e adaptativa com múltiplas ferramentas
+        Para automaticamente quando qualidade é suficiente (respeitando limites)
+
+        Args:
+            query: Query para pesquisar
+            idioma: Idioma da pesquisa
+            ferramentas: Lista de ferramentas a usar
+
+        Returns:
+            Dicionário com:
+            - resultados: Lista de resultados encontrados
+            - num_buscas: Número de buscas realizadas
+            - qualidade: Métrica de qualidade geral
+            - motivo_parada: Por que parou (atingiu qualidade, máximo, etc)        """
+        if not settings.USAR_BUSCA_ADAPTATIVA:
+            # Modo tradicional
+            resultados = await self.executar_pesquisa(query, idioma, ferramentas)
+            return {
+                "resultados": resultados,
+                "num_buscas": len(ferramentas or self.ferramentas),
+                "qualidade": 0.0,
+                "motivo_parada": "Busca adaptativa desativada",
+                "modo": "tradicional"
+            }
+
+        ferramentas = ferramentas or self.ferramentas
+        resultados = []
+        num_buscas = 0
+        min_buscas = settings.MIN_BUSCAS_POR_FALHA
+        max_buscas = settings.MAX_BUSCAS_POR_FALHA
+        qualidade_minima = settings.QUALIDADE_MINIMA_PARA_PARAR
+
+        print(f"\n[BUSCA ADAPTATIVA] Query: {query[:60]}...")
+        print(f"[BUSCA ADAPTATIVA] Limites: min={min_buscas}, max={max_buscas}, qualidade_min={qualidade_minima}")
+
+        # Executar buscas em loop adaptativo
+        for ferramenta in ferramentas:
+            # Verificar limite máximo
+            if num_buscas >= max_buscas:
+                print(f"[BUSCA ADAPTATIVA] Limite máximo de {max_buscas} buscas atingido")
+                motivo_parada = f"Limite máximo ({max_buscas} buscas) atingido"
+                break
+
+            # Verificar se canal está habilitado
+            if not settings.SEARCH_CHANNELS_ENABLED.get(ferramenta, False):
+                print(f"[BUSCA ADAPTATIVA] Canal {ferramenta} desabilitado, pulando...")
+                continue
+
+            try:
+                print(f"\n[BUSCA ADAPTATIVA] Buscando com {ferramenta} ({num_buscas + 1}/{max_buscas})...")
+
+                # Executar busca
+                if ferramenta == "perplexity" and self.perplexity_client:
+                    resultado = await self.perplexity_client.pesquisar(
+                        query=query, idioma=idioma, max_resultados=5
+                    )
+                elif ferramenta == "jina" and self.jina_client:
+                    resultado = await self.jina_client.search_web(
+                        query=query, idioma=idioma, max_resultados=10
+                    )
+                elif ferramenta == "tavily" and self.tavily_client:
+                    resultado = await self.tavily_client.pesquisar(
+                        query=query, idioma=idioma, max_resultados=5
+                    )
+                elif ferramenta == "serper" and self.serper_client:
+                    resultado = await self.serper_client.pesquisar(
+                        query=query, idioma=idioma, max_resultados=5
+                    )
+                elif ferramenta == "deep_research":
+                    resultado = await self.deep_research_client.pesquisar(
+                        query=query, sources="both"
+                    )
+                else:
+                    continue
+
+                resultados.extend(resultado)
+                num_buscas += 1
+
+                # Avaliar qualidade a cada busca (após mínimo)
+                if num_buscas >= min_buscas:
+                    avaliacao = await self.avaliador.avaliar_qualidade_conjunto(
+                        resultados, query
+                    )
+
+                    print(f"[BUSCA ADAPTATIVA] Qualidade: {avaliacao['qualidade_geral']:.3f} | "
+                          f"Confiança: {avaliacao['confianca']:.3f} | "
+                          f"Diversidade: {avaliacao['diversidade']:.3f}")
+                    print(f"[BUSCA ADAPTATIVA] Recomendação: {avaliacao['recomendacao']}")
+                    print(f"[BUSCA ADAPTATIVA] Motivo: {avaliacao['motivo']}")
+
+                    # Decisão adaptativa
+                    if avaliacao["qualidade_geral"] >= qualidade_minima:
+                        if avaliacao["recomendacao"] == "parar":
+                            print(f"[BUSCA ADAPTATIVA] Qualidade suficiente! Parando.")
+                            motivo_parada = f"Qualidade suficiente ({avaliacao['qualidade_geral']:.3f})"
+                            break
+                        elif avaliacao["recomendacao"] == "talvez" and num_buscas >= min_buscas + 1:
+                            # Se "talvez" e já fez mais que o mínimo, pode parar
+                            print(f"[BUSCA ADAPTATIVA] Qualidade adequada e mínimo excedido. Parando.")
+                            motivo_parada = f"Qualidade adequada ({avaliacao['qualidade_geral']:.3f}) e mínimo excedido"
+                            break
+
+                # Rate limiting
+                await asyncio.sleep(1.0)
+
+            except Exception as e:
+                print(f"[BUSCA ADAPTATIVA] Erro com {ferramenta}: {e}")
+                continue
+        else:
+            # Loop completou sem break
+            motivo_parada = f"Todas as {num_buscas} ferramentas foram executadas"
+
+        # Avaliação final
+        avaliacao_final = await self.avaliador.avaliar_qualidade_conjunto(resultados, query)
+
+        self.queries_executadas += 1
+        self.resultados_encontrados += len(resultados)
+
+        resultado_adaptativo = {
+            "resultados": resultados,
+            "num_buscas": num_buscas,
+            "qualidade": avaliacao_final["qualidade_geral"],
+            "confianca": avaliacao_final["confianca"],
+            "diversidade": avaliacao_final["diversidade"],
+            "motivo_parada": motivo_parada,
+            "modo": "adaptativo",
+            "avaliacao_completa": avaliacao_final
+        }
+
+        print(f"\n[BUSCA ADAPTATIVA] Finalizado: {num_buscas} buscas, "
+              f"qualidade={avaliacao_final['qualidade_geral']:.3f}")
+
+        return resultado_adaptativo
+
     async def limpar_fila(self):
         """Limpa toda a fila de pesquisas"""
         # Get todas as entradas
