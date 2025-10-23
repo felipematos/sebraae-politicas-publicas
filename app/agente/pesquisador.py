@@ -129,6 +129,7 @@ class AgentePesquisador:
     ) -> int:
         """
         Popular fila de pesquisas com queries para falhas
+        ROTACIONA entre canais a cada nova entrada para enriquecer resultados
 
         Args:
             falhas: Lista de falhas (se None, busca todas do banco)
@@ -155,37 +156,53 @@ class AgentePesquisador:
         idiomas = idiomas_filtro or self.idiomas
 
         total_adicionado = 0
+        ferramenta_index = 0  # Indice para rotacionar ferramentas
+
+        # Coletar todas as queries com suas metadata antes de inserir
+        # Isso permite melhor controle na rotacao
+        queries_para_inserir = []
 
         # Para cada falha
         for falha in falhas:
             # Gerar queries
             queries = await self.gerar_queries(falha)
 
-            # Filtrar por idioma e ferramenta se necessario
+            # Filtrar por idioma se necessario
             if idiomas_filtro or ferramentas_filtro:
                 queries = [
                     q for q in queries
                     if (not idiomas_filtro or q["idioma"] in idiomas_filtro)
                 ]
 
-            # Para cada query, gerar uma entrada para cada ferramenta
+            # Coletar queries com metadata da falha
             for query in queries:
-                for ferramenta in ferramentas:
-                    entrada_fila = {
-                        "falha_id": falha["id"],
-                        "query": query["query"],
-                        "idioma": query["idioma"],
-                        "ferramenta": ferramenta,
-                        "status": "pendente",
-                        "criado_em": datetime.now().isoformat()
-                    }
+                queries_para_inserir.append({
+                    "falha_id": falha["id"],
+                    "query": query["query"],
+                    "idioma": query["idioma"],
+                })
 
-                    # Inserir na fila
-                    await inserir_fila_pesquisa(entrada_fila)
-                    total_adicionado += 1
+        # Agora inserir na fila ROTACIONANDO entre ferramentas
+        for query_data in queries_para_inserir:
+            # Obter proxima ferramenta na rotacao
+            ferramenta = ferramentas[ferramenta_index % len(ferramentas)]
+            ferramenta_index += 1
 
-                    # Rate limiting
-                    await asyncio.sleep(0.01)
+            entrada_fila = {
+                "falha_id": query_data["falha_id"],
+                "query": query_data["query"],
+                "idioma": query_data["idioma"],
+                "ferramenta": ferramenta,
+                "status": "pendente",
+                "criado_em": datetime.now().isoformat()
+            }
+
+            # Inserir na fila
+            await inserir_fila_pesquisa(entrada_fila)
+            total_adicionado += 1
+
+            # Rate limiting
+            await asyncio.sleep(0.01)
 
         return total_adicionado
 
