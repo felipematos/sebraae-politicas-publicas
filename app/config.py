@@ -88,10 +88,7 @@ class Settings(BaseSettings):
     RAG_SIMILARITY_THRESHOLD_DEDUP: float = 0.85  # Threshold para deduplicação
 
 
-# Instancia global de configuracoes
-settings = Settings()
-
-# Arquivo de configuracao persistente
+# Arquivo de configuracao persistente (definir antes de instanciar settings)
 CONFIG_FILE_PATH = Path(__file__).parent.parent / "config_channels.json"
 
 
@@ -100,7 +97,7 @@ def get_config_file_path() -> Path:
     return CONFIG_FILE_PATH
 
 
-def load_search_channels_config() -> dict:
+def load_search_channels_config(default_config: dict) -> dict:
     """
     Carrega configuracao de canais de pesquisa do arquivo JSON.
     Se o arquivo nao existir, retorna a configuracao padrao.
@@ -110,15 +107,17 @@ def load_search_channels_config() -> dict:
             with open(CONFIG_FILE_PATH, "r") as f:
                 config = json.load(f)
                 # Validar que todas as chaves conhecidas estao presentes
-                for channel in settings.SEARCH_CHANNELS_ENABLED.keys():
+                for channel in default_config.keys():
                     if channel not in config:
-                        config[channel] = settings.SEARCH_CHANNELS_ENABLED[channel]
+                        config[channel] = default_config[channel]
+                print(f"[INFO] Configuracao de canais carregada de {CONFIG_FILE_PATH}")
                 return config
         except (json.JSONDecodeError, IOError) as e:
             print(f"[WARN] Erro ao carregar config_channels.json: {e}")
-            return settings.SEARCH_CHANNELS_ENABLED.copy()
+            return default_config.copy()
     else:
-        return settings.SEARCH_CHANNELS_ENABLED.copy()
+        print(f"[INFO] Arquivo config_channels.json nao encontrado, usando padrao")
+        return default_config.copy()
 
 
 def save_search_channels_config(config: dict) -> bool:
@@ -130,13 +129,8 @@ def save_search_channels_config(config: dict) -> bool:
         # Criar diretorio se nao existir
         CONFIG_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-        # Validar apenas canais conhecidos
-        valid_config = {}
-        for channel in settings.SEARCH_CHANNELS_ENABLED.keys():
-            valid_config[channel] = config.get(channel, settings.SEARCH_CHANNELS_ENABLED[channel])
-
         with open(CONFIG_FILE_PATH, "w") as f:
-            json.dump(valid_config, f, indent=2)
+            json.dump(config, f, indent=2)
 
         print(f"[INFO] Configuracao de canais salva em {CONFIG_FILE_PATH}")
         return True
@@ -145,11 +139,17 @@ def save_search_channels_config(config: dict) -> bool:
         return False
 
 
+# Instancia global de configuracoes
+settings = Settings()
+
 # Carregar configuracao persistente na inicializacao
 def initialize_settings():
     """Inicializa as configuracoes carregando do arquivo persistente se existir"""
-    loaded_config = load_search_channels_config()
-    settings.SEARCH_CHANNELS_ENABLED = loaded_config
+    loaded_config = load_search_channels_config(settings.SEARCH_CHANNELS_ENABLED)
+    # Atualizar dict in-place para garantir que as mudanças persistem
+    settings.SEARCH_CHANNELS_ENABLED.clear()
+    settings.SEARCH_CHANNELS_ENABLED.update(loaded_config)
+    print(f"[CONFIG] Configuracao de canais atualizada: {settings.SEARCH_CHANNELS_ENABLED}")
 
 
 def get_database_path() -> Path:
