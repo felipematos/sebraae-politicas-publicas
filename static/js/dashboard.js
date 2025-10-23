@@ -463,25 +463,25 @@ function dashboardApp() {
         // Retorna cor baseada no score (traffic light)
         obterCorScore(score) {
             const s = score || 0;
-            if (s >= 0.75) return 'text-green-700 bg-green-50';  // Bom
-            if (s >= 0.5) return 'text-yellow-700 bg-yellow-50'; // Médio
-            return 'text-red-700 bg-red-50';                     // Ruim
+            if (s >= 0.5) return 'text-green-700 bg-green-50';   // Strong (verde)
+            if (s >= 0.25) return 'text-yellow-700 bg-yellow-50'; // Fair (amarelo)
+            return 'text-red-700 bg-red-50';                      // Weak (vermelho)
         },
 
-        // Retorna classe de barra baseada no score (verde > 0.75, amarelo 0.5-0.75, azul < 0.5)
+        // Retorna classe de barra baseada no score (verde >= 0.5, amarelo >= 0.25, vermelho < 0.25)
         obterCorBarra(score) {
             const s = score || 0;
-            if (s >= 0.75) return 'bg-green-600';
-            if (s >= 0.5) return 'bg-yellow-500';
-            return 'bg-blue-600';  // Azul para scores baixos ao invés de vermelho
+            if (s >= 0.5) return 'bg-green-600';    // Strong: verde
+            if (s >= 0.25) return 'bg-yellow-500';  // Fair: amarelo
+            return 'bg-red-600';                     // Weak: vermelho
         },
 
-        // Retorna status descritivo
+        // Retorna status descritivo (Strong >= 0.5, Fair >= 0.25, Weak < 0.25)
         obterStatusScore(score) {
             const s = score || 0;
-            if (s >= 0.75) return '✓ Excelente';
-            if (s >= 0.5) return '⚠ Bom';
-            if (s > 0) return '✗ Fraco';
+            if (s >= 0.5) return '✓ Strong';
+            if (s >= 0.25) return '⚠ Fair';
+            if (s > 0) return '✗ Weak';
             return '-';
         },
 
