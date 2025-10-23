@@ -485,20 +485,19 @@ function dashboardApp() {
             return '-';
         },
 
-        // Calcula progresso da falha baseado em resultados encontrados vs esperados
-        // Esperado: max_searches * average_results_per_search (assumindo ~5 resultados por busca)
+        // Calcula progresso da falha baseado em resultados encontrados vs total de buscas
+        // 100% = total de buscas enfileiradas (searches_completed + searches_in_progress + searches_pending)
+        // Realizado = total de resultados encontrados
+        // Progresso = (resultados / total_buscas) * 100
         calcularProgressoFalha(falha) {
             const total_resultados = falha.total_resultados || 0;
-            const max_searches = falha.max_searches || 8;
-            const expected_results_per_search = 5; // Média esperada de resultados por busca
+            const total_buscas = falha.total_buscas_enfileiradas || 0;
 
-            // Resultados esperados: max_searches * expected_results_per_search
-            const expected_total = max_searches * expected_results_per_search;
+            // Se não há buscas enfileiradas, retornar 0%
+            if (!total_buscas) return 0;
 
-            if (!expected_total) return 0;
-
-            // Calcular percentual baseado em resultados: (encontrados / esperados) * 100
-            let percentual = (total_resultados / expected_total) * 100;
+            // Calcular percentual baseado em resultados encontrados vs buscas esperadas
+            let percentual = (total_resultados / total_buscas) * 100;
 
             // Garantir que não ultrapasse 100%
             percentual = Math.min(percentual, 100);

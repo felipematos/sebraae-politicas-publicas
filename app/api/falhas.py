@@ -37,7 +37,8 @@ async def listar_falhas(
     - searches_completed: numero de buscas completadas ou com erro
     - searches_in_progress: numero de buscas em processamento
     - searches_pending: numero de buscas pendentes
-    - max_searches: numero maximo de buscas esperado (para calculo de progresso)
+    - total_buscas_enfileiradas: total de buscas enfileiradas (para calculo de progresso)
+    - max_searches: numero maximo de buscas esperado (configuracao geral)
     """
     from app.config import settings
 
@@ -52,7 +53,8 @@ async def listar_falhas(
         COALESCE(AVG(r.confidence_score), 0.0) as confidence_medio,
         COALESCE(SUM(CASE WHEN fp.status IN ('completa', 'erro') THEN 1 ELSE 0 END), 0) as searches_completed,
         COALESCE(SUM(CASE WHEN fp.status = 'processando' THEN 1 ELSE 0 END), 0) as searches_in_progress,
-        COALESCE(SUM(CASE WHEN fp.status = 'pendente' THEN 1 ELSE 0 END), 0) as searches_pending
+        COALESCE(SUM(CASE WHEN fp.status = 'pendente' THEN 1 ELSE 0 END), 0) as searches_pending,
+        COALESCE(SUM(CASE WHEN fp.status IN ('completa', 'erro', 'processando', 'pendente') THEN 1 ELSE 0 END), 0) as total_buscas_enfileiradas
     FROM falhas_mercado f
     LEFT JOIN resultados_pesquisa r ON f.id = r.falha_id
     LEFT JOIN fila_pesquisas fp ON f.id = fp.falha_id
