@@ -159,6 +159,12 @@ async def update_search_channels_config(config: Dict[str, Any]) -> Dict[str, Any
                 detail=f"Ferramenta invalida: {channel}. Ferramentas validas: {valid_channels}"
             )
 
+    # Detectar quais ferramentas foram habilitadas (não estavam antes)
+    ferramentas_novas = [
+        canal for canal, novo_status in search_channels.items()
+        if novo_status and not settings.SEARCH_CHANNELS_ENABLED.get(canal, False)
+    ]
+
     # Atualizar configuracao
     for channel, enabled in search_channels.items():
         settings.SEARCH_CHANNELS_ENABLED[channel] = enabled
@@ -166,9 +172,13 @@ async def update_search_channels_config(config: Dict[str, Any]) -> Dict[str, Any
     # Persistir configuracao
     save_search_channels_config(settings.SEARCH_CHANNELS_ENABLED)
 
-    return {
+    resultado = {
         "mensagem": "Configuracao das ferramentas atualizada com sucesso",
         "search_channels_enabled": settings.SEARCH_CHANNELS_ENABLED,
         "total_habilitadas": sum(1 for v in settings.SEARCH_CHANNELS_ENABLED.values() if v),
+        "ferramentas_novas": ferramentas_novas,
+        "requer_repopulacao": len(ferramentas_novas) > 0,
         "timestamp": __import__("datetime").datetime.now().isoformat()
     }
+
+    return resultado

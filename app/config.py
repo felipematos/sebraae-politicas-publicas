@@ -40,14 +40,14 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: Optional[str] = None  # Para tradução com modelos gratuitos
 
     # Canais de pesquisa ativos (pode ser controlado via UI)
-    # DESABILITADO: deep_research está comentado por padrão
+    # deep_research está desabilitado por padrão (problemas de integração)
     SEARCH_CHANNELS_ENABLED: dict = {
         "perplexity": True,
         "jina": True,
         "tavily": True,
         "serper": True,
-        "exa": False,  # DESABILITADO: causing issues - use basic search tools
-        "deep_research": False  # DESABILITADO: ferramenta com problemas
+        "exa": False,  # Pode ser habilitado via UI
+        "deep_research": False  # Desabilitado por padrão
     }
 
     # Processamento
@@ -71,8 +71,9 @@ class Settings(BaseSettings):
         "pt", "en", "es", "fr", "de", "it", "ar", "ja", "ko", "he"
     ]
 
-    # Ferramentas de pesquisa
-    FERRAMENTAS: list[str] = ["perplexity", "jina", "tavily", "serper"]
+    # Ferramentas de pesquisa (atualizado dinamicamente com base em SEARCH_CHANNELS_ENABLED)
+    # Use get_ferramentas_ativas() para obter lista dinâmica
+    FERRAMENTAS: list[str] = ["perplexity", "jina", "tavily", "serper", "exa"]
 
     # ChromaDB - Banco de dados vetorial para RAG
     CHROMA_PERSIST_PATH: str = "chroma_db"  # Diretório para salvar dados
@@ -167,6 +168,17 @@ def get_chroma_path() -> Path:
     """Retorna o caminho absoluto para o ChromaDB"""
     base_dir = Path(__file__).parent.parent
     return base_dir / settings.CHROMA_PERSIST_PATH
+
+
+def get_ferramentas_ativas() -> list[str]:
+    """
+    Retorna lista de ferramentas que estão habilitadas em SEARCH_CHANNELS_ENABLED
+    """
+    return [
+        ferramenta
+        for ferramenta, habilitada in settings.SEARCH_CHANNELS_ENABLED.items()
+        if habilitada
+    ]
 
 
 # Inicializar configuracoes na importacao

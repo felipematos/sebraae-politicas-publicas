@@ -437,7 +437,35 @@ function dashboardApp() {
                 });
 
                 if (response.ok) {
-                    alert('✓ Configuração das ferramentas salva com sucesso!');
+                    const resultado = await response.json();
+
+                    // Se há ferramentas novas, repopular fila
+                    if (resultado.ferramentas_novas && resultado.ferramentas_novas.length > 0) {
+                        console.log('Ferramentas novas detectadas:', resultado.ferramentas_novas);
+
+                        // Repopular fila para cada ferramenta nova
+                        for (const ferramenta of resultado.ferramentas_novas) {
+                            try {
+                                const repResponse = await fetch(`/api/pesquisas/repopular-ferramenta?ferramenta=${ferramenta}`, {
+                                    method: 'POST'
+                                });
+
+                                if (repResponse.ok) {
+                                    const repResult = await repResponse.json();
+                                    console.log(`✓ Fila repopulada para ${ferramenta}: ${repResult.total_adicionadas} entradas`);
+                                }
+                            } catch (e) {
+                                console.error(`Erro ao repopular fila para ${ferramenta}:`, e);
+                            }
+                        }
+
+                        alert('✓ Configuração salva e fila atualizada com novos lotes de pesquisa!');
+                    } else {
+                        alert('✓ Configuração das ferramentas salva com sucesso!');
+                    }
+
+                    // Atualizar stats
+                    await this.atualizar_stats();
                 } else {
                     throw new Error(`Erro ${response.status}: Nao foi possivel salvar configuracao`);
                 }

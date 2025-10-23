@@ -259,6 +259,66 @@ async def reiniciar_pesquisas():
         )
 
 
+@router.post("/pesquisas/repopular-ferramenta")
+async def repopular_fila_com_ferramenta(ferramenta: str):
+    """
+    Repopula a fila de pesquisas com uma ferramenta específica para todas as falhas
+    Usado quando uma nova ferramenta é habilitada
+
+    Args:
+        ferramenta: Nome da ferramenta (exa, deep_research, etc)
+
+    Returns:
+        Total de entradas adicionadas à fila
+    """
+    from app.agente.pesquisador import AgentePesquisador
+    from app.config import settings
+
+    # Validar que a ferramenta está habilitada
+    if not settings.SEARCH_CHANNELS_ENABLED.get(ferramenta, False):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Ferramenta '{ferramenta}' não está habilitada"
+        )
+
+    try:
+        agente = AgentePesquisador()
+
+        # Obter todas as falhas
+        falhas = await db.fetch_all("SELECT id FROM falhas_mercado")
+        falhas_ids = [f["id"] for f in falhas]
+
+        # Usar idiomas padrão
+        idiomas = settings.IDIOMAS[:9]  # Primeiros 9 idiomas
+
+        # Popular fila apenas com a ferramenta específica
+        total = 0
+        for falha_id in falhas_ids:
+            for idioma in idiomas:
+                # Gerar queries para esta falha
+                queries = await agente.gerar_queries(falha_id, num_queries=5)
+
+                for query in queries:
+                    # Adicionar entrada para esta ferramenta específica
+                    await db.execute("""
+                        INSERT INTO fila_pesquisas (falha_id, query, idioma, ferramenta, status)
+                        VALUES (?, ?, ?, ?, 'pendente')
+                    """, (falha_id, query, idioma, ferramenta))
+                    total += 1
+
+        return {
+            "status": "sucesso",
+            "ferramenta": ferramenta,
+            "total_adicionadas": total,
+            "mensagem": f"Fila repopulada com {total} entradas para a ferramenta '{ferramenta}'"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao repopular fila: {str(e)}"
+        )
+
+
 @router.get("/pesquisas/historico")
 async def historico_pesquisas(
     skip: int = 0,
