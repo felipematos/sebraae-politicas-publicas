@@ -71,20 +71,18 @@ class TavilyClient:
         """
         resultados = []
 
-        # Extrair resposta resumida se disponível
-        if data.get("answer"):
-            resultados.append({
-                "titulo": "Resumo da Pesquisa",
-                "url": "https://tavily.com",
-                "descricao": data.get("answer", "")[:500]
-            })
+        # NOTA: Não incluir o resumo geral (answer) pois não tem URL de fonte válida
+        # O resumo só é útil como suplemento aos resultados individuais que têm URLs
 
-        # Extrair resultados individuais
+        # Extrair resultados individuais (estes têm URLs de fontes reais)
         for resultado in data.get("results", []):
-            resultados.append({
-                "titulo": resultado.get("title", "Resultado Tavily"),
-                "url": resultado.get("url", ""),
-                "descricao": resultado.get("content", "")[:500]
-            })
+            url = resultado.get("url", "").strip()
+            # Só incluir se tiver URL válida
+            if url and url.startswith(("http://", "https://")):
+                resultados.append({
+                    "titulo": resultado.get("title", "Resultado Tavily"),
+                    "url": url,
+                    "descricao": resultado.get("content", "")[:500]
+                })
 
         return resultados

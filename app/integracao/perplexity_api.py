@@ -76,6 +76,8 @@ class PerplexityClient:
 
         Esperado formato com URLs e titulos
         """
+        from app.utils.url_validator import eh_url_valida
+
         resultados = []
 
         # Simples parsing - procura por padroes de URL e texto antes delas
@@ -96,7 +98,8 @@ class PerplexityClient:
                         url = palavra.strip("()[].,")
                         break
 
-                if url:
+                # Validar URL antes de adicionar
+                if url and eh_url_valida(url):
                     resultados.append({
                         "titulo": titulo_temp or "Resultado Perplexity",
                         "url": url,
@@ -106,14 +109,8 @@ class PerplexityClient:
             else:
                 titulo_temp = linha[:100]
 
-        # Se nao encontrou nenhum resultado, retornar placeholder
-        if not resultados:
-            resultados = [
-                {
-                    "titulo": "Resultado Perplexity",
-                    "url": "https://www.perplexity.ai",
-                    "descricao": content[:200]
-                }
-            ]
+        # NOTA: Se não encontrou nenhum resultado válido, retornar lista vazia
+        # Pois não devemos gerar URLs de placeholder/mecanismo de pesquisa
+        # O processador saberá lidar com resultados vazios
 
         return resultados

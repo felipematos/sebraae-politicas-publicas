@@ -73,24 +73,32 @@ class SerperClient:
         Returns:
             Lista de resultados padronizados
         """
+        from app.utils.url_validator import eh_url_valida
+
         resultados = []
 
         # Extrair resposta de knowledge graph se disponível
         knowledge_graph = data.get("knowledgeGraph", {})
         if knowledge_graph.get("description"):
-            resultados.append({
-                "titulo": knowledge_graph.get("title", "Resultado Serper"),
-                "url": knowledge_graph.get("website", "https://www.google.com"),
-                "descricao": knowledge_graph.get("description", "")[:500]
-            })
+            url = knowledge_graph.get("website", "").strip()
+            # Só incluir se tiver URL válida
+            if url and eh_url_valida(url):
+                resultados.append({
+                    "titulo": knowledge_graph.get("title", "Resultado Serper"),
+                    "url": url,
+                    "descricao": knowledge_graph.get("description", "")[:500]
+                })
 
         # Extrair resultados de busca orgânica
         for resultado in data.get("organic", []):
-            resultados.append({
-                "titulo": resultado.get("title", "Resultado Google"),
-                "url": resultado.get("link", ""),
-                "descricao": resultado.get("snippet", "")[:500]
-            })
+            url = resultado.get("link", "").strip()
+            # Só incluir se tiver URL válida
+            if url and eh_url_valida(url):
+                resultados.append({
+                    "titulo": resultado.get("title", "Resultado Google"),
+                    "url": url,
+                    "descricao": resultado.get("snippet", "")[:500]
+                })
 
         return resultados
 
