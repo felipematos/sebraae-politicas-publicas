@@ -102,18 +102,13 @@ function dashboardApp() {
                     this.percentual_processamento = status.porcentagem;
                 }
 
-                // Atualizar falhas
-                const res_falhas = await fetch('/api/falhas');
+                // Atualizar falhas E somar total de resultados (não usar endpoint paginado)
+                const res_falhas = await fetch('/api/falhas?limit=100');
                 if (res_falhas.ok) {
                     const falhas = await res_falhas.json();
                     this.stats.total_falhas = falhas.length;
-                }
-
-                // Atualizar resultados
-                const res_resultados = await fetch('/api/resultados');
-                if (res_resultados.ok) {
-                    const resultados = await res_resultados.json();
-                    this.stats.total_resultados = resultados.length;
+                    // Somar total_resultados de todas as falhas para sincronizar com a barra de progresso
+                    this.stats.total_resultados = falhas.reduce((sum, falha) => sum + (falha.total_resultados || 0), 0);
                 }
 
             } catch (erro) {
@@ -473,12 +468,12 @@ function dashboardApp() {
             return 'text-red-700 bg-red-50';                     // Ruim
         },
 
-        // Retorna classe de barra baseada no score
+        // Retorna classe de barra baseada no score (verde > 0.75, amarelo 0.5-0.75, azul < 0.5)
         obterCorBarra(score) {
             const s = score || 0;
             if (s >= 0.75) return 'bg-green-600';
             if (s >= 0.5) return 'bg-yellow-500';
-            return 'bg-red-600';
+            return 'bg-blue-600';  // Azul para scores baixos ao invés de vermelho
         },
 
         // Retorna status descritivo
