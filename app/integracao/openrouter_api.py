@@ -21,6 +21,13 @@ class OpenRouterClient:
         "gpt-3.5-turbo",  # Fallback mais confiável (rate limit generoso)
     ]
 
+    # Modelos especializados para tarefas específicas
+    MODELOS_ESPECIALIZADOS = {
+        "avaliacao": "xai/grok-4-fast",  # Avaliação de qualidade (rápido e preciso)
+        "traducao": "mistralai/mistral-7b-instruct",  # Tradução
+        "deteccao_idioma": "xai/grok-4-fast",  # Detecção de idioma (muito preciso)
+    }
+
     BASE_URL = "https://openrouter.io/api/v1"
 
     def __init__(self, api_key: Optional[str] = None):
@@ -43,6 +50,115 @@ class OpenRouterClient:
         """Context manager exit"""
         if self.session:
             await self.session.close()
+
+    async def detectar_idioma(
+        self,
+        texto: str
+    ) -> str:
+        """
+        Detecta o idioma real do texto usando Grok-4-fast
+
+        Args:
+            texto: Texto para detectar idioma
+
+        Returns:
+            Código do idioma (pt, en, es, it, etc) ou 'unknown'
+        """
+        if not self.api_key:
+            return "unknown"
+
+        if not texto or len(texto.strip()) < 10:
+            return "unknown"
+
+        prompt = f"""Detect the language of the following text and return ONLY the ISO 639-1 language code (like 'pt', 'en', 'es', 'it', 'fr', 'de', 'ar', 'ja', 'ko', 'he', etc).
+
+Text to analyze:
+{texto[:500]}"""
+
+        try:
+            modelo = self.MODELOS_ESPECIALIZADOS.get("deteccao_idioma", "xai/grok-4-fast")
+            resultado = await self._chamar_modelo(modelo, prompt)
+            if resultado:
+                # Extrair código de idioma (geralmente 2 letras)
+                codigo = resultado.strip().lower()[:2]
+                if codigo in [
+                    "pt", "en", "es", "fr", "de", "it", "ar", "ja", "ko", "he"
+                ]:
+                    return codigo
+            return "unknown"
+        except Exception as e:
+            print(f"[WARN] Detecção de idioma falhou: {str(e)[:100]}")
+            return "unknown"
+
+    async def avaliar_qualidade_resultado(
+        self,
+        titulo: str,
+        descricao: str,
+        url: str,
+        idioma_esperado: str
+    ) -> dict:
+        """
+        Avalia a qualidade de um resultado usando Grok-4-fast
+
+        Args:
+            titulo: Título do resultado
+            descricao: Descrição do resultado
+            url: URL do resultado
+            idioma_esperado: Idioma esperado
+
+        Returns:
+            Dict com scores e recomendações
+        """
+        if not self.api_key:
+            return {
+                "score": 0.5,
+                "idioma_correto": None,
+                "recomendacao": "MANTER",  # Sem API, manter resultado
+                "motivo": "API key não disponível"
+            }
+
+        prompt = f"""Evaluate the quality of this research result:
+
+Title: {titulo[:200]}
+Description: {descricao[:500] if descricao else 'N/A'}
+URL: {url}
+Expected Language: {idioma_esperado}
+
+Respond in JSON format (no markdown):
+{{
+  "idioma_real": "<pt|en|es|it|fr|de|ar|ja|ko|he|unknown>",
+  "idioma_correto": <true/false if matches expected>,
+  "relevancia_score": <0.0-1.0>,
+  "qualidade_score": <0.0-1.0>,
+  "recomendacao": "<MANTER|DELETAR>",
+  "motivo": "<brief reason>"
+}}"""
+
+        try:
+            modelo = self.MODELOS_ESPECIALIZADOS.get("avaliacao", "xai/grok-4-fast")
+            resultado = await self._chamar_modelo(modelo, prompt)
+            if resultado:
+                # Parser JSON simples
+                import json
+                try:
+                    dados = json.loads(resultado)
+                    return dados
+                except:
+                    pass
+
+            return {
+                "score": 0.5,
+                "idioma_correto": None,
+                "recomendacao": "REVISAR",
+                "motivo": "Falha ao avaliar"
+            }
+        except Exception as e:
+            print(f"[WARN] Avaliação de qualidade falhou: {str(e)[:100]}")
+            return {
+                "score": 0.5,
+                "recomendacao": "REVISAR",
+                "motivo": f"Erro: {str(e)[:50]}"
+            }
 
     async def traduzir_texto(
         self,

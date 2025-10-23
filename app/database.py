@@ -166,8 +166,8 @@ async def insert_resultado(resultado: Dict[str, Any]) -> int:
     INSERT INTO resultados_pesquisa (
         falha_id, titulo, descricao, fonte_url, fonte_tipo,
         pais_origem, idioma, query, confidence_score, ferramenta_origem,
-        hash_conteudo, url_valida
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        hash_conteudo, url_valida, titulo_pt, descricao_pt
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
 
     async with db.get_connection() as conn:
@@ -183,7 +183,9 @@ async def insert_resultado(resultado: Dict[str, Any]) -> int:
             resultado['confidence_score'],
             resultado['ferramenta_origem'],
             resultado['hash_conteudo'],
-            resultado.get('url_valida', True)
+            resultado.get('url_valida', True),
+            resultado.get('titulo_pt'),
+            resultado.get('descricao_pt')
         ))
         await conn.commit()
         return cursor.lastrowid
@@ -459,6 +461,225 @@ async def marcar_url_invalida(resultado_id: int) -> None:
         "UPDATE resultados_pesquisa SET url_valida = 0 WHERE id = ?",
         (resultado_id,)
     )
+
+
+async def limpar_resultados_contaminados() -> Dict[str, Any]:
+    """
+    Remove resultados em português que vieram de buscas em outros idiomas.
+
+    Lógica:
+    - Se um resultado está marcado com idioma != 'pt' mas a descrição é em português,
+      é um resultado "contaminado" que deve ser deletado
+    - Usa pattern matching simples (palavras-chave em português)
+
+    Retorna dict com estatísticas de limpeza
+    """
+    # Identificar resultados potencialmente contaminados
+    contaminados = await db.fetch_all("""
+        SELECT id, idioma, descricao, titulo, confidence_score
+        FROM resultados_pesquisa
+        WHERE idioma != 'pt'
+          AND descricao IS NOT NULL
+          AND (
+            descricao LIKE '%% de %%'
+            OR descricao LIKE '%% em %%'
+            OR descricao LIKE '%% para %%'
+            OR descricao LIKE '%% com %%'
+            OR descricao LIKE '%% que %%'
+            OR descricao LIKE '%% uma %%'
+            OR descricao LIKE '%% como %%'
+          )
+    """)
+
+    deletados = 0
+    fila_restaurada = 0
+
+    print(f"[LIMPEZA] Encontrados {len(contaminados)} possíveis resultados contaminados")
+
+    for resultado in contaminados:
+        # Deletar com restauração automática
+        info = await deletar_resultado_com_restauracao(resultado['id'])
+        if info['deletado']:
+            deletados += 1
+            if info['restaurou_fila']:
+                fila_restaurada += info['entradas_adicionadas']
+
+            print(
+                f"[LIMPEZA] ✓ Deletado resultado #{resultado['id']} "
+                f"(idioma={resultado['idioma']}, score={resultado['confidence_score']:.2f})"
+            )
+
+    return {
+        'total_contaminados': len(contaminados),
+        'deletados': deletados,
+        'fila_restaurada': fila_restaurada,
+        'sucesso': True
+    }
+
+
+async def recriar_fila_pesquisa() -> Dict[str, Any]:
+    """
+    Recria a fila de pesquisa baseada nas 50 falhas.
+
+    Usa a lógica atualizada do agente com:
+    - Suporte a 10 idiomas (incluindo Japonês)
+    - Múltiplas ferramentas com rotação
+    - Queries traduzidas
+
+    Retorna estatísticas de criação
+    """
+    from app.agente.pesquisador import AgentePesquisador
+
+    # Fazer backup dos resultados existentes
+    resultados_backup = await db.fetch_all(
+        "SELECT COUNT(*) as total FROM resultados_pesquisa"
+    )
+    total_resultados = resultados_backup[0]['total']
+
+    print(f"[FILA] Backup: {total_resultados} resultados preservados")
+
+    # Limpar fila anterior
+    await db.execute("DELETE FROM fila_pesquisas")
+    print(f"[FILA] Fila anterior deletada")
+
+    # Popular novamente com lógica atualizada
+    agente = AgentePesquisador()
+    total_criado = await agente.popular_fila()
+
+    print(f"[FILA] ✓ Nova fila criada com {total_criado} entradas")
+
+    # Verificar distribuição
+    por_idioma = await db.fetch_all("""
+        SELECT idioma, COUNT(*) as total
+        FROM fila_pesquisas
+        GROUP BY idioma
+        ORDER BY idioma
+    """)
+
+    print(f"[FILA] Distribuição por idioma:")
+    for row in por_idioma:
+        print(f"  {row['idioma']}: {row['total']}")
+
+    return {
+        'resultados_preservados': total_resultados,
+        'fila_criada': total_criado,
+        'distribuicao': por_idioma,
+        'sucesso': True
+    }
+
+
+async def traduzir_resultado_para_pt(resultado_id: int) -> Dict[str, Any]:
+    """
+    Traduz um resultado para português e armazena as traduções.
+
+    Retorna dict com:
+    - traduzido: bool
+    - titulo_pt: str (tradução do título)
+    - descricao_pt: str (tradução da descrição)
+    """
+    from app.integracao.openrouter_api import traduzir_com_openrouter
+
+    # Buscar resultado
+    resultado = await db.fetch_one(
+        "SELECT id, idioma, titulo, descricao FROM resultados_pesquisa WHERE id = ?",
+        (resultado_id,)
+    )
+
+    if not resultado:
+        return {'traduzido': False, 'erro': 'Resultado não encontrado'}
+
+    # Se já é português, não precisa traduzir
+    if resultado['idioma'] == 'pt':
+        return {
+            'traduzido': False,
+            'motivo': 'Resultado já está em português',
+            'titulo_pt': resultado['titulo'],
+            'descricao_pt': resultado['descricao']
+        }
+
+    titulo_pt = resultado['titulo']
+    descricao_pt = resultado['descricao']
+
+    try:
+        # Traduzir título
+        if resultado['titulo']:
+            titulo_pt = await traduzir_com_openrouter(
+                resultado['titulo'],
+                idioma_alvo='pt',
+                idioma_origem=resultado['idioma']
+            )
+
+        # Traduzir descrição
+        if resultado['descricao']:
+            descricao_pt = await traduzir_com_openrouter(
+                resultado['descricao'],
+                idioma_alvo='pt',
+                idioma_origem=resultado['idioma']
+            )
+
+        # Armazenar traduções
+        await db.execute(
+            "UPDATE resultados_pesquisa SET titulo_pt = ?, descricao_pt = ? WHERE id = ?",
+            (titulo_pt, descricao_pt, resultado_id)
+        )
+
+        return {
+            'traduzido': True,
+            'resultado_id': resultado_id,
+            'titulo_pt': titulo_pt,
+            'descricao_pt': descricao_pt
+        }
+
+    except Exception as e:
+        print(f"[ERRO] Falha ao traduzir resultado {resultado_id}: {str(e)}")
+        return {
+            'traduzido': False,
+            'erro': str(e),
+            'resultado_id': resultado_id
+        }
+
+
+async def traduzir_todos_resultados() -> Dict[str, Any]:
+    """
+    Traduz todos os resultados não-português para português.
+
+    Retorna estatísticas de tradução
+    """
+    # Buscar resultados que não são português
+    resultados = await db.fetch_all(
+        """
+        SELECT id FROM resultados_pesquisa
+        WHERE idioma != 'pt'
+        AND (titulo_pt IS NULL OR descricao_pt IS NULL)
+        ORDER BY id
+        """
+    )
+
+    print(f"[TRADUÇÃO] Iniciando tradução de {len(resultados)} resultados...")
+
+    traduzidos = 0
+    falhados = 0
+
+    for resultado in resultados:
+        info = await traduzir_resultado_para_pt(resultado['id'])
+
+        if info['traduzido']:
+            traduzidos += 1
+            print(f"[TRADUÇÃO] ✓ Resultado #{resultado['id']} traduzido")
+        else:
+            falhados += 1
+            print(f"[TRADUÇÃO] ✗ Resultado #{resultado['id']} falhou")
+
+        # Pequeno delay entre requisições para evitar rate limits
+        import asyncio
+        await asyncio.sleep(0.5)
+
+    return {
+        'total_processados': len(resultados),
+        'traduzidos': traduzidos,
+        'falhados': falhados,
+        'sucesso': True
+    }
 
 
 # Script para inicializar o banco
