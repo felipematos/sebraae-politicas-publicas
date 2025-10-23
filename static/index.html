@@ -159,11 +159,11 @@
                                             <div class="flex-1">
                                                 <div :class="[
                                                     'w-32 bg-gray-200 rounded-full h-3 overflow-hidden',
-                                                    (falha.searches_in_progress > 0 || falha.searches_pending > 0) && !pesquisa_pausada ? 'progress-glow' : ''
+                                                    falha.searches_in_progress > 0 && !pesquisa_pausada ? 'progress-glow' : ''
                                                 ]">
                                                     <div :class="[
                                                         'h-3 rounded-full transition-all',
-                                                        (falha.searches_in_progress > 0 || falha.searches_pending > 0) && !pesquisa_pausada ? 'bg-blue-600 animate-progress' : obterCorBarra(falha.confidence_medio)
+                                                        falha.searches_in_progress > 0 && !pesquisa_pausada ? 'bg-blue-600 animate-progress' : obterCorBarra(falha.confidence_medio)
                                                     ]"
                                                          :style="`width: ${calcularProgressoFalha(falha)}%`"></div>
                                                 </div>
