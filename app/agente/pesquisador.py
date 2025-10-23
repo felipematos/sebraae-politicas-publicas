@@ -129,7 +129,8 @@ class AgentePesquisador:
     ) -> int:
         """
         Popular fila de pesquisas com queries para falhas
-        ROTACIONA entre canais a cada nova entrada para enriquecer resultados
+        Para CADA query, cria entradas para TODAS as ferramentas ativadas
+        ROTACIONA a ordem das ferramentas para enriquecer resultados com diversidade
 
         Args:
             falhas: Lista de falhas (se None, busca todas do banco)
@@ -149,14 +150,25 @@ class AgentePesquisador:
             else:
                 falhas = await get_falhas_mercado()
 
-        # Ferramentas para usar
-        ferramentas = ferramentas_filtro or self.ferramentas
+        # Determinar ferramentas a usar
+        if ferramentas_filtro:
+            # Se foi passado filtro, usar apenas essas
+            ferramentas = ferramentas_filtro
+        else:
+            # Caso contrario, usar apenas as ferramentas ATIVADAS em settings
+            ferramentas = [
+                nome for nome, ativada in settings.SEARCH_CHANNELS_ENABLED.items()
+                if ativada
+            ]
+            # Se nenhuma estiver ativada, usar as padroes
+            if not ferramentas:
+                ferramentas = self.ferramentas
 
         # Idiomas para usar
         idiomas = idiomas_filtro or self.idiomas
 
         total_adicionado = 0
-        ferramenta_index = 0  # Indice para rotacionar ferramentas
+        ferramenta_index = 0  # Indice para rotacionar ferramentas entre queries
 
         # Coletar todas as queries com suas metadata antes de inserir
         # Isso permite melhor controle na rotacao
@@ -182,27 +194,37 @@ class AgentePesquisador:
                     "idioma": query["idioma"],
                 })
 
-        # Agora inserir na fila ROTACIONANDO entre ferramentas
-        for query_data in queries_para_inserir:
-            # Obter proxima ferramenta na rotacao
-            ferramenta = ferramentas[ferramenta_index % len(ferramentas)]
-            ferramenta_index += 1
+        # Agora inserir na fila
+        # PARA CADA query: inserir uma entrada para CADA ferramenta ativada
+        # ROTACIONAR a ordem das ferramentas entre queries para diversidade
+        for query_index, query_data in enumerate(queries_para_inserir):
+            # Para esta query, determinar a ordem rotacionada de ferramentas
+            # Cada query tem uma ordem diferente das ferramentas
+            ferramentas_rotacionadas = ferramentas[ferramenta_index:] + ferramentas[:ferramenta_index]
 
-            entrada_fila = {
-                "falha_id": query_data["falha_id"],
-                "query": query_data["query"],
-                "idioma": query_data["idioma"],
-                "ferramenta": ferramenta,
-                "status": "pendente",
-                "criado_em": datetime.now().isoformat()
-            }
+            # Para cada ferramenta ativada
+            for ferramenta in ferramentas_rotacionadas:
+                entrada_fila = {
+                    "falha_id": query_data["falha_id"],
+                    "query": query_data["query"],
+                    "idioma": query_data["idioma"],
+                    "ferramenta": ferramenta,
+                    "status": "pendente",
+                    "criado_em": datetime.now().isoformat()
+                }
 
-            # Inserir na fila
-            await inserir_fila_pesquisa(entrada_fila)
-            total_adicionado += 1
+                # Inserir na fila
+                await inserir_fila_pesquisa(entrada_fila)
+                total_adicionado += 1
 
-            # Rate limiting
-            await asyncio.sleep(0.01)
+                # Rate limiting
+                await asyncio.sleep(0.01)
+
+            # Rotacionar para proxima query
+            ferramenta_index = (ferramenta_index + 1) % len(ferramentas)
+
+        print(f"[FILA] Total de {total_adicionado} entradas criadas")
+        print(f"[FILA] Ferramentas usadas: {ferramentas}")
 
         return total_adicionado
 
