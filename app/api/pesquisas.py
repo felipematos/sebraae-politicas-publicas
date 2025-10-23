@@ -175,16 +175,27 @@ async def status_pesquisa():
 @router.post("/pesquisas/pausar")
 async def pausar_pesquisa():
     """
-    Pausar pesquisas em andamento (marca como 'pendente' novamente)
+    Pausar pesquisas em andamento (pausa o worker e marca como 'pendente' novamente)
     """
     try:
+        # Pausar o worker do processador
+        from app.main import processador_global
+
+        if processador_global:
+            processador_global.ativo = False
+            print("[PAUSA] Processador pausado")
+        else:
+            print("[PAUSA] Aviso: Processador global não inicializado")
+
         # Atualizar todos os itens 'processando' de volta para 'pendente'
         await db.execute(
             "UPDATE fila_pesquisas SET status = 'pendente' WHERE status = 'processando'"
         )
+
         return {
             "status": "sucesso",
-            "mensagem": "Pesquisas pausadas com sucesso"
+            "mensagem": "Pesquisas pausadas com sucesso",
+            "processador_pausado": processador_global is not None and not processador_global.ativo
         }
     except Exception as e:
         raise HTTPException(
@@ -199,6 +210,15 @@ async def retomar_pesquisa():
     Retomar pesquisas pausadas (o worker as processará novamente)
     """
     try:
+        # Retomar o worker do processador
+        from app.main import processador_global
+
+        if processador_global:
+            processador_global.ativo = True
+            print("[RETOMAR] Processador retomado")
+        else:
+            print("[RETOMAR] Aviso: Processador global não inicializado")
+
         # Contar items pendentes
         pendentes = await db.fetch_one(
             "SELECT COUNT(*) as total FROM fila_pesquisas WHERE status = 'pendente'"
@@ -206,7 +226,8 @@ async def retomar_pesquisa():
         return {
             "status": "sucesso",
             "mensagem": f"Pesquisas retomadas. {pendentes['total']} itens na fila.",
-            "total_pendentes": pendentes['total']
+            "total_pendentes": pendentes['total'],
+            "processador_ativo": processador_global is not None and processador_global.ativo
         }
     except Exception as e:
         raise HTTPException(

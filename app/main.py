@@ -19,6 +19,7 @@ from app.vector.embeddings import EmbeddingClient
 
 # Variaveis globais para controle do worker
 worker_task = None
+processador_global = None  # Referência global ao processador para pausar/retomar
 
 
 async def worker_processador():
@@ -29,7 +30,9 @@ async def worker_processador():
     Utiliza processamento paralelo com até 5 workers simultâneos
     para acelerar o processamento da fila de pesquisas
     """
+    global processador_global
     processador = Processador(max_workers=5)  # Parallelismo: até 5 buscas simultâneas
+    processador_global = processador  # Armazenar referência global para pausar/retomar
 
     # Configurar rate limiting para permitir processamento mais rápido
     processador.configurar_rate_limiting(
