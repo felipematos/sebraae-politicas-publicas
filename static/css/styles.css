@@ -41,7 +41,6 @@ header h1 {
 
 /* Progress Bar */
 .bg-blue-600 {
-    animation: progress-gradient 2.5s ease-in-out infinite;
     background: linear-gradient(
         90deg,
         #2563eb 0%,
@@ -51,6 +50,11 @@ header h1 {
         #2563eb 100%
     );
     background-size: 200% 100%;
+}
+
+/* Animação de progresso ativada apenas quando há buscas em andamento */
+.animate-progress {
+    animation: progress-gradient 2.5s ease-in-out infinite !important;
 }
 
 @keyframes progress-gradient {

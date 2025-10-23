@@ -3,5 +3,6 @@
   "jina": false,
   "tavily": true,
   "serper": true,
-  "deep_research": false
+  "deep_research": false,
+  "exa": true
 }
