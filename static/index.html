@@ -170,7 +170,7 @@
                                                     ]"
                                                          :style="`width: ${calcularProgressoFalha(falha)}%`"></div>
                                                 </div>
-                                                <span class="text-xs text-gray-600 mt-1 block" x-text="`${falha.searches_completed || 0}/${falha.max_searches || 8} buscas (${falha.total_resultados || 0} resultado(s))`"></span>
+                                                <span class="text-xs text-gray-600 mt-1 block" x-text="`${falha.num_ferramentas || 0} ferramentas / ${falha.num_idiomas || 0} idiomas / ${falha.searches_completed || 0} pesquisas / ${falha.total_resultados || 0} resultados`"></span>
                                             </div>
                                         </div>
                                     </td>
