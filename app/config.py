@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     EXA_API_key: Optional[str] = None  # Para buscas semanticas com Exa AI
     ANTHROPIC_API_KEY: Optional[str] = None  # Para avaliar relevancia com Claude
     OPENAI_API_KEY: Optional[str] = None  # Para gerar embeddings
+    OPENROUTER_API_KEY: Optional[str] = None  # Para tradução com modelos gratuitos
 
     # Canais de pesquisa ativos (pode ser controlado via UI)
     # DESABILITADO: deep_research está comentado por padrão
@@ -67,7 +68,7 @@ class Settings(BaseSettings):
 
     # Idiomas suportados
     IDIOMAS: list[str] = [
-        "pt", "en", "es", "fr", "de", "it", "ar", "ko", "he"
+        "pt", "en", "es", "fr", "de", "it", "ar", "ja", "ko", "he"
     ]
 
     # Ferramentas de pesquisa

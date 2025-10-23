@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 Modulo para geracao de queries multilingues
-Gera variacoes de queries em 8+ idiomas para cada falha de mercado
+Gera variacoes de queries em 10+ idiomas para cada falha de mercado
+Usa OpenRouter para tradução com LLM gratuito (fallback entre modelos)
 """
 import re
 import asyncio
 from typing import List, Dict, Any
 from app.config import settings
+from app.integracao.openrouter_api import traduzir_com_openrouter
 
 
 # Mapa de idiomas com nomes descritivos
@@ -18,6 +20,7 @@ MAPA_IDIOMAS_NOMES = {
     "de": "Deutsch",
     "it": "Italiano",
     "ar": "Arabi",
+    "ja": "Japones",
     "ko": "Coreano",
     "he": "Hebraico"
 }
@@ -51,15 +54,23 @@ def normalizar_query(query: str) -> str:
 async def traduzir_query(
     query: str,
     idioma_origem: str,
-    idioma_alvo: str
+    idioma_alvo: str,
+    usar_llm: bool = True
 ) -> str:
     """
     Traduz uma query de um idioma para outro
+
+    Prioridade:
+    1. OpenRouter com modelos gratuitos (se usar_llm=True e API disponível)
+    2. Mapeamento de traduções predefinidas
+    3. Tradução em cadeia (pt->en->outro)
+    4. Retornar original como último fallback
 
     Args:
         query: Query a traduzir
         idioma_origem: Codigo do idioma origem (pt, en, etc)
         idioma_alvo: Codigo do idioma alvo
+        usar_llm: Usar OpenRouter para tradução (padrão: True)
 
     Returns:
         Query traduzida
@@ -68,8 +79,21 @@ async def traduzir_query(
     if idioma_origem == idioma_alvo:
         return query
 
-    # Mapping simples de traducoes comuns para idiomas principais
-    # Em producao, usar Claude API para traducoes mais precisas
+    # Tentar tradução com OpenRouter (LLM gratuito com fallback)
+    if usar_llm and settings.OPENROUTER_API_KEY:
+        try:
+            resultado = await traduzir_com_openrouter(
+                query,
+                idioma_alvo,
+                idioma_origem
+            )
+            if resultado and resultado != query:
+                return resultado
+        except Exception as e:
+            print(f"[WARN] Tradução OpenRouter falhou: {str(e)[:100]}, usando fallback")
+
+    # Fallback: Mapping simples de traducoes comuns para idiomas principais
+    # (para casos onde OpenRouter não está disponível ou falhou)
 
     traducoes_comuns = {
         ("pt", "en"): {
