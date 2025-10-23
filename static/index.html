@@ -233,13 +233,119 @@
                                     <span x-text="`Ferramenta: ${resultado.ferramenta_origem}`"></span>
                                     <span x-text="`País: ${resultado.pais_origem || 'N/A'}`"></span>
                                 </div>
-                                <button @click="deletar_resultado(resultado.id)"
-                                        class="text-red-700 hover:text-red-900 font-medium">
-                                    Deletar
-                                </button>
+                                <div class="flex space-x-2">
+                                    <button @click="abrir_detalhes_resultado(resultado)"
+                                            class="text-blue-600 hover:text-blue-800 font-medium">
+                                        Ver Detalhes
+                                    </button>
+                                    <button @click="deletar_resultado(resultado.id)"
+                                            class="text-red-700 hover:text-red-900 font-medium">
+                                        Deletar
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </template>
+                </div>
+            </div>
+
+            <!-- Modal de Detalhes do Resultado -->
+            <div x-show="modal_resultado_aberta" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click="fechar_detalhes_resultado()">
+                <div class="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
+                    <!-- Header -->
+                    <div class="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 flex justify-between items-start">
+                        <div class="flex-1">
+                            <h2 class="text-2xl font-bold mb-2" x-text="resultado_selecionado?.titulo || 'Detalhes do Resultado'"></h2>
+                            <div class="flex space-x-2">
+                                <span class="text-xs font-bold uppercase px-2 py-1 rounded bg-white text-blue-700"
+                                      x-text="resultado_selecionado?.pilar || 'Sem categoria'"></span>
+                                <span class="text-xs font-bold uppercase px-2 py-1 rounded bg-white text-blue-700"
+                                      x-text="`Falha: ${resultado_selecionado?.falha_titulo || 'N/A'}`"></span>
+                            </div>
+                        </div>
+                        <button @click="fechar_detalhes_resultado()"
+                                class="text-white text-2xl hover:text-gray-200 font-bold">
+                            ✕
+                        </button>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="p-6 space-y-6">
+                        <!-- Score e Confiança -->
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div class="bg-blue-50 rounded-lg p-4">
+                                <p class="text-xs text-gray-600 font-semibold mb-1">Score de Confiança</p>
+                                <p class="text-2xl font-bold text-blue-600" x-text="`${(resultado_selecionado?.confidence_score * 100).toFixed(0)}%`"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="text-xs text-gray-600 font-semibold mb-1">Ferramenta</p>
+                                <p class="text-lg font-bold text-gray-800" x-text="resultado_selecionado?.ferramenta_origem || 'N/A'"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="text-xs text-gray-600 font-semibold mb-1">Idioma</p>
+                                <p class="text-lg font-bold text-gray-800" x-text="resultado_selecionado?.idioma || 'N/A'"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="text-xs text-gray-600 font-semibold mb-1">País</p>
+                                <p class="text-lg font-bold text-gray-800" x-text="resultado_selecionado?.pais_origem || 'Não informado'"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="text-xs text-gray-600 font-semibold mb-1">Ocorrências</p>
+                                <p class="text-lg font-bold text-gray-800" x-text="resultado_selecionado?.num_ocorrencias || 1"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="text-xs text-gray-600 font-semibold mb-1">Tipo de Fonte</p>
+                                <p class="text-lg font-bold text-gray-800" x-text="resultado_selecionado?.fonte_tipo || 'N/A'"></p>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="border-t pt-4">
+                            <h3 class="text-lg font-bold text-gray-800 mb-3">Descrição</h3>
+                            <p class="text-gray-700 leading-relaxed" x-text="resultado_selecionado?.descricao || 'Sem descrição disponível'"></p>
+                        </div>
+
+                        <!-- Fonte URL -->
+                        <div class="border-t pt-4">
+                            <h3 class="text-lg font-bold text-gray-800 mb-3">Fonte</h3>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="text-xs text-gray-600 font-semibold mb-2">URL:</p>
+                                <a :href="resultado_selecionado?.fonte_url" target="_blank"
+                                   class="text-blue-600 hover:text-blue-800 hover:underline break-all"
+                                   x-text="resultado_selecionado?.fonte_url || 'Não disponível'"></a>
+                            </div>
+                        </div>
+
+                        <!-- Datas -->
+                        <div class="border-t pt-4 grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-xs text-gray-600 font-semibold mb-1">Criado em</p>
+                                <p class="text-sm text-gray-700" x-text="formatarData(resultado_selecionado?.criado_em)"></p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-600 font-semibold mb-1">Atualizado em</p>
+                                <p class="text-sm text-gray-700" x-text="formatarData(resultado_selecionado?.atualizado_em)"></p>
+                            </div>
+                        </div>
+
+                        <!-- IDs -->
+                        <div class="border-t pt-4 bg-gray-50 rounded-lg p-4 text-xs text-gray-600">
+                            <p class="mb-1"><strong>ID Resultado:</strong> <span x-text="resultado_selecionado?.id"></span></p>
+                            <p><strong>ID Falha:</strong> <span x-text="resultado_selecionado?.falha_id"></span></p>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="border-t bg-gray-50 p-4 flex justify-between">
+                        <button @click="fechar_detalhes_resultado()"
+                                class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-medium">
+                            Fechar
+                        </button>
+                        <button @click="deletar_resultado(resultado_selecionado.id); fechar_detalhes_resultado()"
+                                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium">
+                            Deletar Resultado
+                        </button>
+                    </div>
                 </div>
             </div>
 

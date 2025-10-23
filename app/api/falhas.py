@@ -17,28 +17,45 @@ from app.schemas import FalhaResponse, FalhaComResultados, EstatisticasFalhaResp
 router = APIRouter(tags=["Falhas"])
 
 
-@router.get("/falhas", response_model=List[FalhaResponse])
+@router.get("/falhas", response_model=List[dict])
 async def listar_falhas(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     pilar: Optional[str] = None
 ):
     """
-    Listar todas as falhas de mercado com paginacao e filtros
+    Listar todas as falhas de mercado com paginacao, filtros e estatisticas de resultados
 
     - **skip**: Numero de registros a pular (default: 0)
     - **limit**: Numero maximo de registros a retornar (default: 50, max: 100)
     - **pilar**: Filtrar por pilar especifico (opcional)
+
+    Retorna cada falha com:
+    - id, titulo, pilar, descricao, dica_busca
+    - total_resultados: quantidade de resultados encontrados
+    - confidence_medio: score medio dos resultados
     """
-    query = "SELECT * FROM falhas_mercado"
+    query = """
+    SELECT
+        f.id,
+        f.titulo,
+        f.pilar,
+        f.descricao,
+        f.dica_busca,
+        COUNT(r.id) as total_resultados,
+        COALESCE(AVG(r.confidence_score), 0.0) as confidence_medio
+    FROM falhas_mercado f
+    LEFT JOIN resultados_pesquisa r ON f.id = r.falha_id
+    """
 
     if pilar:
-        query += f" WHERE pilar LIKE '%{pilar}%'"
+        query += f" WHERE f.pilar LIKE '%{pilar}%'"
 
-    query += f" ORDER BY id LIMIT {limit} OFFSET {skip}"
+    query += " GROUP BY f.id ORDER BY f.id"
+    query += f" LIMIT {limit} OFFSET {skip}"
 
     falhas = await db.fetch_all(query)
-    return falhas
+    return [dict(falha) for falha in falhas]
 
 
 @router.get("/falhas/{falha_id}", response_model=FalhaResponse)

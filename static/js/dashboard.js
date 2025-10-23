@@ -31,6 +31,8 @@ function dashboardApp() {
         modal_falha_aberta: false,
         falha_selecionada: null,
         resultados_falha_selecionada: [],
+        modal_resultado_aberta: false,
+        resultado_selecionado: null,
         filtro_score_min: 0.5,
         health_check_executando: false,
         health_check_resultado: null,
@@ -319,6 +321,16 @@ function dashboardApp() {
             } catch (erro) {
                 console.error('Erro na requisicao:', erro);
             }
+        },
+
+        abrir_detalhes_resultado(resultado) {
+            this.resultado_selecionado = resultado;
+            this.modal_resultado_aberta = true;
+        },
+
+        fechar_detalhes_resultado() {
+            this.modal_resultado_aberta = false;
+            this.resultado_selecionado = null;
         },
 
         // Filtros
