@@ -97,6 +97,34 @@ header h1 {
     }
 }
 
+/* Sombra em degradê animada para barras em progresso */
+.progress-glow {
+    box-shadow: 0 0 8px rgba(37, 99, 235, 0.4),
+                0 0 16px rgba(59, 130, 246, 0.3),
+                0 0 24px rgba(96, 165, 250, 0.2);
+    animation: glow-pulse 2s ease-in-out infinite;
+    transition: box-shadow 0.3s ease;
+}
+
+@keyframes glow-pulse {
+    0% {
+        box-shadow: 0 0 8px rgba(37, 99, 235, 0.4),
+                    0 0 16px rgba(59, 130, 246, 0.3),
+                    0 0 24px rgba(96, 165, 250, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 12px rgba(37, 99, 235, 0.6),
+                    0 0 24px rgba(59, 130, 246, 0.5),
+                    0 0 36px rgba(96, 165, 250, 0.3),
+                    inset 0 0 8px rgba(37, 99, 235, 0.1);
+    }
+    100% {
+        box-shadow: 0 0 8px rgba(37, 99, 235, 0.4),
+                    0 0 16px rgba(59, 130, 246, 0.3),
+                    0 0 24px rgba(96, 165, 250, 0.2);
+    }
+}
+
 @keyframes progress-pulse {
     0%, 100% {
         opacity: 1;
