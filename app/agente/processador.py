@@ -178,10 +178,33 @@ class Processador:
         await self.marcar_como_processando(entrada["id"])
 
         try:
+            # Garantir que a query está no idioma correto
+            query = entrada["query"]
+            idioma = entrada["idioma"]
+
+            # Se query está em português mas idioma-alvo é outro, traduzir
+            if idioma != "pt":
+                from app.utils.language_detector import detectar_idioma
+                idioma_detectado, confianca = detectar_idioma(query)
+
+                # Se query foi detectada como português com confiança, traduzir
+                if idioma_detectado == "pt" and confianca > 0.2:
+                    from app.utils.idiomas import traduzir_query
+                    query_traduzida = await traduzir_query(
+                        query=query,
+                        idioma_origem="pt",
+                        idioma_alvo=idioma,
+                        usar_llm=True
+                    )
+
+                    if query_traduzida and query_traduzida != query:
+                        print(f"[PROCESSADOR] Query traduzida: '{query}' -> '{query_traduzida}' ({idioma})")
+                        query = query_traduzida
+
             # Executar pesquisa adaptativa (que também funciona com busca tradicional se desativada)
             resposta_pesquisa = await self.agente_pesquisador.executar_pesquisa_adaptativa(
-                query=entrada["query"],
-                idioma=entrada["idioma"],
+                query=query,
+                idioma=idioma,
                 ferramentas=[entrada["ferramenta"]]
             )
 
@@ -238,6 +261,23 @@ class Processador:
             True se salvo com sucesso
         """
         try:
+            # Validar idioma antes de salvar
+            idioma_esperado = resultado.get('idioma', 'pt')
+            if idioma_esperado != 'pt':
+                from app.utils.language_detector import validar_idioma_resultado
+
+                titulo = resultado.get('titulo', '')
+                descricao = resultado.get('descricao', '')
+
+                eh_valido, idioma_detectado, confianca = validar_idioma_resultado(
+                    titulo, descricao, idioma_esperado, threshold_confianca=0.15
+                )
+
+                # Se resultado não está no idioma correto, não salvar
+                if idioma_detectado == 'pt' and idioma_esperado != 'pt' and confianca > 0.15:
+                    print(f"[PROCESSADOR] ⚠️ Resultado descartado: português detectado mas esperado {idioma_esperado}")
+                    return False
+
             # Calcular hash
             hash_conteudo = gerar_hash_conteudo(
                 titulo=resultado.get('titulo', ''),
