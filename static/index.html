@@ -546,7 +546,7 @@
         <!-- Modal Detalhes Falha -->
         <div x-show="modal_falha_aberta" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
              @click="modal_falha_aberta = false">
-            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4" @click.stop>
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col overflow-y-auto" @click.stop>
                 <div class="flex justify-between items-center p-6 border-b border-gray-200">
                     <h2 class="text-2xl font-bold" style="color: #1f2937;">Detalhes da Falha</h2>
                     <button @click="modal_falha_aberta = false" class="text-gray-400 hover:text-gray-600">
@@ -556,7 +556,7 @@
                     </button>
                 </div>
 
-                <div class="p-6 space-y-4">
+                <div class="p-6 space-y-4 overflow-y-auto">
                     <div>
                         <h3 class="text-lg font-bold" style="color: #1f2937;" x-text="falha_selecionada?.titulo"></h3>
                         <p style="color: #374151;" x-text="falha_selecionada?.descricao"></p>
@@ -575,7 +575,7 @@
 
                     <div>
                         <h4 class="font-bold mb-2" style="color: #1f2937;">Resultados Encontrados</h4>
-                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                        <div class="space-y-2 max-h-[40vh] overflow-y-auto">
                             <template x-for="resultado in resultados_falha_selecionada" :key="resultado.id">
                                 <div class="bg-gray-50 p-3 rounded border border-gray-200">
                                     <p class="font-medium" style="color: #1f2937;" x-text="resultado.titulo"></p>

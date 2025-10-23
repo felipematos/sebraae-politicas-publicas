@@ -24,6 +24,7 @@ from app.integracao.jina_api import JinaClient
 from app.integracao.deep_research_mcp import DeepResearchClient
 from app.integracao.tavily_api import TavilyClient
 from app.integracao.serper_api import SerperClient
+from app.integracao.exa_api import ExaClient
 
 
 class AgentePesquisador:
@@ -92,6 +93,18 @@ class AgentePesquisador:
             self.serper_client = None
 
         # Deep Research nao precisa de API key (usa MCP)
+        # Exa (opcional)
+        try:
+            if settings.EXA_API_key:
+                self.exa_client = ExaClient(
+                    settings.EXA_API_key
+                )
+            else:
+                self.exa_client = None
+        except Exception as e:
+            print(f"Aviso: Exa client nao inicializado: {e}")
+            self.exa_client = None
+
         self.deep_research_client = DeepResearchClient()
 
     async def gerar_queries(self, falha: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -253,6 +266,14 @@ class AgentePesquisador:
 
                 elif ferramenta == "serper" and self.serper_client:
                     resultado = await self.serper_client.pesquisar(
+                        query=query,
+                        idioma=idioma,
+                        max_resultados=5
+                    )
+                    resultados.extend(resultado)
+
+                elif ferramenta == "exa" and self.exa_client:
+                    resultado = await self.exa_client.pesquisar(
                         query=query,
                         idioma=idioma,
                         max_resultados=5

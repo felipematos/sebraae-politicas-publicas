@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     PERPLEXITY_API_KEY: str
     TAVILY_API_KEY: Optional[str] = None
     SERPER_API_KEY: Optional[str] = None
+    EXA_API_key: Optional[str] = None  # Para buscas semanticas com Exa AI
     ANTHROPIC_API_KEY: Optional[str] = None  # Para avaliar relevancia com Claude
     OPENAI_API_KEY: Optional[str] = None  # Para gerar embeddings
 
@@ -44,6 +45,7 @@ class Settings(BaseSettings):
         "jina": True,
         "tavily": True,
         "serper": True,
+        "exa": True,  # Exa AI - semantic search
         "deep_research": False  # DESABILITADO: ferramenta com problemas
     }
 

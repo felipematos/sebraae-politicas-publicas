@@ -14,6 +14,7 @@ from app.integracao.jina_api import JinaClient
 from app.integracao.deep_research_mcp import DeepResearchClient
 from app.integracao.tavily_api import TavilyClient
 from app.integracao.serper_api import SerperClient
+from app.integracao.exa_api import ExaClient
 
 router = APIRouter(tags=["Health Check"])
 
@@ -329,6 +330,51 @@ class HealthChecker:
                 "tempo_teste": datetime.now().isoformat()
             }
 
+    async def test_exa(self) -> Dict[str, Any]:
+        """Testa Exa AI"""
+        try:
+            if not settings.EXA_API_key:
+                return {
+                    "status": "warning",
+                    "servico": "Exa AI",
+                    "mensagem": "Exa API não configurada",
+                    "detalhes": "API key não foi definida nas configurações",
+                    "tempo_teste": datetime.now().isoformat()
+                }
+
+            client = ExaClient(settings.EXA_API_key)
+
+            resultado = await client.pesquisar(
+                query="public policy innovation Brazil",
+                idioma="en",
+                max_resultados=3
+            )
+
+            if resultado and len(resultado) > 0:
+                return {
+                    "status": "ok",
+                    "servico": "Exa AI",
+                    "mensagem": "Exa API respondendo normalmente",
+                    "detalhes": f"Retornou {len(resultado)} resultado(s)",
+                    "tempo_teste": datetime.now().isoformat()
+                }
+            else:
+                return {
+                    "status": "warning",
+                    "servico": "Exa AI",
+                    "mensagem": "Exa respondeu mas sem resultados",
+                    "detalhes": "API retornou vazio",
+                    "tempo_teste": datetime.now().isoformat()
+                }
+        except Exception as e:
+            return {
+                "status": "error",
+                "servico": "Exa AI",
+                "mensagem": "Exa API indisponível",
+                "detalhes": str(e),
+                "tempo_teste": datetime.now().isoformat()
+            }
+
     async def run_all_tests(self) -> Dict[str, Any]:
         """Executa todos os testes em paralelo"""
         # Executar testes em paralelo
@@ -338,6 +384,7 @@ class HealthChecker:
             self.test_jina(),
             self.test_tavily(),
             self.test_serper(),
+            self.test_exa(),
             self.test_deep_research(),
             return_exceptions=True
         )
