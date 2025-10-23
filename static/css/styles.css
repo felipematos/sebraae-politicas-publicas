@@ -41,7 +41,28 @@ header h1 {
 
 /* Progress Bar */
 .bg-blue-600 {
-    animation: progress-pulse 2s ease-in-out infinite;
+    animation: progress-gradient 2.5s ease-in-out infinite;
+    background: linear-gradient(
+        90deg,
+        #2563eb 0%,
+        #3b82f6 25%,
+        #1d4ed8 50%,
+        #3b82f6 75%,
+        #2563eb 100%
+    );
+    background-size: 200% 100%;
+}
+
+@keyframes progress-gradient {
+    0% {
+        background-position: 0% 0;
+    }
+    50% {
+        background-position: 100% 0;
+    }
+    100% {
+        background-position: 0% 0;
+    }
 }
 
 @keyframes progress-pulse {

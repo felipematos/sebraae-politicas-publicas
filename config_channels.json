@@ -1,0 +1,7 @@
+{
+  "perplexity": true,
+  "jina": false,
+  "tavily": true,
+  "serper": true,
+  "deep_research": false
+}
