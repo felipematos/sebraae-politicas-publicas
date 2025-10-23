@@ -227,6 +227,7 @@ class Processador:
                 resultado["falha_id"] = entrada["falha_id"]
                 resultado["idioma"] = entrada["idioma"]
                 resultado["ferramenta_origem"] = entrada["ferramenta"]
+                resultado["query"] = query  # CRITICAL: Store the query used (possibly translated)
 
                 # Avaliar
                 score = await self.avaliador.avaliar(resultado, entrada["query"])
@@ -293,6 +294,7 @@ class Processador:
                 "fonte_url": resultado.get("url", ""),
                 "fonte_tipo": resultado.get("fonte", "web"),
                 "idioma": resultado.get("idioma", "pt"),
+                "query": resultado.get("query", ""),  # CRITICAL: Include query for scoring validation
                 "confidence_score": resultado.get("confidence_score", 0.5),
                 "ferramenta_origem": resultado.get("ferramenta_origem", "unknown"),
                 "hash_conteudo": hash_conteudo,

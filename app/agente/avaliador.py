@@ -79,16 +79,17 @@ async def calcular_score_relevancia(resultado: str, query: str) -> float:
         if palavra in resultado_lower:
             matches += 1
 
-    # Score base: proporcao de palavras encontradas (0-0.7)
-    score_base = (matches / len(palavras_query)) * 0.7
+    # Score base: proporcao de palavras encontradas (0-0.8)
+    # Usa escala 0-1 completa para refletir bem a relevancia
+    score_base = (matches / len(palavras_query)) * 0.8
 
-    # Bonus se query completa aparece como phrase (0-0.2)
+    # Bonus se query completa aparece como phrase (0-0.15)
     bonus_phrase = 0.0
     if query_lower in resultado_lower:
-        bonus_phrase = 0.2
+        bonus_phrase = 0.15  # Muito bom: encontrou a query inteira
     elif matches == len(palavras_query):
-        # Se todas as palavras estao presentes mas nao em sequence, bonus muito pequeno
-        bonus_phrase = 0.05
+        # Se todas as palavras estao presentes mas nao em sequence
+        bonus_phrase = 0.10  # Bom: encontrou todas as palavras
 
     score = score_base + bonus_phrase
 
@@ -103,48 +104,53 @@ def calcular_score_ponderado(
     confiabilidade_fonte: float
 ) -> float:
     """
-    Calcula score ponderado usando 4 fatores
+    Calcula score ponderado melhorado com 4 fatores
 
     Fatores:
-    - score_relevancia: Quanto o resultado eh relevante para a query (40%)
-    - num_ocorrencias: Quantas vezes apareceu em multiplas pesquisas (30%)
+    - score_relevancia: Quanto o resultado eh relevante para a query (50%)
+      Usa escala 0-1 completa para refletir melhor a relevancia
+    - num_ocorrencias: Quantas vezes apareceu em multiplas pesquisas (20%)
+      Incentiva resultados que aparecem em multiplas buscas
     - confiabilidade_fonte: Confiabilidade da fonte de dados (20%)
+      Pondera pela fonte de onde veio o resultado
     - titulo_match: Se titulo contem palavras-chave (10%)
+      Bonus se a query aparece no titulo
 
     Args:
         resultado: Dicionario com titulo, descricao, url, fonte
         query: Query para matching no titulo
-        score_relevancia: Score de relevancia (0-1)
+        score_relevancia: Score de relevancia (0-1) - CORRIGIDO PARA USAR ESCALA COMPLETA
         num_ocorrencias: Numero de ocorrencias
         confiabilidade_fonte: Confiabilidade da fonte (0-1)
 
     Returns:
         Score ponderado entre 0.0 e 1.0
     """
-    # Fator 1: Relevancia (40%)
-    peso_relevancia = 0.40
-    valor_relevancia = score_relevancia  # Ja entre 0-1
+    # Fator 1: Relevancia (50%) - AUMENTADO para refletir importancia
+    # score_relevancia agora usa escala 0-1 completa
+    peso_relevancia = 0.50
+    valor_relevancia = min(1.0, score_relevancia)  # Ja entre 0-1
 
-    # Fator 2: Ocorrencias (30%)
-    # Normalizamos para 0-1: assumindo max 10 ocorrencias
-    peso_ocorrencias = 0.30
-    valor_ocorrencias = min(1.0, num_ocorrencias / 10.0)
+    # Fator 2: Ocorrencias (20%) - REDUZIDO pois já considerado em relevancia
+    # Normalizamos para 0-1: max 5 ocorrencias = 100%
+    peso_ocorrencias = 0.20
+    valor_ocorrencias = min(1.0, num_ocorrencias / 5.0)
 
-    # Fator 3: Confiabilidade da fonte (20%)
+    # Fator 3: Confiabilidade da fonte (20%) - MANTIDO
     peso_fonte = 0.20
-    valor_fonte = confiabilidade_fonte  # Ja entre 0-1
+    valor_fonte = min(1.0, confiabilidade_fonte)  # Ja entre 0-1
 
-    # Fator 4: Match no titulo (10%)
+    # Fator 4: Match no titulo (10%) - MANTIDO como bonus
     peso_titulo = 0.10
     titulo = resultado.get("titulo", "").lower()
     palavras_query = extrair_palavras_chave(query)
     if palavras_query:
         titulo_matches = sum(1 for p in palavras_query if p in titulo)
-        valor_titulo = titulo_matches / len(palavras_query)
+        valor_titulo = min(1.0, titulo_matches / len(palavras_query))
     else:
         valor_titulo = 0.0
 
-    # Score ponderado
+    # Score ponderado com formula melhorada
     score = (
         valor_relevancia * peso_relevancia +
         valor_ocorrencias * peso_ocorrencias +
