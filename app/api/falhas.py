@@ -41,7 +41,8 @@ async def listar_falhas(
     - max_searches: numero maximo de buscas esperado (configuracao geral)
     - num_ferramentas: numero distinct de ferramentas que efetivamente encontraram resultados
     - num_idiomas: numero distinct de idiomas em que resultados foram encontrados
-      (0 para falhas nao iniciadas, cresce conforme processos sao executados)
+    - num_queries_processadas: numero distinct de queries unicas que foram completadas
+      (0 para falhas nao iniciadas, cresce conforme buscas sao executadas)
     """
     from app.config import settings
 
@@ -59,10 +60,11 @@ async def listar_falhas(
         COALESCE(SUM(CASE WHEN fp.status = 'pendente' THEN 1 ELSE 0 END), 0) as searches_pending,
         COALESCE(SUM(CASE WHEN fp.status IN ('completa', 'erro', 'processando', 'pendente') THEN 1 ELSE 0 END), 0) as total_buscas_enfileiradas,
         COUNT(DISTINCT CASE WHEN r.id IS NOT NULL THEN r.ferramenta_origem END) as num_ferramentas,
-        COUNT(DISTINCT CASE WHEN r.id IS NOT NULL THEN r.idioma END) as num_idiomas
+        COUNT(DISTINCT CASE WHEN r.id IS NOT NULL THEN r.idioma END) as num_idiomas,
+        COUNT(DISTINCT fp.query) as num_queries_processadas
     FROM falhas_mercado f
     LEFT JOIN resultados_pesquisa r ON f.id = r.falha_id
-    LEFT JOIN fila_pesquisas fp ON f.id = fp.falha_id
+    LEFT JOIN fila_pesquisas fp ON f.id = fp.falha_id AND fp.status IN ('completa', 'erro')
     """
 
     if pilar:
