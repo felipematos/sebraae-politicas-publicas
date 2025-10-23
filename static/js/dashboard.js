@@ -51,13 +51,10 @@ function dashboardApp() {
 
         // Inicializacao
         async init() {
-            console.log('[INIT] Dashboard iniciando...');
             await this.carregar_falhas();
             await this.carregar_resultados();
             await this.carregar_canais();
-            console.log('[INIT] Antes de carregar_ferramentas_config. ferramentas_config atual:', this.ferramentas_config);
             await this.carregar_ferramentas_config();
-            console.log('[INIT] Após carregar_ferramentas_config. ferramentas_config agora:', this.ferramentas_config);
             await this.atualizar_stats();
             // Atualizar stats a cada 3 segundos quando pesquisa ativa, 10 segundos se inativa
             setInterval(() => this.atualizar_stats(), 3000);
@@ -410,20 +407,15 @@ function dashboardApp() {
         // Gerenciar Ferramentas de Pesquisa
         async carregar_ferramentas_config() {
             try {
-                console.log('[DEBUG] Carregando configuracao de ferramentas...');
                 const response = await fetch('/api/config/search-channels');
                 if (response.ok) {
                     const config = await response.json();
-                    console.log('[DEBUG] Config recebida do servidor:', config);
                     // Atualizar properties in-place para manter reatividade do Alpine.js
                     if (config.search_channels_enabled) {
-                        console.log('[DEBUG] Atualizando ferramentas_config in-place com:', config.search_channels_enabled);
                         // Atualizar cada propriedade individualmente
                         for (const [key, value] of Object.entries(config.search_channels_enabled)) {
                             this.ferramentas_config[key] = value;
-                            console.log(`[DEBUG] ${key} = ${value}`);
                         }
-                        console.log('[DEBUG] ferramentas_config após update:', this.ferramentas_config);
                     }
                 }
             } catch (erro) {
