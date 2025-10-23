@@ -300,36 +300,14 @@ class Processador:
             }
 
             # Adicionar tradução automática para português se não for PT
-            idioma = dados.get("idioma", "pt")
-            if idioma != "pt" and idioma:
-                try:
-                    from app.integracao.openrouter_api import traduzir_com_openrouter
-
-                    # Traduzir título
-                    if dados.get("titulo"):
-                        titulo_pt = await traduzir_com_openrouter(
-                            dados["titulo"],
-                            idioma_alvo="pt",
-                            idioma_origem=idioma
-                        )
-                        if titulo_pt and titulo_pt != dados["titulo"]:
-                            dados["titulo_pt"] = titulo_pt
-
-                    # Traduzir descrição
-                    if dados.get("descricao"):
-                        descricao_pt = await traduzir_com_openrouter(
-                            dados["descricao"],
-                            idioma_alvo="pt",
-                            idioma_origem=idioma
-                        )
-                        if descricao_pt and descricao_pt != dados["descricao"]:
-                            dados["descricao_pt"] = descricao_pt
-
-                    print(f"[TRADUÇÃO] Resultado traduzido automaticamente para português (idioma: {idioma})")
-
-                except Exception as e:
-                    print(f"[TRADUÇÃO] Aviso: Falha ao traduzir resultado: {str(e)[:100]}")
-                    # Continuar mesmo se a tradução falhar
+            # DESABILITADO TEMPORARIAMENTE: OpenRouter API está retornando HTTP 405
+            # idioma = dados.get("idioma", "pt")
+            # if idioma != "pt" and idioma:
+            #     try:
+            #         from app.integracao.openrouter_api import traduzir_com_openrouter
+            #         # ... translation code disabled ...
+            #     except Exception as e:
+            #         print(f"[TRADUÇÃO] Aviso: Falha ao traduzir resultado: {str(e)[:100]}")
 
             # Salvar no banco
             await insert_resultado(dados)

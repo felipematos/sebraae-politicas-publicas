@@ -72,7 +72,7 @@ class Settings(BaseSettings):
     ]
 
     # Ferramentas de pesquisa
-    FERRAMENTAS: list[str] = ["perplexity", "jina", "deep_research"]
+    FERRAMENTAS: list[str] = ["perplexity", "jina", "tavily", "serper"]
 
     # ChromaDB - Banco de dados vetorial para RAG
     CHROMA_PERSIST_PATH: str = "chroma_db"  # Diretório para salvar dados
