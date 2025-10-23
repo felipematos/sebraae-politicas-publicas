@@ -451,6 +451,31 @@ function dashboardApp() {
             if (!data_string) return '-';
             const data = new Date(data_string);
             return data.toLocaleDateString('pt-BR');
+        },
+
+        // Retorna cor baseada no score (traffic light)
+        obterCorScore(score) {
+            const s = score || 0;
+            if (s >= 0.75) return 'text-green-700 bg-green-50';  // Bom
+            if (s >= 0.5) return 'text-yellow-700 bg-yellow-50'; // Médio
+            return 'text-red-700 bg-red-50';                     // Ruim
+        },
+
+        // Retorna classe de barra baseada no score
+        obterCorBarra(score) {
+            const s = score || 0;
+            if (s >= 0.75) return 'bg-green-600';
+            if (s >= 0.5) return 'bg-yellow-500';
+            return 'bg-red-600';
+        },
+
+        // Retorna status descritivo
+        obterStatusScore(score) {
+            const s = score || 0;
+            if (s >= 0.75) return '✓ Excelente';
+            if (s >= 0.5) return '⚠ Bom';
+            if (s > 0) return '✗ Fraco';
+            return '-';
         }
     };
 }

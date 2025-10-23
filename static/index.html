@@ -140,8 +140,8 @@
                                 <th class="px-6 py-3 text-left text-sm font-medium" style="color: #1f2937;">ID</th>
                                 <th class="px-6 py-3 text-left text-sm font-medium" style="color: #1f2937;">Titulo</th>
                                 <th class="px-6 py-3 text-left text-sm font-medium" style="color: #1f2937;">Pilar</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium" style="color: #1f2937;">Resultados</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium" style="color: #1f2937;">Score Medio</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium" style="color: #1f2937;">Progresso de Pesquisa</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium" style="color: #1f2937;">Score Acumulado</th>
                                 <th class="px-6 py-3 text-left text-sm font-medium" style="color: #1f2937;">Acoes</th>
                             </tr>
                         </thead>
@@ -154,14 +154,21 @@
                                         <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
                                               x-text="falha.pilar"></span>
                                     </td>
-                                    <td class="px-6 py-4 text-sm" style="color: #1f2937;" x-text="falha.total_resultados || 0"></td>
                                     <td class="px-6 py-4 text-sm">
-                                        <div class="flex items-center space-x-2">
-                                            <div class="w-24 bg-gray-200 rounded-full h-2">
-                                                <div class="bg-green-600 h-2 rounded-full"
-                                                     :style="`width: ${(falha.confidence_medio || 0) * 100}%`"></div>
+                                        <div class="flex items-center space-x-3">
+                                            <div class="flex-1">
+                                                <div class="w-32 bg-gray-200 rounded-full h-3 overflow-hidden">
+                                                    <div :class="obterCorBarra(falha.confidence_medio)" class="h-3 rounded-full transition-all"
+                                                         :style="`width: ${Math.min((falha.total_resultados || 0) * 5, 100)}%`"></div>
+                                                </div>
+                                                <span class="text-xs text-gray-600 mt-1 block" x-text="`${falha.total_resultados || 0} resultado(s)`"></span>
                                             </div>
-                                            <span style="color: #1f2937;" x-text="`${(falha.confidence_medio || 0).toFixed(2)}`"></span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <div :class="obterCorScore(falha.confidence_medio)" class="px-3 py-2 rounded-lg inline-flex flex-col items-center space-y-1">
+                                            <span class="font-bold" x-text="`${(falha.confidence_medio || 0).toFixed(2)}`"></span>
+                                            <span class="text-xs font-medium" x-text="obterStatusScore(falha.confidence_medio)"></span>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 text-sm">
