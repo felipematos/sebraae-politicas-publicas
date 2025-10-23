@@ -8,7 +8,6 @@ import re
 import asyncio
 from typing import List, Dict, Any
 from app.config import settings
-from app.integracao.openrouter_api import traduzir_com_openrouter
 
 
 # Mapa de idiomas com nomes descritivos
@@ -55,7 +54,7 @@ async def traduzir_query(
     query: str,
     idioma_origem: str,
     idioma_alvo: str,
-    usar_llm: bool = True
+    usar_llm: bool = False
 ) -> str:
     """
     Traduz uma query de um idioma para outro
@@ -79,18 +78,19 @@ async def traduzir_query(
     if idioma_origem == idioma_alvo:
         return query
 
-    # Tentar tradução com OpenRouter (LLM gratuito com fallback)
-    if usar_llm and settings.OPENROUTER_API_KEY:
-        try:
-            resultado = await traduzir_com_openrouter(
-                query,
-                idioma_alvo,
-                idioma_origem
-            )
-            if resultado and resultado != query:
-                return resultado
-        except Exception as e:
-            print(f"[WARN] Tradução OpenRouter falhou: {str(e)[:100]}, usando fallback")
+    # DESABILITADO: OpenRouter está causando HTTP 405 errors
+    # if usar_llm and settings.OPENROUTER_API_KEY:
+    #     try:
+    #         resultado = await traduzir_com_openrouter(
+    #             query,
+    #             idioma_alvo,
+    #             idioma_origem
+    #         )
+    #         if resultado and resultado != query:
+    #             return resultado
+    #     except Exception as e:
+    #         print(f"[WARN] Tradução OpenRouter falhou: {str(e)[:100]}, usando fallback")
+    pass
 
     # Fallback: Mapping simples de traducoes comuns para idiomas principais
     # (para casos onde OpenRouter não está disponível ou falhou)
@@ -166,20 +166,17 @@ async def traduzir_query(
             palavras_traduzidas += 1
         resultado = novo_resultado
 
-    # Se nenhuma palavra foi traduzida, tentar via chainz de idiomas
-    # Ex: pt->en->it
-    if palavras_traduzidas == 0 and idioma_origem != idioma_alvo:
-        # Se nao encontrou mapa direto, tentar traducao em cadeia via English
-        if idioma_origem != "en":
-            resultado_en = await traduzir_query(query, idioma_origem, "en")
-            if resultado_en != query:
-                resultado = await traduzir_query(resultado_en, "en", idioma_alvo)
-            else:
-                # Ultima tentativa: manter em ingles se for para outro idioma
-                resultado = resultado_en
-        else:
-            # Manter original se ja eh English
-            resultado = resultado
+    # Se nenhuma palavra foi traduzida, retornar original
+    # (chain translation desabilitado para evitar recursão infinita)
+    # if palavras_traduzidas == 0 and idioma_origem != idioma_alvo:
+    #     if idioma_origem != "en":
+    #         resultado_en = await traduzir_query(query, idioma_origem, "en", usar_llm=False)
+    #         if resultado_en != query:
+    #             resultado = await traduzir_query(resultado_en, "en", idioma_alvo, usar_llm=False)
+    #         else:
+    #             resultado = resultado_en
+    #     else:
+    #         resultado = resultado
 
     return resultado
 
