@@ -46,7 +46,7 @@ class Settings(BaseSettings):
         "jina": True,
         "tavily": True,
         "serper": True,
-        "exa": True,  # Exa AI - semantic search
+        "exa": False,  # DESABILITADO: causing issues - use basic search tools
         "deep_research": False  # DESABILITADO: ferramenta com problemas
     }
 
@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     MIN_BUSCAS_POR_FALHA: int = 2  # Mínimo obrigatório
     MAX_BUSCAS_POR_FALHA: int = 8  # Máximo permitido
     QUALIDADE_MINIMA_PARA_PARAR: float = 0.75  # Score mínimo para parar (0-1)
-    USAR_BUSCA_ADAPTATIVA: bool = True  # Ativar/desativar busca inteligente
+    USAR_BUSCA_ADAPTATIVA: bool = False  # Ativar/desativar busca inteligente [DESATIVADO para acelerar]
 
     # Idiomas suportados
     IDIOMAS: list[str] = [
