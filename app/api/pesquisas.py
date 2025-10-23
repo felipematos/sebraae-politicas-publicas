@@ -285,26 +285,23 @@ async def repopular_fila_com_ferramenta(ferramenta: str):
         agente = AgentePesquisador()
 
         # Obter todas as falhas
-        falhas = await db.fetch_all("SELECT id FROM falhas_mercado")
-        falhas_ids = [f["id"] for f in falhas]
-
-        # Usar idiomas padrão
-        idiomas = settings.IDIOMAS[:9]  # Primeiros 9 idiomas
+        falhas = await db.fetch_all("SELECT * FROM falhas_mercado")
 
         # Popular fila apenas com a ferramenta específica
         total = 0
-        for falha_id in falhas_ids:
-            for idioma in idiomas:
-                # Gerar queries para esta falha
-                queries = await agente.gerar_queries(falha_id, num_queries=5)
+        for falha in falhas:
+            # Gerar queries para esta falha (converter para dict se necessário)
+            falha_dict = dict(falha) if not isinstance(falha, dict) else falha
+            queries = await agente.gerar_queries(falha_dict)
 
-                for query in queries:
-                    # Adicionar entrada para esta ferramenta específica
-                    await db.execute("""
-                        INSERT INTO fila_pesquisas (falha_id, query, idioma, ferramenta, status)
-                        VALUES (?, ?, ?, ?, 'pendente')
-                    """, (falha_id, query, idioma, ferramenta))
-                    total += 1
+            # As queries já vêm com idioma e conteúdo traduzido
+            for query_item in queries:
+                # Adicionar entrada para esta ferramenta específica
+                await db.execute("""
+                    INSERT INTO fila_pesquisas (falha_id, query, idioma, ferramenta, status)
+                    VALUES (?, ?, ?, ?, 'pendente')
+                """, (query_item["falha_id"], query_item["query"], query_item["idioma"], ferramenta))
+                total += 1
 
         return {
             "status": "sucesso",
