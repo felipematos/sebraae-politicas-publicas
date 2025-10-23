@@ -117,6 +117,15 @@ class Processador:
 
         return None
 
+    async def marcar_como_processando(self, entrada_id: int) -> bool:
+        """Marca entrada como em processamento"""
+        try:
+            await atualizar_status_fila(entrada_id, "processando")
+            return True
+        except Exception as e:
+            print(f"Erro marcando entrada como processando: {e}")
+            return False
+
     async def marcar_como_processada(self, entrada_id: int) -> bool:
         """Marca entrada como completa"""
         try:
@@ -164,6 +173,9 @@ class Processador:
             print(f"Entrada invalida: {entrada}")
             await self.marcar_como_erro(entrada["id"], "Entrada invalida")
             return False
+
+        # Marcar como em processamento (para que apareça no dashboard como "em andamento")
+        await self.marcar_como_processando(entrada["id"])
 
         try:
             # Executar pesquisa adaptativa (que também funciona com busca tradicional se desativada)
