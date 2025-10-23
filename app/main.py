@@ -25,17 +25,32 @@ async def worker_processador():
     """
     Task assincron que processa fila continuamente
     Roda a cada intervalo (default 30 segundos)
-    """
-    processador = Processador(max_workers=3)
-    intervalo = 30  # segundos entre iteracoes
 
-    print("[WORKER] Iniciado processador de fila...")
+    Utiliza processamento paralelo com até 5 workers simultâneos
+    para acelerar o processamento da fila de pesquisas
+    """
+    processador = Processador(max_workers=5)  # Parallelismo: até 5 buscas simultâneas
+
+    # Configurar rate limiting para permitir processamento mais rápido
+    processador.configurar_rate_limiting(
+        delay_minimo=0.3,              # Reduzido de 1.0 para 0.3 segundos
+        max_requests_por_minuto=150    # Aumentado de 60 para 150 requests/min
+    )
+
+    intervalo = 20  # Reduzido de 30 para 20 segundos entre iterações
+
+    print("[WORKER] Iniciado processador de fila com PARALLELISMO (5 workers)...")
+    print("[WORKER] Rate limiting: 0.3s delay, 150 req/min")
 
     try:
         while True:
             try:
-                # Processar lote pendente
-                await processador.processar_lote()
+                # Processar lote em PARALELO (até 5 buscas simultâneas)
+                entradas_processadas = await processador.processar_em_paralelo(max_por_lote=20)
+
+                # Log de progresso
+                if entradas_processadas > 0:
+                    print(f"[WORKER] Processadas {entradas_processadas} entradas em paralelo")
 
                 # Aguardar antes da proxima iteracao
                 await asyncio.sleep(intervalo)
