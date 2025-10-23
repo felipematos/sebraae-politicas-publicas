@@ -6,6 +6,20 @@ import httpx
 from typing import List, Dict, Any
 import asyncio
 
+# Mapeamento de códigos de idioma para nomes em inglês (para melhor compreensão)
+IDIOMA_NOMES_EN = {
+    "pt": "Portuguese",
+    "en": "English",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "it": "Italian",
+    "ar": "Arabic",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "he": "Hebrew",
+}
+
 
 class PerplexityClient:
     """Cliente para pesquisas via Perplexity AI"""
@@ -15,6 +29,10 @@ class PerplexityClient:
         self.base_url = "https://api.perplexity.ai"
         self.model = "sonar"  # Updated from deprecated pplx-7b-online
         self.timeout = httpx.Timeout(60.0)
+
+    def _get_idioma_nome(self, codigo_idioma: str) -> str:
+        """Converte código de idioma para nome em inglês."""
+        return IDIOMA_NOMES_EN.get(codigo_idioma, codigo_idioma).upper()
 
     async def pesquisar(
         self,
@@ -26,8 +44,8 @@ class PerplexityClient:
         Realiza pesquisa via Perplexity
 
         Args:
-            query: Termos de busca
-            idioma: Idioma da pesquisa
+            query: Termos de busca (esperado em outro idioma ou sem tradução)
+            idioma: Código do idioma da pesquisa (pt, en, es, etc)
             max_resultados: Maximo de resultados
 
         Returns:
@@ -40,12 +58,23 @@ class PerplexityClient:
                     "Content-Type": "application/json"
                 }
 
+                idioma_nome = self._get_idioma_nome(idioma)
+
+                # Prompt mais rigoroso para garantir resposta no idioma correto
+                prompt = f"""Search for: {query}
+
+IMPORTANT: Your response MUST be ENTIRELY in {idioma_nome}.
+- Do NOT use any other language
+- All titles, descriptions, and text must be in {idioma_nome}
+- List 5 sources with title and URL
+- Format: Title - URL - Brief description"""
+
                 payload = {
                     "model": self.model,
                     "messages": [
                         {
                             "role": "user",
-                            "content": f"Pesquise sobre: {query}. Retorne em {idioma}. Liste 5 fontes com titulo e URL."
+                            "content": prompt
                         }
                     ]
                 }
