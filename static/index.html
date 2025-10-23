@@ -201,19 +201,37 @@
                 <div class="grid grid-cols-1 gap-4">
                     <template x-for="resultado in resultados" :key="resultado.id">
                         <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-                            <div class="flex justify-between items-start mb-3">
-                                <div>
-                                    <h3 class="text-lg font-bold" style="color: #1f2937;" x-text="resultado.titulo"></h3>
-                                    <p class="text-sm" style="color: #374151;" x-text="resultado.fonte_url"></p>
+                            <!-- Falha and Pilar Header -->
+                            <div class="flex justify-between items-center mb-3 pb-3 border-b border-gray-200">
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-xs font-bold uppercase px-2 py-1 rounded"
+                                          :class="resultado.pilar ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-500'"
+                                          x-text="resultado.pilar || 'Sem categoria'"></span>
+                                    <span class="text-sm font-semibold" style="color: #1f2937;"
+                                          x-text="resultado.falha_titulo || 'Falha não identificada'"></span>
                                 </div>
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
                                       x-text="`${(resultado.confidence_score * 100).toFixed(0)}%`"></span>
                             </div>
+
+                            <!-- Result Title and URL -->
+                            <div class="mb-3">
+                                <h3 class="text-lg font-bold" style="color: #1f2937;" x-text="resultado.titulo"></h3>
+                                <p class="text-sm" style="color: #6b7280;">
+                                    <a :href="resultado.fonte_url" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline"
+                                       x-text="resultado.fonte_url"></a>
+                                </p>
+                            </div>
+
+                            <!-- Description -->
                             <p class="mb-4" style="color: #374151;" x-text="resultado.descricao"></p>
+
+                            <!-- Metadata -->
                             <div class="flex justify-between items-center text-sm" style="color: #374151;">
-                                <div class="space-x-4">
+                                <div class="space-x-4 flex flex-wrap">
                                     <span x-text="`Idioma: ${resultado.idioma}`"></span>
                                     <span x-text="`Ferramenta: ${resultado.ferramenta_origem}`"></span>
+                                    <span x-text="`País: ${resultado.pais_origem || 'N/A'}`"></span>
                                 </div>
                                 <button @click="deletar_resultado(resultado.id)"
                                         class="text-red-700 hover:text-red-900 font-medium">

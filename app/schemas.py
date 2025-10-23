@@ -73,6 +73,8 @@ class ResultadoResponse(BaseModel):
     ferramenta_origem: str
     criado_em: datetime
     atualizado_em: datetime
+    falha_titulo: Optional[str] = None
+    pilar: Optional[str] = None
 
 
 class FalhaComResultados(FalhaResponse):

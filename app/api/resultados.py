@@ -29,18 +29,39 @@ async def listar_resultados(
 ):
     """
     Listar resultados de pesquisa com filtros
+    Inclui informacoes da falha (titulo e pilar) via JOIN
     """
-    query = "SELECT * FROM resultados_pesquisa WHERE 1=1"
+    query = """
+    SELECT
+        r.id,
+        r.falha_id,
+        r.titulo,
+        r.descricao,
+        r.fonte_url,
+        r.fonte_tipo,
+        r.pais_origem,
+        r.idioma,
+        r.confidence_score,
+        r.num_ocorrencias,
+        r.ferramenta_origem,
+        r.criado_em,
+        r.atualizado_em,
+        f.titulo as falha_titulo,
+        f.pilar
+    FROM resultados_pesquisa r
+    JOIN falhas_mercado f ON r.falha_id = f.id
+    WHERE 1=1
+    """
 
     if falha_id:
-        query += f" AND falha_id = {falha_id}"
+        query += f" AND r.falha_id = {falha_id}"
 
-    query += f" AND confidence_score BETWEEN {min_score} AND {max_score}"
+    query += f" AND r.confidence_score BETWEEN {min_score} AND {max_score}"
 
     if idioma:
-        query += f" AND idioma = '{idioma}'"
+        query += f" AND r.idioma = '{idioma}'"
 
-    query += f" ORDER BY confidence_score DESC LIMIT {limit} OFFSET {skip}"
+    query += f" ORDER BY r.confidence_score DESC LIMIT {limit} OFFSET {skip}"
 
     resultados = await db.fetch_all(query)
     return resultados
