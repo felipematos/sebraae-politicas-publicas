@@ -5,7 +5,7 @@ Permite habilitar/desabilitar canais de pesquisa
 """
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
-from app.config import settings
+from app.config import settings, save_search_channels_config
 
 router = APIRouter(tags=["Config"])
 
@@ -49,7 +49,10 @@ async def toggle_channel(channel_name: str, enabled: bool) -> Dict[str, Any]:
     
     # Atualizar
     settings.SEARCH_CHANNELS_ENABLED[channel_name] = enabled
-    
+
+    # Persistir configuracao
+    save_search_channels_config(settings.SEARCH_CHANNELS_ENABLED)
+
     return {
         "canal": channel_name,
         "ativo": enabled,
@@ -62,13 +65,16 @@ async def toggle_channel(channel_name: str, enabled: bool) -> Dict[str, Any]:
 async def reset_channels() -> Dict[str, Any]:
     """
     Reseta todos os canais para a configuracao padrao (todos habilitados)
-    
+
     Returns:
         Status atualizado de todos os canais
     """
     for channel in settings.SEARCH_CHANNELS_ENABLED:
         settings.SEARCH_CHANNELS_ENABLED[channel] = True
-    
+
+    # Persistir configuracao
+    save_search_channels_config(settings.SEARCH_CHANNELS_ENABLED)
+
     return {
         "mensagem": "Todos os canais foram reabilitados",
         "status": settings.SEARCH_CHANNELS_ENABLED,
@@ -99,6 +105,9 @@ async def bulk_update_channels(channels: Dict[str, bool]) -> Dict[str, Any]:
     # Atualizar
     for channel, enabled in channels.items():
         settings.SEARCH_CHANNELS_ENABLED[channel] = enabled
+
+    # Persistir configuracao
+    save_search_channels_config(settings.SEARCH_CHANNELS_ENABLED)
 
     return {
         "mensagem": "Canais atualizados com sucesso",
@@ -153,6 +162,9 @@ async def update_search_channels_config(config: Dict[str, Any]) -> Dict[str, Any
     # Atualizar configuracao
     for channel, enabled in search_channels.items():
         settings.SEARCH_CHANNELS_ENABLED[channel] = enabled
+
+    # Persistir configuracao
+    save_search_channels_config(settings.SEARCH_CHANNELS_ENABLED)
 
     return {
         "mensagem": "Configuracao das ferramentas atualizada com sucesso",

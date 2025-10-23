@@ -133,7 +133,10 @@ class HealthChecker:
             }
 
     async def test_deep_research(self) -> Dict[str, Any]:
-        """Testa Deep Research MCP"""
+        """
+        Testa Deep Research MCP
+        Detecta se as respostas são mocked (padrão de desenvolvimento)
+        """
         try:
             client = DeepResearchClient()
 
@@ -145,13 +148,45 @@ class HealthChecker:
             )
 
             if resultado and len(resultado) > 0:
-                return {
-                    "status": "ok",
-                    "servico": "Deep Research",
-                    "mensagem": "Deep Research MCP respondendo normalmente",
-                    "detalhes": f"Retornou {len(resultado)} resultado(s)",
-                    "tempo_teste": datetime.now().isoformat()
-                }
+                # Verificar se os resultados são mocked (padrão de teste)
+                # Mocked responses têm URL como "https://deep-research.example.com"
+                # e título como "Deep Research Result for: ..."
+                mocked_count = 0
+                for item in resultado:
+                    url = item.get("url", "").lower() if isinstance(item, dict) else ""
+                    title = item.get("title", "").lower() if isinstance(item, dict) else ""
+
+                    # Detectar padrão mocked
+                    if "deep-research.example.com" in url or "deep research result for" in title:
+                        mocked_count += 1
+
+                if mocked_count == len(resultado):
+                    # Todas as respostas são mocked
+                    return {
+                        "status": "error",
+                        "servico": "Deep Research",
+                        "mensagem": "Deep Research retornando respostas mocked",
+                        "detalhes": f"Todas as {len(resultado)} respostas são padrão de teste (não funcionais)",
+                        "tempo_teste": datetime.now().isoformat()
+                    }
+                elif mocked_count > 0:
+                    # Parcialmente mocked
+                    return {
+                        "status": "warning",
+                        "servico": "Deep Research",
+                        "mensagem": "Deep Research retornando respostas parcialmente mocked",
+                        "detalhes": f"{mocked_count}/{len(resultado)} respostas são padrão de teste",
+                        "tempo_teste": datetime.now().isoformat()
+                    }
+                else:
+                    # Respostas válidas
+                    return {
+                        "status": "ok",
+                        "servico": "Deep Research",
+                        "mensagem": "Deep Research MCP respondendo normalmente",
+                        "detalhes": f"Retornou {len(resultado)} resultado(s) válido(s)",
+                        "tempo_teste": datetime.now().isoformat()
+                    }
             else:
                 return {
                     "status": "warning",
