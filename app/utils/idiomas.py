@@ -73,48 +73,60 @@ async def traduzir_query(
 
     traducoes_comuns = {
         ("pt", "en"): {
-            "acesso": "access",
-            "credito": "credit",
-            "financiamento": "financing",
-            "startup": "startup",
-            "mercado": "market",
-            "falta de": "lack of",
-            "dificuldade": "difficulty",
-            "barreira": "barrier",
-            "regulacao": "regulation",
-            "imposto": "tax"
+            "acesso": "access", "credito": "credit", "financiamento": "financing",
+            "startup": "startup", "mercado": "market", "falta de": "lack of",
+            "dificuldade": "difficulty", "barreira": "barrier", "regulacao": "regulation",
+            "imposto": "tax", "politica": "policy", "publica": "public", "resolver": "solve",
+            "problema": "problem", "solucao": "solution", "talento": "talent",
+            "inovacao": "innovation", "crescimento": "growth", "empresas": "companies",
+            "densidad": "density", "concentracao": "concentration", "acesso": "access"
         },
         ("en", "pt"): {
-            "access": "acesso",
-            "credit": "credito",
-            "financing": "financiamento",
-            "startup": "startup",
-            "market": "mercado",
-            "lack of": "falta de",
-            "difficulty": "dificuldade",
-            "barrier": "barreira",
-            "regulation": "regulacao",
-            "tax": "imposto"
+            "access": "acesso", "credit": "credito", "financing": "financiamento",
+            "startup": "startup", "market": "mercado", "lack of": "falta de",
+            "difficulty": "dificuldade", "barrier": "barreira", "regulation": "regulacao",
+            "tax": "imposto", "policy": "politica", "public": "publica"
         },
         ("pt", "es"): {
-            "acesso": "acceso",
-            "credito": "credito",
-            "financiamento": "financiamiento",
-            "startup": "startup",
-            "mercado": "mercado",
-            "falta de": "falta de",
-            "dificuldade": "dificultad",
-            "regulacao": "regulacion"
+            "acesso": "acceso", "credito": "credito", "financiamento": "financiamiento",
+            "startup": "startup", "mercado": "mercado", "falta de": "falta de",
+            "dificuldade": "dificultad", "regulacao": "regulacion", "politica": "politica",
+            "publica": "publica", "problema": "problema", "solucao": "solucion",
+            "empresas": "empresas", "talento": "talento"
+        },
+        ("pt", "it"): {
+            "acesso": "accesso", "credito": "credito", "financiamento": "finanziamento",
+            "startup": "startup", "mercado": "mercato", "falta de": "mancanza di",
+            "dificuldade": "difficolta", "regulacao": "regolazione", "politica": "politica",
+            "publica": "pubblica", "problema": "problema", "solucao": "soluzione",
+            "empresas": "aziende", "talento": "talento"
+        },
+        ("pt", "fr"): {
+            "acesso": "acces", "credito": "credit", "financiamento": "financement",
+            "startup": "startup", "mercado": "marche", "falta de": "manque de",
+            "dificuldade": "difficulte", "regulacao": "regulation", "politica": "politique",
+            "publica": "publique", "problema": "probleme", "solucao": "solution",
+            "empresas": "entreprises", "talento": "talent"
+        },
+        ("pt", "es"): {
+            "acesso": "acceso", "credito": "credito", "financiamiento": "financiamiento",
+            "startup": "startup", "mercado": "mercado", "falta de": "falta de",
+            "dificuldade": "dificultad", "regulacao": "regulacion"
+        },
+        ("pt", "ar"): {
+            "acesso": "وصول", "mercado": "سوق", "regulacao": "تنظيم",
+            "problema": "مشكلة", "solucao": "حل", "politica": "سياسة"
+        },
+        ("pt", "de"): {
+            "acesso": "zugang", "credito": "kredit", "financiamento": "finanzierung",
+            "startup": "startup", "mercado": "markt", "falta de": "mangel an",
+            "dificuldade": "schwierigkeit", "regulacao": "regelung", "politica": "politik",
+            "publica": "oeffentlich", "problema": "problem", "solucao": "loesung"
         },
         ("en", "es"): {
-            "access": "acceso",
-            "credit": "credito",
-            "financing": "financiamiento",
-            "startup": "startup",
-            "market": "mercado",
-            "lack of": "falta de",
-            "difficulty": "dificultad",
-            "regulation": "regulacion"
+            "access": "acceso", "credit": "credito", "financing": "financiamiento",
+            "startup": "startup", "market": "mercado", "lack of": "falta de",
+            "difficulty": "dificultad", "regulation": "regulacion"
         }
     }
 
@@ -122,13 +134,28 @@ async def traduzir_query(
     mapa = traducoes_comuns.get(chave, {})
 
     resultado = query.lower()
-    for origem, alvo in mapa.items():
-        resultado = re.sub(r'\b' + re.escape(origem) + r'\b', alvo, resultado)
+    palavras_traduzidas = 0
 
-    # Se nao encontrou traducoes, usar estrategia simples
-    if resultado == query.lower():
-        # Para idiomas nao mapeados, fazer transliteracao simples
-        resultado = f"[{idioma_alvo.upper()}] {query}"
+    for origem, alvo in mapa.items():
+        novo_resultado = re.sub(r'\b' + re.escape(origem) + r'\b', alvo, resultado)
+        if novo_resultado != resultado:
+            palavras_traduzidas += 1
+        resultado = novo_resultado
+
+    # Se nenhuma palavra foi traduzida, tentar via chainz de idiomas
+    # Ex: pt->en->it
+    if palavras_traduzidas == 0 and idioma_origem != idioma_alvo:
+        # Se nao encontrou mapa direto, tentar traducao em cadeia via English
+        if idioma_origem != "en":
+            resultado_en = await traduzir_query(query, idioma_origem, "en")
+            if resultado_en != query:
+                resultado = await traduzir_query(resultado_en, "en", idioma_alvo)
+            else:
+                # Ultima tentativa: manter em ingles se for para outro idioma
+                resultado = resultado_en
+        else:
+            # Manter original se ja eh English
+            resultado = resultado
 
     return resultado
 
