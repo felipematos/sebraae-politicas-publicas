@@ -468,12 +468,9 @@ function dashboardApp() {
             return 'text-red-700 bg-red-50';                      // Weak (vermelho)
         },
 
-        // Retorna classe de barra baseada no score (verde >= 0.5, amarelo >= 0.25, vermelho < 0.25)
+        // Retorna classe de barra de PROGRESSO (sempre azul - indica % de pesquisa, não qualidade)
         obterCorBarra(score) {
-            const s = score || 0;
-            if (s >= 0.5) return 'bg-green-600';    // Strong: verde
-            if (s >= 0.25) return 'bg-yellow-500';  // Fair: amarelo
-            return 'bg-red-600';                     // Weak: vermelho
+            return 'bg-blue-600';  // Barra de progresso sempre azul (representa progresso de pesquisa)
         },
 
         // Retorna status descritivo (Strong >= 0.5, Fair >= 0.25, Weak < 0.25)
