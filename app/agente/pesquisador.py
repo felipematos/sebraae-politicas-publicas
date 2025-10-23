@@ -236,7 +236,7 @@ class AgentePesquisador:
                     resultados.extend(resultado)
 
                 elif ferramenta == "jina" and self.jina_client:
-                    resultado = await self.jina_client.search_web(
+                    resultado, _ = await self.jina_client.search_web(
                         query=query,
                         idioma=idioma,
                         max_resultados=10
@@ -342,7 +342,7 @@ class AgentePesquisador:
                         query=query, idioma=idioma, max_resultados=5
                     )
                 elif ferramenta == "jina" and self.jina_client:
-                    resultado = await self.jina_client.search_web(
+                    resultado, _ = await self.jina_client.search_web(
                         query=query, idioma=idioma, max_resultados=10
                     )
                 elif ferramenta == "tavily" and self.tavily_client:
