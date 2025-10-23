@@ -67,12 +67,14 @@ class Database:
             fonte_tipo TEXT,
             pais_origem TEXT,
             idioma TEXT,
+            query TEXT,
             confidence_score REAL DEFAULT 0.5,
             num_ocorrencias INTEGER DEFAULT 1,
             ferramenta_origem TEXT,
             hash_conteudo TEXT UNIQUE,
             criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
             atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+            url_valida BOOLEAN DEFAULT 1,
             FOREIGN KEY (falha_id) REFERENCES falhas_mercado(id)
         );
 
@@ -163,9 +165,9 @@ async def insert_resultado(resultado: Dict[str, Any]) -> int:
     query = """
     INSERT INTO resultados_pesquisa (
         falha_id, titulo, descricao, fonte_url, fonte_tipo,
-        pais_origem, idioma, confidence_score, ferramenta_origem,
-        hash_conteudo
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        pais_origem, idioma, query, confidence_score, ferramenta_origem,
+        hash_conteudo, url_valida
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
 
     async with db.get_connection() as conn:
@@ -177,9 +179,11 @@ async def insert_resultado(resultado: Dict[str, Any]) -> int:
             resultado.get('fonte_tipo'),
             resultado.get('pais_origem'),
             resultado['idioma'],
+            resultado.get('query'),
             resultado['confidence_score'],
             resultado['ferramenta_origem'],
-            resultado['hash_conteudo']
+            resultado['hash_conteudo'],
+            resultado.get('url_valida', True)
         ))
         await conn.commit()
         return cursor.lastrowid
@@ -339,6 +343,122 @@ async def atualizar_status_fila(entrada_id: int, novo_status: str) -> None:
     """Atualiza status de uma entrada na fila"""
     query = "UPDATE fila_pesquisas SET status = ? WHERE id = ?"
     await db.execute(query, (novo_status, entrada_id))
+
+
+async def validar_url(url: str) -> bool:
+    """
+    Valida se a URL é válida e acessível.
+    Retorna True se a URL é válida, False caso contrário.
+    """
+    if not url or not isinstance(url, str):
+        return False
+
+    # Verificar formato básico da URL
+    if not url.startswith(('http://', 'https://', 'ftp://')):
+        return False
+
+    # Verificar se tem caracteres inválidos
+    try:
+        from urllib.parse import urlparse
+        result = urlparse(url)
+        # Deve ter pelo menos um domínio
+        if not result.netloc:
+            return False
+        return True
+    except Exception:
+        return False
+
+
+async def deletar_resultado_com_restauracao(resultado_id: int) -> Dict[str, Any]:
+    """
+    Deleta um resultado e restaura a fila de pesquisa se necessário.
+
+    Retorna dict com:
+    - deletado: bool (sucesso da deleção)
+    - restaurou_fila: bool (se a fila foi restaurada)
+    - entradas_adicionadas: int (quantas entradas foram adicionadas à fila)
+    """
+    resultado = {}
+
+    async with db.get_connection() as conn:
+        # Buscar resultado para obter falha_id e score
+        async with conn.execute(
+            "SELECT falha_id, confidence_score FROM resultados_pesquisa WHERE id = ?",
+            (resultado_id,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            if not row:
+                return {
+                    'deletado': False,
+                    'restaurou_fila': False,
+                    'entradas_adicionadas': 0,
+                    'erro': 'Resultado não encontrado'
+                }
+
+            falha_id = row[0]
+            score = row[1]
+
+    # Deletar resultado
+    await delete_resultado(resultado_id)
+
+    # Restaurar fila apenas se score < 0.7 (satisfatório seria >= 0.7)
+    entradas_adicionadas = 0
+    restaurou_fila = False
+
+    if score < 0.7:
+        # Obter fila existente para não duplicar
+        from app.agente.pesquisador import AgentePesquisador
+        agente = AgentePesquisador()
+
+        # Adicionar 3 novas entradas de pesquisa para aquela falha
+        entradas_adicionadas = await agente.popular_fila_para_falha(falha_id)
+        restaurou_fila = True
+
+    return {
+        'deletado': True,
+        'restaurou_fila': restaurou_fila,
+        'entradas_adicionadas': entradas_adicionadas,
+        'falha_id': falha_id,
+        'score_anterior': score
+    }
+
+
+async def validar_urls_em_lote() -> Dict[str, Any]:
+    """
+    Valida todas as URLs dos resultados e marca as inválidas.
+
+    Retorna dict com:
+    - total_verificadas: int
+    - invalidas_encontradas: int
+    - deletadas: int
+    """
+    resultados = await db.fetch_all("SELECT id, fonte_url FROM resultados_pesquisa WHERE url_valida = 1")
+
+    invalidas = []
+    for resultado in resultados:
+        if not await validar_url(resultado['fonte_url']):
+            invalidas.append(resultado['id'])
+
+    # Deletar os resultados inválidos
+    deletadas = 0
+    for resultado_id in invalidas:
+        info = await deletar_resultado_com_restauracao(resultado_id)
+        if info['deletado']:
+            deletadas += 1
+
+    return {
+        'total_verificadas': len(resultados),
+        'invalidas_encontradas': len(invalidas),
+        'deletadas': deletadas
+    }
+
+
+async def marcar_url_invalida(resultado_id: int) -> None:
+    """Marca uma URL como inválida sem deletar o resultado"""
+    await db.execute(
+        "UPDATE resultados_pesquisa SET url_valida = 0 WHERE id = ?",
+        (resultado_id,)
+    )
 
 
 # Script para inicializar o banco

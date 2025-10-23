@@ -1,0 +1,357 @@
+================================================================================
+ESTRUTURA DO PROJETO SEBRAE NACIONAL - RESUMO EXECUTIVO
+================================================================================
+
+DATA: 2025-10-22
+ANALISTA: Claude Code
+PROJETO: Sistema de Pesquisa de Políticas Públicas para Inovação
+
+================================================================================
+1. VISÃO GERAL DA ARQUITETURA
+================================================================================
+
+O projeto é um sistema de pesquisa automático que coleta, avalia e armazena
+políticas públicas relevantes para 50 falhas de mercado identificadas no 
+ecossistema de inovação brasileiro.
+
+STACK:
+  Backend:      FastAPI (Python 3.x com asyncio)
+  Database:     SQLite 3.x (falhas_mercado_v1.db - 156 KB)
+  APIs:         6 ferramentas (Perplexity, Jina, Tavily, Serper, Exa, Deep Research)
+  Processamento: Agente orquestrador com rotação de ferramentas
+
+================================================================================
+2. ESTRUTURA DE BANCO DE DADOS
+================================================================================
+
+TABELAS CRIADAS (4):
+
+A) falhas_mercado (50 registros)
+   - Dados originais: 50 falhas de mercado categorizada em 7 pilares
+   - Campos: id, titulo, pilar, descricao, dica_busca
+   - Status: Original, não modificado
+
+B) resultados_pesquisa (1,503 registros)
+   - Resultados coletados de pesquisas
+   - Campos principais:
+     * falha_id: Referência à falha pesquisada
+     * titulo, descricao: Dados do resultado encontrado
+     * fonte_url: URL da fonte
+     * fonte_tipo: Tipo ("web", "artigo", "lei", etc)
+     * pais_origem: País de origem (NULL em todos os casos)
+     * idioma: Idioma do resultado (pt, en, es, ar, it, fr, de, ko)
+     * confidence_score: Score de confiança calculado (0.0-1.0)
+     * ferramenta_origem: Qual API coletou (perplexity, jina, tavily, serper)
+     * hash_conteudo: SHA256 unique para deduplicação
+     * criado_em, atualizado_em: Timestamps
+   
+   ÍNDICES:
+   - idx_resultados_falha: Acelera buscas por falha_id
+   - idx_resultados_score: Acelera ordenação por confidence_score
+
+C) fila_pesquisas (10,800 registros)
+   - Fila de trabalho para processar pesquisas
+   - Campos: falha_id, query, idioma, ferramenta, status, tentativas
+   - Status valores: pendente, processando, concluido, erro
+   - ÍNDICE: idx_fila_status para processamento eficiente
+
+D) historico_pesquisas (0 registros - VAZIO)
+   - Log de execuções (não está sendo populado)
+   - Seria para auditoria e análise de performance
+   - Campos: falha_id, query, idioma, ferramenta, status, resultado_count, tempo_execucao
+
+================================================================================
+3. FLUXO DE DADOS PRINCIPAL
+================================================================================
+
+FASE 1: GERAÇÃO DE QUERIES
+   50 falhas × ~8 idiomas = ~400 queries multilingues
+   
+FASE 2: ROTAÇÃO DE FERRAMENTAS
+   Cada query é processada por 4 ferramentas (rotacionadas para diversidade)
+   400 queries × 4 ferramentas = 1,600 entradas base na fila
+   Com retry logic: 10,800 entradas total observadas
+   
+FASE 3: EXECUÇÃO PARALELA
+   Worker processa fila_pesquisas
+   Chama APIs externas
+   Coleta resultados
+   
+FASE 4: DEDUPLICAÇÃO
+   Gera hash SHA256 de (titulo + descricao + url)
+   UNIQUE constraint impede duplicatas
+   15,000 resultados brutos → 1,503 únicos (90% de taxa de dedup)
+   
+FASE 5: CÁLCULO DE CONFIANÇA
+   Avaliador calcula score para cada resultado
+   Fórmula ponderada (4 fatores × pesos)
+   Range: 0.0 a 1.0
+
+================================================================================
+4. CÁLCULO DE CONFIDENCE SCORE
+================================================================================
+
+FÓRMULA:
+  score = (relevancia × 0.40) + (ocorrencias × 0.30) + 
+          (fonte × 0.20) + (titulo_match × 0.10)
+
+COMPONENTES:
+
+1. RELEVÂNCIA (40%) - FATOR CRÍTICO
+   Algoritmo: Conta palavras-chave da query no resultado
+   Score base: (matches / total_palavras) × 0.7
+   Bônus phrase: +0.2 se query completa aparece
+   Range: 0.0 a 1.0
+
+2. OCORRÊNCIAS (30%)
+   Normalizado: min(1.0, num_ocorrencias / 10.0)
+   Assume máximo de 10 ocorrências = 100%
+   Range: 0.0 a 1.0
+
+3. CONFIABILIDADE DA FONTE (20%)
+   Tabela fixa:
+   - perplexity: 0.95
+   - jina: 0.90
+   - deep_research: 0.85
+   - google: 0.80
+   - wikipedia: 0.75
+   - blog: 0.50
+   - social_media: 0.30
+   - unknown/default: 0.40
+
+4. MATCH NO TÍTULO (10%)
+   Proporção de palavras-chave encontradas no título
+   Range: 0.0 a 1.0
+
+CARACTERÍSTICAS:
+- Stop words em português removidos antes de cálculo
+- Cache para evitar reavaliar
+- Suporte a RAG (ajustes baseado em histórico)
+  * Boost +0.1 se similar anterior tinha score > 0.75
+  * Redução -0.15 se similar anterior tinha score < 0.5
+  * Máximo ajuste: ±0.3
+
+================================================================================
+5. ESTATÍSTICAS DE DADOS ATUAIS
+================================================================================
+
+CONTAGEM:
+  falhas_mercado:      50 registros
+  resultados_pesquisa: 1,503 registros
+  fila_pesquisas:      10,800 registros
+  historico_pesquisas: 0 registros (não está sendo usado)
+
+DISTRIBUIÇÃO POR FERRAMENTA:
+  perplexity:  646 resultados (43%)  - avg score: 0.170
+  serper:      425 resultados (28%)  - avg score: 0.202
+  tavily:      420 resultados (28%)  - avg score: 0.220
+
+DISTRIBUIÇÃO POR IDIOMA:
+  pt (Português):   222 (15%)  - avg score: 0.213
+  he (Hebraico):    105 (7%)   - avg score: 0.212
+  en (Inglês):      208 (14%)  - avg score: 0.178
+  ar (Árabe):       179 (12%)  - avg score: 0.195
+  it (Italiano):    170 (11%)  - avg score: 0.191
+  es (Espanhol):    170 (11%)  - avg score: 0.195
+  de (Alemão):      148 (10%)  - avg score: 0.183
+  fr (Francês):     154 (10%)  - avg score: 0.180
+  ko (Coreano):     147 (10%)  - avg score: 0.193
+
+TOP 5 FALHAS POR VOLUME:
+  Falha 1: 529 resultados (35%)  - Talento
+  Falha 2: 505 resultados (34%)  - Densidade
+  Falha 3: 367 resultados (24%)  - Impacto e Diversidade
+  Falha 4: 61 resultados (4%)    - Acesso a Mercado
+  Falha 5: 25 resultados (2%)    - Cultura
+
+ANÁLISE DE CONFIDENCE SCORE:
+  Mínimo:              0.11
+  Máximo:              0.477
+  Média:               0.193
+  % acima de 0.5:      0%
+  % acima de 0.7:      0%
+  Status:              TODOS ABAIXO DE 0.5 (PROBLEMA!)
+
+OUTROS:
+  fonte_tipo:   Todas as 1,503 são "web"
+  pais_origem:  NULL para todos os 1,503 registros
+  descricao:    Muitos NULL (não preenchidos pelas APIs)
+
+================================================================================
+6. ARQUIVOS PYTHON RELEVANTES
+================================================================================
+
+DATABASE & CORE:
+  app/database.py (356 linhas)
+    - Conexões SQLite assincronas
+    - CRUD para resultados, histórico, fila
+    - Funções de estatísticas
+  
+  app/models.py (92 linhas)
+    - Modelos Pydantic
+    - Classes: FalhaMercado, ResultadoPesquisa, HistoricoPesquisa, FilaPesquisa
+  
+  app/schemas.py (122 linhas)
+    - Schemas para request/response
+
+API ENDPOINTS:
+  app/api/resultados.py (189 linhas)
+    - GET/POST/PUT/DELETE resultados
+    - Listagem com filtros (score, idioma, falha_id)
+  
+  app/api/pesquisas.py (150+ linhas)
+    - POST /pesquisas/iniciar
+    - POST /pesquisas/custom
+    - GET /pesquisas/progresso
+  
+  app/api/falhas.py
+    - Endpoints para gerenciar falhas
+
+AGENTE & AVALIAÇÃO:
+  app/agente/pesquisador.py (601 linhas)
+    - AgentePesquisador: Orquestrador principal
+    - Métodos: gerar_queries, popular_fila, executar_pesquisa, 
+              executar_pesquisa_adaptativa, obter_progresso
+  
+  app/agente/avaliador.py (544 linhas)
+    - Avaliador: Calcula confidence scores
+    - Métodos: calcular_score_relevancia, calcular_score_ponderado,
+              avaliar, avaliar_batch, avaliar_qualidade_conjunto
+    - Suporte a RAG com cache
+
+INTEGRAÇÕES:
+  app/integracao/perplexity_api.py
+  app/integracao/jina_api.py
+  app/integracao/tavily_api.py
+  app/integracao/serper_api.py
+  app/integracao/exa_api.py
+  app/integracao/deep_research_mcp.py
+
+================================================================================
+7. FUNCIONALIDADES PRINCIPAIS
+================================================================================
+
+1. PESQUISA MULTILINGUE
+   - 8 idiomas suportados
+   - Queries geradas automaticamente por idioma
+
+2. ROTAÇÃO DE FERRAMENTAS
+   - Cada query usa múltiplas ferramentas em ordem rotacionada
+   - Objetivo: Enriquecer com diversidade de fontes
+
+3. PESQUISA ADAPTATIVA
+   - Para quando qualidade é suficiente
+   - Respeita min/max de buscas configuráveis
+
+4. DEDUPLICAÇÃO
+   - Via hash SHA256 (UNIQUE constraint)
+   - Elimina ~90% de duplicatas
+
+5. CÁLCULO ROBUSTO DE CONFIANÇA
+   - 4 fatores ponderados
+   - Suporte a RAG opcional
+
+6. FILA DE PROCESSAMENTO
+   - Sistema resiliente com retry logic
+   - Status tracking
+
+================================================================================
+8. PROBLEMA IDENTIFICADO: SCORES MUITO BAIXOS
+================================================================================
+
+SITUAÇÃO:
+  - Todos os 1,503 resultados têm score < 0.5 (máximo 0.477)
+  - Média: 0.193 (apenas 19.3% de confiança)
+  - Nenhum resultado acima de 0.5 de 50% de confiança mínima
+
+CAUSAS PROVAVÉIS:
+
+1. RELEVÂNCIA BAIXA (40% do score)
+   - Queries podem ser muito genéricas
+   - Palavras-chave não aparecem nos resultados
+   - Descrições vazias reduzem matching
+
+2. PARSEAMENTO INCOMPLETO DAS APIs
+   - Muitos campos NULL (pais_origem, descricao)
+   - Pode impactar cálculo de relevância
+
+3. QUERIES GENÉRICAS
+   - "inovação", "tecnologia", "governo" podem ser amplas
+   - Não garantem resultado altamente relevante
+
+4. OCORRÊNCIAS BAIXAS (30% do score)
+   - Maioria dos resultados: num_ocorrencias = 1
+   - Valor normalizado: 1/10 = 0.1
+
+IMPACTO:
+  score_componente = 0.40 × 0.0-0.4 + 0.30 × 0.1 + 0.20 × 0.88 + 0.10 × 0.0
+                   = 0 + 0.03 + 0.176 + 0
+                   = 0.206 ≈ 0.193 observado
+
+RECOMENDAÇÃO:
+  Investigar queries geradas e enriquecer dados com descrições completas
+  antes de reavaliar scores
+
+================================================================================
+9. POTENCIAL DO PROJETO
+================================================================================
+
+POSITIVOS:
+  ✅ Schema bem normalizado e escalável
+  ✅ Índices otimizados para performance
+  ✅ Cálculo robusto de confiança (4 fatores)
+  ✅ Suporte a 8 idiomas e 6 ferramentas
+  ✅ Deduplicação automática
+  ✅ API REST completa com CRUD
+  ✅ Agente orquestrador com busca adaptativa
+  ✅ Suporte a RAG para refinamento
+  ✅ Rate limiting e retry logic
+
+OPORTUNIDADES:
+  - Enriquecer dados com descrições das APIs
+  - Refinar queries para melhor relevância
+  - Habilitar histórico para auditoria
+  - Implementar frontend para visualização
+  - Adicionar suporte a filtros avançados
+  - Machine learning para otimizar queries
+
+PREOCUPAÇÕES:
+  ❌ Scores muito baixos (média 0.193)
+  ⚠️ Nenhum resultado acima de 0.5
+  ⚠️ Histórico não está sendo populado
+  ⚠️ Metadados incompletos (país, descrição)
+
+================================================================================
+10. CONCLUSÃO
+================================================================================
+
+O projeto possui uma arquitetura ROBUSTA e ESCALÁVEL para coletar e avaliar
+políticas públicas em múltiplas idiomas. O sistema está operacional com:
+
+- 1,503 resultados coletados
+- 10,800 pesquisas na fila
+- Avaliação automática de confiança
+- API REST completa
+
+A principal preocupação é a QUALIDADE DOS SCORES (muito baixos). Isso pode
+ser devido a:
+1. Queries genéricas
+2. Dados incompletos das APIs
+3. Misalinhamento entre queries e resultados
+
+PRÓXIMOS PASSOS RECOMENDADOS:
+1. Analisar queries geradas (são genéricas o suficiente?)
+2. Verificar parseamento de dados das APIs
+3. Considerar re-calcular scores com queries refinadas
+4. Habilitar histórico de pesquisas
+5. Implementar dashboard para visualização
+
+================================================================================
+
+Arquivos de Referência Criados:
+  - /tmp/projeto_estrutura.md (Análise Completa)
+  - /tmp/detalhes_scores_calculo.md (Exemplos Práticos)
+  - /tmp/fluxo_dados.md (Diagramas de Fluxo)
+  - /tmp/RESUMO_EXECUTIVO.txt (Este arquivo)
+
+================================================================================

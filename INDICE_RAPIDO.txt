@@ -1,0 +1,331 @@
+================================================================================
+ÍNDICE RÁPIDO - SEBRAE NACIONAL - ESTRUTURA DO PROJETO
+================================================================================
+
+## CAMINHO DOS ARQUIVOS
+
+Banco de Dados:
+  /Users/felipematossardinhapinto/Library/CloudStorage/GoogleDrive-felipe@felipematos.net/
+  My Drive/10K/Projetos/2025/Sebrae Nacional/Code/falhas_mercado_v1.db
+
+Código Python:
+  app/
+  ├── database.py           (356 linhas) - Conexões e CRUD do SQLite
+  ├── models.py             (92 linhas)  - Modelos Pydantic
+  ├── schemas.py            (122 linhas) - Schemas API
+  ├── config.py             - Configurações
+  ├── main.py               - Entrada FastAPI
+  │
+  ├── agente/
+  │   ├── pesquisador.py    (601 linhas) - Agente orquestrador
+  │   ├── avaliador.py      (544 linhas) - Cálculo de scores
+  │   └── deduplicador.py   - Remoção de duplicatas
+  │
+  ├── api/
+  │   ├── resultados.py     (189 linhas) - GET/POST/PUT/DELETE resultados
+  │   ├── pesquisas.py      (150+ linhas)- POST/GET pesquisas
+  │   ├── falhas.py         - GET falhas de mercado
+  │   └── health_check.py
+  │
+  └── integracao/
+      ├── perplexity_api.py
+      ├── jina_api.py
+      ├── tavily_api.py
+      ├── serper_api.py
+      ├── exa_api.py
+      └── deep_research_mcp.py
+
+================================================================================
+## QUERIES SQL ÚTEIS
+
+### Ver Schema Completo
+sqlite3 falhas_mercado_v1.db ".schema"
+
+### Ver Estatísticas
+SELECT 
+  COUNT(*) as total,
+  ROUND(MIN(confidence_score), 3) as min_score,
+  ROUND(MAX(confidence_score), 3) as max_score,
+  ROUND(AVG(confidence_score), 3) as avg_score
+FROM resultados_pesquisa;
+
+### Ver Distribuição por Ferramenta
+SELECT ferramenta_origem, COUNT(*) as total, ROUND(AVG(confidence_score), 3) as avg_score 
+FROM resultados_pesquisa 
+GROUP BY ferramenta_origem;
+
+### Ver Distribuição por Idioma
+SELECT idioma, COUNT(*) as total, ROUND(AVG(confidence_score), 3) as avg_score 
+FROM resultados_pesquisa 
+GROUP BY idioma 
+ORDER BY total DESC;
+
+### Ver Top 5 Falhas
+SELECT falha_id, COUNT(*) as total_resultados, ROUND(AVG(confidence_score), 3) as avg_score 
+FROM resultados_pesquisa 
+GROUP BY falha_id 
+ORDER BY total_resultados DESC LIMIT 5;
+
+### Ver Fila Pendente
+SELECT COUNT(*) as total_pendente FROM fila_pesquisas WHERE status = 'pendente';
+
+### Ver um Resultado Específico
+SELECT * FROM resultados_pesquisa WHERE id = 2088;
+
+### Buscar Resultados por Falha e Idioma
+SELECT * FROM resultados_pesquisa 
+WHERE falha_id = 1 AND idioma = 'pt' 
+ORDER BY confidence_score DESC 
+LIMIT 10;
+
+================================================================================
+## ENDPOINTS API
+
+Base URL: http://localhost:8000
+
+RESULTADOS:
+  GET    /resultados
+         ?skip=0&limit=50&falha_id=1&min_score=0.0&max_score=1.0&idioma=pt
+  
+  GET    /resultados/{resultado_id}
+  POST   /resultados (criar resultado manual)
+  PUT    /resultados/{resultado_id} (atualizar score)
+  DELETE /resultados/{resultado_id}
+
+PESQUISAS:
+  POST   /pesquisas/iniciar
+  POST   /pesquisas/custom
+  GET    /pesquisas/progresso
+
+FALHAS:
+  GET    /falhas
+  GET    /falhas/{falha_id}
+
+ESTATÍSTICAS:
+  GET    /estatisticas
+  GET    /estatisticas/falha/{falha_id}
+
+================================================================================
+## ESTRUTURA DE TABELAS
+
+FALHAS_MERCADO (50 registros - Original)
+├── id (PK)
+├── titulo
+├── pilar ("1. Talento", "2. Densidade", ..., "7. Capital")
+├── descricao
+└── dica_busca
+
+RESULTADOS_PESQUISA (1,503 registros)
+├── id (PK)
+├── falha_id (FK)
+├── titulo
+├── descricao
+├── fonte_url
+├── fonte_tipo ("web", etc)
+├── pais_origem (NULL)
+├── idioma ("pt", "en", "es", "ar", "it", "fr", "de", "ko")
+├── confidence_score (0.11 - 0.477)
+├── num_ocorrencias (default 1)
+├── ferramenta_origem ("perplexity", "jina", "tavily", "serper")
+├── hash_conteudo (UNIQUE - SHA256)
+├── criado_em
+└── atualizado_em
+
+FILA_PESQUISAS (10,800 registros)
+├── id (PK)
+├── falha_id (FK)
+├── query
+├── idioma
+├── ferramenta
+├── prioridade (default 0)
+├── tentativas (default 0)
+├── max_tentativas (default 3)
+├── status ("pendente", "processando", "concluido", "erro")
+└── criado_em
+
+HISTORICO_PESQUISAS (0 registros - Não está sendo usado)
+├── id (PK)
+├── falha_id (FK)
+├── query
+├── idioma
+├── ferramenta
+├── status
+├── resultados_encontrados
+├── erro_mensagem
+├── tempo_execucao
+└── executado_em
+
+================================================================================
+## FÓRMULA DE CONFIDENCE SCORE
+
+score = (relevancia × 0.40) + (ocorrencias × 0.30) + 
+        (fonte × 0.20) + (titulo_match × 0.10)
+
+Componentes:
+
+1. RELEVÂNCIA (40%)
+   score_base = (matches / total_palavras) × 0.7
+   bonus_phrase = +0.2 (se query completa aparece)
+   max = 1.0
+
+2. OCORRÊNCIAS (30%)
+   = min(1.0, num_ocorrencias / 10.0)
+
+3. FONTE (20%)
+   - perplexity: 0.95
+   - jina: 0.90
+   - deep_research: 0.85
+   - google: 0.80
+   - wikipedia: 0.75
+   - blog: 0.50
+   - social_media: 0.30
+   - unknown: 0.40 (default)
+
+4. TÍTULO MATCH (10%)
+   = proporção_palavras_chave_no_título
+
+================================================================================
+## PROBLEMAS IDENTIFICADOS
+
+1. SCORES MUITO BAIXOS
+   - Média: 0.193 (apenas 19.3%)
+   - Máximo: 0.477 (bem abaixo de 0.5)
+   - % acima de 0.5: 0%
+   - Causa provável: Relevância baixa e descrições vazias
+
+2. CAMPOS INCOMPLETOS
+   - pais_origem: NULL em todos os 1,503 registros
+   - descricao: Muitos NULL
+   - fonte_tipo: Todos "web"
+
+3. HISTÓRICO VAZIO
+   - historico_pesquisas: 0 registros
+   - Não está sendo populado pelos workers
+
+================================================================================
+## FLUXO DE PROCESSAMENTO RESUMIDO
+
+1. GERAR QUERIES
+   50 falhas × 8 idiomas = ~400 queries
+
+2. POPULAR FILA
+   400 queries × 4 ferramentas = 1,600 entradas
+   (Observado: 10,800 com retry logic)
+
+3. PROCESSAR FILA
+   ├─ Chamar API externa
+   ├─ Coletar resultados
+   ├─ Gerar hash para dedup
+   ├─ Calcular confidence_score
+   └─ Inserir em resultados_pesquisa
+
+4. DEDUPLICAÇÃO
+   15,000 brutos → 1,503 únicos (90% dedup rate)
+
+5. ATUALIZAR STATUS
+   fila_pesquisas: pendente → concluido
+
+================================================================================
+## FERRAMENTAS SUPORTADAS
+
+✅ Habilitadas:
+   - Perplexity AI (646 resultados, avg score 0.170)
+   - Jina (não visto em dados)
+   - Tavily (420 resultados, avg score 0.220)
+   - Serper (425 resultados, avg score 0.202)
+
+❌ Desabilitadas:
+   - Exa
+   - Deep Research
+
+📌 Rotação: Cada query usa ferramentas em ordem rotacionada para diversidade
+
+================================================================================
+## IDIOMAS SUPORTADOS
+
+pt (Português)      222 results - avg score 0.213
+en (Inglês)         208 results - avg score 0.178
+es (Espanhol)       170 results - avg score 0.195
+ar (Árabe)          179 results - avg score 0.195
+it (Italiano)       170 results - avg score 0.191
+fr (Francês)        154 results - avg score 0.180
+de (Alemão)         148 results - avg score 0.183
+ko (Coreano)        147 results - avg score 0.193
+
+================================================================================
+## ÍNDICES DO BANCO
+
+Criados:
+  ├── idx_resultados_falha
+  │   ON resultados_pesquisa(falha_id)
+  │
+  ├── idx_resultados_score
+  │   ON resultados_pesquisa(confidence_score DESC)
+  │
+  ├── idx_historico_falha
+  │   ON historico_pesquisas(falha_id)
+  │
+  └── idx_fila_status
+      ON fila_pesquisas(status, prioridade DESC)
+
+Implícitos (Primary Keys):
+  ├── pk_falhas_mercado(id)
+  ├── pk_resultados_pesquisa(id)
+  ├── pk_historico_pesquisas(id)
+  └── pk_fila_pesquisas(id)
+
+================================================================================
+## CONFIGURAÇÃO IMPORTANTE
+
+app/config.py:
+  IDIOMAS = ["pt", "en", "es", "fr", "de", "it", "ar", "ko"]
+  
+  FERRAMENTAS = ["perplexity", "jina", "tavily", "serper"]
+  
+  SEARCH_CHANNELS_ENABLED = {
+    "perplexity": True,
+    "jina": True,
+    "tavily": True,
+    "serper": True,
+    "exa": False,
+    "deep_research": False
+  }
+  
+  USAR_BUSCA_ADAPTATIVA = True
+  MIN_BUSCAS_POR_FALHA = 2
+  MAX_BUSCAS_POR_FALHA = 4
+  QUALIDADE_MINIMA_PARA_PARAR = 0.75
+  
+  RAG_ENABLED = False (desabilitado por padrão)
+  RAG_SIMILARITY_THRESHOLD = 0.8
+
+================================================================================
+## COMANDOS ÚTEIS
+
+Inicializar Banco:
+  python app/database.py
+
+Popular Fila (CLI):
+  python -m app.agente.pesquisador popular_fila
+
+Limpar Fila (CLI):
+  python -m app.agente.pesquisador limpar_fila
+
+Iniciar Server:
+  uvicorn app.main:app --reload
+
+Ver Docs Swagger:
+  http://localhost:8000/docs
+
+================================================================================
+## PRÓXIMOS PASSOS
+
+1. Investigar por que confidence scores são tão baixos
+2. Analisar queries geradas (são genéricas demais?)
+3. Verificar parseamento de dados das APIs
+4. Enriquecer dados com descrições completas
+5. Ativar histórico de pesquisas
+6. Implementar dashboard de visualização
+7. Considerar ML para otimizar cálculo de relevância
+
+================================================================================

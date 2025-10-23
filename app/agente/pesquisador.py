@@ -228,6 +228,74 @@ class AgentePesquisador:
 
         return total_adicionado
 
+    async def popular_fila_para_falha(
+        self,
+        falha_id: int,
+        quantidade: int = 3
+    ) -> int:
+        """
+        Popula a fila com entradas para uma falha especifica.
+        Usado quando um resultado é deletado e precisa restaurar a fila.
+
+        Args:
+            falha_id: ID da falha a pesquisar
+            quantidade: Quantas entradas adicionar (default: 3)
+
+        Returns:
+            Total de entradas adicionadas
+        """
+        # Buscar a falha
+        from app.database import get_falha_by_id
+        falha = await get_falha_by_id(falha_id)
+        if not falha:
+            print(f"[FILA] Falha {falha_id} não encontrada")
+            return 0
+
+        # Usar apenas as ferramentas ativadas
+        ferramentas = [
+            nome for nome, ativada in settings.SEARCH_CHANNELS_ENABLED.items()
+            if ativada
+        ]
+        if not ferramentas:
+            ferramentas = self.ferramentas
+
+        # Gerar queries para esta falha
+        queries = await self.gerar_queries(falha)
+
+        # Adicionar quantidade desejada de entradas
+        total_adicionado = 0
+        ferramenta_index = 0
+
+        # Limitar quantidade de queries
+        queries_para_usar = queries[:quantidade] if len(queries) >= quantidade else queries
+
+        for query in queries_para_usar:
+            # Rotacionar ferramentas
+            ferramentas_rotacionadas = ferramentas[ferramenta_index:] + ferramentas[:ferramenta_index]
+
+            for ferramenta in ferramentas_rotacionadas:
+                entrada_fila = {
+                    "falha_id": falha_id,
+                    "query": query["query"],
+                    "idioma": query["idioma"],
+                    "ferramenta": ferramenta,
+                    "status": "pendente",
+                    "criado_em": datetime.now().isoformat()
+                }
+
+                # Inserir na fila
+                await inserir_fila_pesquisa(entrada_fila)
+                total_adicionado += 1
+
+                # Rate limiting
+                await asyncio.sleep(0.01)
+
+            # Rotacionar para proxima query
+            ferramenta_index = (ferramenta_index + 1) % len(ferramentas)
+
+        print(f"[FILA] {total_adicionado} entradas adicionadas para falha #{falha_id}")
+        return total_adicionado
+
     async def obter_progresso(self) -> Dict[str, Any]:
         """
         Obtem progresso atual de pesquisas

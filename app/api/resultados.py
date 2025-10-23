@@ -10,7 +10,10 @@ from app.database import (
     get_falha_by_id,
     insert_resultado,
     update_resultado_score,
-    delete_resultado
+    delete_resultado,
+    deletar_resultado_com_restauracao,
+    validar_url,
+    validar_urls_em_lote
 )
 from app.utils.hash_utils import gerar_hash_conteudo
 from app.schemas import ResultadoCreate, ResultadoUpdate, ResultadoResponse
@@ -41,11 +44,13 @@ async def listar_resultados(
         r.fonte_tipo,
         r.pais_origem,
         r.idioma,
+        r.query,
         r.confidence_score,
         r.num_ocorrencias,
         r.ferramenta_origem,
         r.criado_em,
         r.atualizado_em,
+        r.url_valida,
         f.titulo as falha_titulo,
         f.pilar
     FROM resultados_pesquisa r
@@ -171,10 +176,11 @@ async def atualizar_resultado(resultado_id: int, atualizacoes: ResultadoUpdate):
     )
 
 
-@router.delete("/resultados/{resultado_id}", status_code=204)
-async def deletar_resultado(resultado_id: int):
+@router.delete("/resultados/{resultado_id}", status_code=200)
+async def deletar_resultado_endpoint(resultado_id: int):
     """
-    Deletar um resultado
+    Deletar um resultado e restaurar fila automaticamente se necessário
+    Retorna informações sobre a deleção e restauração
     """
     # Verificar se existe
     resultado = await db.fetch_one(
@@ -185,4 +191,34 @@ async def deletar_resultado(resultado_id: int):
     if not resultado:
         raise HTTPException(status_code=404, detail="Resultado nao encontrado")
 
-    await delete_resultado(resultado_id)
+    # Deletar com restauração automática da fila se score < 0.7
+    info = await deletar_resultado_com_restauracao(resultado_id)
+
+    if not info['deletado']:
+        raise HTTPException(status_code=500, detail=info.get('erro', 'Erro ao deletar'))
+
+    return {
+        "deletado": True,
+        "resultado_id": resultado_id,
+        "falha_id": info.get('falha_id'),
+        "score_anterior": info.get('score_anterior'),
+        "restaurou_fila": info['restaurou_fila'],
+        "entradas_adicionadas": info['entradas_adicionadas'],
+        "mensagem": f"Resultado deletado. Fila restaurada com {info['entradas_adicionadas']} entradas." if info['restaurou_fila'] else "Resultado deletado (score já era satisfatório)."
+    }
+
+
+@router.post("/resultados/validar-urls", status_code=200)
+async def validar_urls_endpoint():
+    """
+    Valida todas as URLs dos resultados e deleta os inválidos
+    Restaura a fila automaticamente para falhas com score < 0.7
+    """
+    resultado = await validar_urls_em_lote()
+
+    return {
+        "total_verificadas": resultado['total_verificadas'],
+        "invalidas_encontradas": resultado['invalidas_encontradas'],
+        "deletadas": resultado['deletadas'],
+        "mensagem": f"Validação concluída: {resultado['invalidas_encontradas']} URLs inválidas encontradas, {resultado['deletadas']} resultados deletados e fila restaurada."
+    }
