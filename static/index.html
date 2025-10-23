@@ -158,10 +158,13 @@
                                         <div class="flex items-center space-x-3">
                                             <div class="flex-1">
                                                 <div class="w-32 bg-gray-200 rounded-full h-3 overflow-hidden">
-                                                    <div :class="obterCorBarra(falha.confidence_medio)" class="h-3 rounded-full transition-all"
-                                                         :style="`width: ${Math.min((falha.total_resultados || 0) * 5, 100)}%`"></div>
+                                                    <div :class="[
+                                                        'h-3 rounded-full transition-all',
+                                                        falha.searches_in_progress > 0 || falha.searches_pending > 0 ? 'bg-blue-600' : obterCorBarra(falha.confidence_medio)
+                                                    ]"
+                                                         :style="`width: ${calcularProgressoFalha(falha)}%`"></div>
                                                 </div>
-                                                <span class="text-xs text-gray-600 mt-1 block" x-text="`${falha.total_resultados || 0} resultado(s)`"></span>
+                                                <span class="text-xs text-gray-600 mt-1 block" x-text="`${falha.searches_completed || 0}/${falha.max_searches || 8} buscas (${falha.total_resultados || 0} resultado(s))`"></span>
                                             </div>
                                         </div>
                                     </td>

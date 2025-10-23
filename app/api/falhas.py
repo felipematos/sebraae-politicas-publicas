@@ -34,7 +34,13 @@ async def listar_falhas(
     - id, titulo, pilar, descricao, dica_busca
     - total_resultados: quantidade de resultados encontrados
     - confidence_medio: score medio dos resultados
+    - searches_completed: numero de buscas completadas ou com erro
+    - searches_in_progress: numero de buscas em processamento
+    - searches_pending: numero de buscas pendentes
+    - max_searches: numero maximo de buscas esperado (para calculo de progresso)
     """
+    from app.config import settings
+
     query = """
     SELECT
         f.id,
@@ -42,10 +48,14 @@ async def listar_falhas(
         f.pilar,
         f.descricao,
         f.dica_busca,
-        COUNT(r.id) as total_resultados,
-        COALESCE(AVG(r.confidence_score), 0.0) as confidence_medio
+        COUNT(DISTINCT r.id) as total_resultados,
+        COALESCE(AVG(r.confidence_score), 0.0) as confidence_medio,
+        COALESCE(SUM(CASE WHEN fp.status IN ('completa', 'erro') THEN 1 ELSE 0 END), 0) as searches_completed,
+        COALESCE(SUM(CASE WHEN fp.status = 'processando' THEN 1 ELSE 0 END), 0) as searches_in_progress,
+        COALESCE(SUM(CASE WHEN fp.status = 'pendente' THEN 1 ELSE 0 END), 0) as searches_pending
     FROM falhas_mercado f
     LEFT JOIN resultados_pesquisa r ON f.id = r.falha_id
+    LEFT JOIN fila_pesquisas fp ON f.id = fp.falha_id
     """
 
     if pilar:
@@ -55,7 +65,15 @@ async def listar_falhas(
     query += f" LIMIT {limit} OFFSET {skip}"
 
     falhas = await db.fetch_all(query)
-    return [dict(falha) for falha in falhas]
+
+    # Adicionar max_searches a cada falha
+    result = []
+    for falha in falhas:
+        falha_dict = dict(falha)
+        falha_dict['max_searches'] = settings.MAX_BUSCAS_POR_FALHA
+        result.append(falha_dict)
+
+    return result
 
 
 @router.get("/falhas/{falha_id}", response_model=FalhaResponse)

@@ -483,6 +483,24 @@ function dashboardApp() {
             if (s >= 0.5) return '⚠ Bom';
             if (s > 0) return '✗ Fraco';
             return '-';
+        },
+
+        // Calcula progresso da falha baseado em buscas completadas
+        calcularProgressoFalha(falha) {
+            const searches_completed = falha.searches_completed || 0;
+            const max_searches = falha.max_searches || 8;
+
+            // Se não há max_searches definido, retorna 0
+            if (!max_searches) return 0;
+
+            // Calcular percentual: (completadas / máximo) * 100
+            let percentual = (searches_completed / max_searches) * 100;
+
+            // Garantir que não ultrapasse 100%
+            percentual = Math.min(percentual, 100);
+
+            // Arredondar para evitar flutuações
+            return Math.round(percentual);
         }
     };
 }
