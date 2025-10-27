@@ -125,7 +125,8 @@ class AgentePesquisador:
         falhas: Optional[List[Dict[str, Any]]] = None,
         falhas_ids: Optional[List[int]] = None,
         ferramentas_filtro: Optional[List[str]] = None,
-        idiomas_filtro: Optional[List[str]] = None
+        idiomas_filtro: Optional[List[str]] = None,
+        limite_queries: Optional[int] = None
     ) -> int:
         """
         Popular fila de pesquisas com queries para falhas
@@ -137,6 +138,7 @@ class AgentePesquisador:
             falhas_ids: IDs especificas de falhas (alternativa)
             ferramentas_filtro: Listar apenas ferramentas especificas
             idiomas_filtro: Limitar a idiomas especificos
+            limite_queries: Limitar número máximo de FILA ENTRIES a criar (não queries originais)
 
         Returns:
             Total de queries adicionadas a fila
@@ -197,6 +199,7 @@ class AgentePesquisador:
         # Agora inserir na fila
         # PARA CADA query: inserir uma entrada para CADA ferramenta ativada
         # ROTACIONAR a ordem das ferramentas entre queries para diversidade
+        # SE limite_queries for definido, parar após atingir o limite
         for query_index, query_data in enumerate(queries_para_inserir):
             # Para esta query, determinar a ordem rotacionada de ferramentas
             # Cada query tem uma ordem diferente das ferramentas
@@ -204,6 +207,13 @@ class AgentePesquisador:
 
             # Para cada ferramenta ativada
             for ferramenta in ferramentas_rotacionadas:
+                # Se limite está definido e foi atingido, parar
+                if limite_queries and total_adicionado >= limite_queries:
+                    print(f"[FILA] Limite de {limite_queries} queries atingido. Parando população da fila.")
+                    print(f"[FILA] Total de {total_adicionado} entradas criadas")
+                    print(f"[FILA] Ferramentas usadas: {ferramentas}")
+                    return total_adicionado
+
                 entrada_fila = {
                     "falha_id": query_data["falha_id"],
                     "query": query_data["query"],

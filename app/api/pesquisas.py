@@ -17,30 +17,49 @@ async def iniciar_pesquisa(pesquisa: PesquisaIniciar):
     """
     Iniciar pesquisa automatizada de politicas publicas
 
+    Se TEST_MODE está ativado:
+    - Usa apenas 1 falha (primeira)
+    - Usa apenas 1 idioma (português)
+    - Usa apenas 1 ferramenta (perplexity)
+    - Limita a TEST_MODE_LIMIT queries totais
+
     Se falhas_ids nao for fornecido, pesquisa todas as 50 falhas.
     Se idiomas nao for fornecido, usa os 8 idiomas configurados.
     """
     from app.agente.pesquisador import AgentePesquisador
+    from app.config import settings
 
-    # IDs das falhas a pesquisar
-    if pesquisa.falhas_ids:
-        falhas_ids = pesquisa.falhas_ids
-    else:
-        # Obter todas as falhas
-        falhas = await db.fetch_all("SELECT id FROM falhas_mercado")
+    # Se TEST_MODE está ativado, aplicar restrições
+    if settings.TEST_MODE:
+        # Em modo teste: usar apenas 1 falha e 1 idioma para gerar TEST_MODE_LIMIT queries
+        falhas = await db.fetch_all("SELECT id FROM falhas_mercado LIMIT 1")
         falhas_ids = [f["id"] for f in falhas]
+        idiomas = ["pt"]  # Apenas português
+        ferramentas = ["perplexity"]  # Apenas perplexity
 
-    # Idiomas a usar
-    if pesquisa.idiomas:
-        idiomas = pesquisa.idiomas
+        print(f"[TEST_MODE] Modo teste ativado com limite de {settings.TEST_MODE_LIMIT} queries")
+        print(f"[TEST_MODE] Usando falha_ids={falhas_ids}, idiomas={idiomas}, ferramentas={ferramentas}")
     else:
-        idiomas = ["pt", "en", "es", "fr", "de", "it", "ar", "ko"]
+        # Modo normal
+        # IDs das falhas a pesquisar
+        if pesquisa.falhas_ids:
+            falhas_ids = pesquisa.falhas_ids
+        else:
+            # Obter todas as falhas
+            falhas = await db.fetch_all("SELECT id FROM falhas_mercado")
+            falhas_ids = [f["id"] for f in falhas]
 
-    # Ferramentas a usar
-    if pesquisa.ferramentas:
-        ferramentas = pesquisa.ferramentas
-    else:
-        ferramentas = ["perplexity", "jina", "deep_research"]
+        # Idiomas a usar
+        if pesquisa.idiomas:
+            idiomas = pesquisa.idiomas
+        else:
+            idiomas = ["pt", "en", "es", "fr", "de", "it", "ar", "ko"]
+
+        # Ferramentas a usar
+        if pesquisa.ferramentas:
+            ferramentas = pesquisa.ferramentas
+        else:
+            ferramentas = ["perplexity", "jina", "deep_research"]
 
     # Criar agente pesquisador
     agente = AgentePesquisador()
@@ -50,7 +69,8 @@ async def iniciar_pesquisa(pesquisa: PesquisaIniciar):
         total_queries = await agente.popular_fila(
             falhas_ids=falhas_ids,
             idiomas_filtro=idiomas,
-            ferramentas_filtro=ferramentas
+            ferramentas_filtro=ferramentas,
+            limite_queries=settings.TEST_MODE_LIMIT if settings.TEST_MODE else None
         )
     except Exception as e:
         raise HTTPException(
