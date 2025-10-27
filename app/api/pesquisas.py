@@ -140,11 +140,17 @@ async def status_pesquisa():
         else:
             porcentagem = ((total_completas + total_erros) / total_tarefas) * 100
 
-        # Determinar mensagem e se ainda esta ativo
-        ativo = total_pendentes + total_processando > 0
+        # Obter status real do worker processador
+        from app.main import processador_global
+        processador_ativo = processador_global.ativo if processador_global else False
 
-        if ativo:
+        # ativo = worker está realmente processando (não apenas itens na fila)
+        ativo = processador_ativo
+
+        if processador_ativo and (total_processando > 0 or total_pendentes > 0):
             mensagem = f"Processando: {total_processando} em andamento, {total_pendentes} na fila, {total_resultados} resultados encontrados"
+        elif total_pendentes > 0 and not processador_ativo:
+            mensagem = f"Pausado: {total_pendentes} na fila, {total_resultados} resultados encontrados"
         elif total_tarefas > 0:
             mensagem = f"Concluído: {total_resultados} resultados encontrados, {total_erros} erros"
         else:
