@@ -61,6 +61,13 @@ function dashboardApp() {
             await this.carregar_ferramentas_config();
             await this.carregar_teste_mode();
             await this.atualizar_stats();
+
+            // IMPORTANTE: Sempre iniciar a página com pesquisa pausada
+            // Isto garante que o usuário tem controle total e deve clicar para iniciar
+            if (this.status_pesquisa.ativo) {
+                await this.pausar_pesquisas();
+            }
+
             // Atualizar stats a cada 3 segundos quando pesquisa ativa, 10 segundos se inativa
             setInterval(() => this.atualizar_stats(), 3000);
         },
