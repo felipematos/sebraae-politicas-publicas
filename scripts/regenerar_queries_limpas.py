@@ -1,0 +1,331 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Regenera TODAS as queries não-portuguesas de forma limpa e completa.
+Estratégia:
+1. Pega cada idioma
+2. Para cada registro na fila, identifica qual é o título de falha
+3. Traduz o título completamente para o idioma alvo
+4. Substitui a query inteira com a tradução limpa
+"""
+import sqlite3
+import re
+
+DB_PATH = "falhas_mercado_v1.db"
+
+# Mapeamento completo e definitivo de TODOS os títulos
+MAPEAMENTO_COMPLETO = {
+    'ar': {
+        'Ausência de Políticas Claras sobre Governança e Soberania de Dados': 'غياب سياسات واضحة حول الحوكمة والسيادة البيانات',
+        'Ausência de Políticas Imigratórias Eficazes de Incentivo à Inovação': 'غياب سياسات الهجرة الفعالة لتشجيع الابتكار',
+        'Ausência de Regulamentação sobre "Stock Options"': 'غياب التنظيم بشأن خيارات الأسهم',
+        'Aversão ao Risco e Empreendedorismo de Necessidade': 'الكراهية من المخاطر وريادة الأعمال الضرورية',
+        'Baixa Representatividade de Gênero e Raça': 'تمثيل منخفض الجنس والعرق',
+        'Baixo Nível de Confiança Para Geração de Negócios': 'مستوى منخفض من الثقة لتوليد الأعمال',
+        'Baixo Nível de Internacionalização': 'مستوى منخفض من التدويل',
+        'Baixo Nível de Transferência de Tecnologia Entre Universidades e Empresas': 'مستوى منخفض من نقل التكنولوجيا بين الجامعات والشركات',
+        'Barreiras ao Capital Estrangeiro': 'حواجز رأس المال الأجنبي',
+        'Barreiras de Entrada e Compras Públicas': 'حواجز الدخول والمشتريات العامة',
+        'Bases Curriculares Nacionais Desatualizadas': 'قواعد المناهج الوطنية قديمة',
+        'Burocracia e lentidão excessivas no processo de abertura de empresas': 'البيروقراطية والبطء المفرط في عملية فتح الشركات',
+        'Concentração Extrema do Venture Capital (VC) em Geografia, Setores e Fases de Maturidade das Investidas': 'التركيز الشديد على رأس المال الاستثماري في الجغرافيا والقطاعات والمراحل',
+        'Concentração Geográfica Excessiva de Hubs e Aceleradoras': 'تركيز جغرافي مفرط من الحواضر والمسرعات',
+        'Deficiências Estruturais na Educação STEM': 'أوجه قصور هيكلية في تعليم STEM',
+        'Descoordenação Sistêmica Entre os Agentes e Fragmentação Normativa': 'عدم التنسيق المنهجي بين الوكلاء والتفتت المعياري',
+        'Descumprimento de Obrigações Orçamentárias em Fundações Estaduais de Fomento à Pesquisa': 'عدم الامتثال للالتزامات الميزانية في مؤسسات الدولة لدعم البحث',
+        'Desvio de Finalidade de Fundos Setoriais para Promoção da Inovação': 'تحويل الأموال القطاعية عن غرضها لتعزيز الابتكار',
+        'Dificuldade na Continuidade de Políticas Públicas Entre Gestões': 'صعوبة استمرار السياسات العامة بين الإدارات',
+        'Dificuldades de Acesso e Venda a Grandes Empresas': 'صعوبات الوصول والبيع للشركات الكبرى',
+        'Escassez de Educação para o Empreendedorismo': 'نقص التعليم الريادي',
+        'Escassez de Recursos Para Fomento Direto à Cultura de Inovação': 'نقص الموارد لتعزيز مباشر لثقافة الابتكار',
+        'Estigmatização das Relações Entre Academia e Mercado': 'وصم العلاقات بين الأكاديمية والسوق',
+        'Estrutura societária inadequada para startups: MEI, LTDA e S/A': 'هيكل الشركة غير الملائم للشركات الناشئة',
+        'Incentivos escassos para negócios de impacto': 'حوافز نادرة للأعمال ذات التأثير',
+        'Incertezas Sobre a Regulação de Inteligência Artificial': 'عدم اليقين بشأن تنظيم الذكاء الاصطناعي',
+        'Instrumentos de Fomento e Crédito Desalinhados': 'أدوات التعزيز والائتمان غير متوافقة',
+        'Lacunas em Letramento Digital e IA': 'ثغرات في محو الأمية الرقمية والذكاء الاصطناعي',
+        'Lei de Informática e Lei do Bem Complexas, Limitadas, Complexas e Rígidas': 'قانون المعلومات وقانون الخير المعقد والمحدود والصارم',
+        'Lentidão e Insegurança Jurídica nos Processos de Transferência de Tecnologia': 'البطء وعدم اليقين القانوني في عمليات نقل التكنولوجيا',
+        'Marco Civil da Internet em Xeque e Regulação das Plataformas Sociais': 'الإطار المدني للإنترنت والتنظيم المنصات الاجتماعية',
+        'Marco Legal das Startups Incompleto e Morosidade Institucional': 'الإطار القانوني للشركات الناشئة غير المكتمل والبطء المؤسسي',
+        'Mercado de Investimento-Anjo Subdesenvolvido e Desincentivado': 'سوق الاستثمار الملاك غير المتطور والمثبط',
+        'Modelo de Sustentabilidade Frágil dos Ambientes de Inovação': 'نموذج الاستدامة الهش لبيئات الابتكار',
+        'Modelos Alternativos de Financiamento Ainda Incipientes Para Startups': 'نماذج تمويل بديلة لا تزال بدائية للشركات الناشئة',
+        'Morosidade e penalização da pessoa empreendedora no Processo de fechamento de empresas': 'البطء والعقوبة على رائد الأعمال في عملية إغلاق الشركة',
+        'Morosidade na Obtenção de Patentes': 'البطء في الحصول على براءات الاختراع',
+        'O "Custo Brasil": Complexidade Para Operar Negócios': 'تكلفة البرازيل: التعقيد لتشغيل الأعمال',
+        'Políticas de Incentivo Insuficientes': 'سياسات حوافز غير كافية',
+        'Programas de P&D&I Setoriais Incentivados Complexos e Pouco Eficazes': 'برامج البحث والتطوير والابتكار القطاعية المحفزة معقدة وغير فعالة',
+        'Qualidade Relativa Incipiente dos Ambientes de Inovação': 'الجودة النسبية البدائية لبيئات الابتكار',
+        'Regulações Setoriais Rígidas e Descoordenadas': 'اللوائح القطاعية الصارمة وغير المنسقة',
+        'Rigidez Regulatória Refratária à Inovação': 'الجمود التنظيمي الذي يقاوم الابتكار',
+        'Sistema de Incentivos à Pesquisa Desalinhados': 'نظام الحوافز للبحث العلمي غير المتوافقة',
+        'Subrepresentatividade regional': 'التمثيل الضعيف الإقليمي',
+        'Tratamento Trabalhista Desproporcional Para Startups': 'المعاملة العمالية غير المتناسبة للشركات الناشئة',
+        'Tratamento Tributário Desproporcional Para Investidores Anjos: Desconsideração de Perdas na Apuração do Ganho de Capital': 'المعاملة الضريبية غير المتناسبة لمستثمري الملاك',
+        'Tratamento Tributário Desproporcional Para Startups': 'المعاملة الضريبية غير المتناسبة للشركات الناشئة',
+        'Tratamento desproporcional da regulamentação da Lei de Proteção de Dados Pessoais Para Startups': 'المعاملة غير المتناسبة لتنظيم قانون حماية البيانات الشخصية للشركات الناشئة',
+        'Vácuo Regulatório do Novos Modelos de Trabalho da Economia Digital': 'الفراغ التنظيمي للنماذج الجديدة للعمل في الاقتصاد الرقمي',
+    },
+    'it': {
+        'Ausência de Políticas Claras sobre Governança e Soberania de Dados': 'Assenza di Politiche Chiare su Governance e Sovranità dei Dati',
+        'Ausência de Políticas Imigratórias Eficazes de Incentivo à Inovação': 'Assenza di Politiche Migratorie Efficaci di Incentivo all\'Innovazione',
+        'Ausência de Regulamentação sobre "Stock Options"': 'Assenza di Regolamentazione su Stock Options',
+        'Aversão ao Risco e Empreendedorismo de Necessidade': 'Avversione al Rischio e Imprenditorialità per Necessità',
+        'Baixa Representatividade de Gênero e Raça': 'Bassa Rappresentanza di Genere e Razza',
+        'Baixo Nível de Confiança Para Geração de Negócios': 'Basso Livello di Fiducia per Generazione di Affari',
+        'Baixo Nível de Internacionalização': 'Basso Livello di Internazionalizzazione',
+        'Baixo Nível de Transferência de Tecnologia Entre Universidades e Empresas': 'Basso Livello di Trasferimento di Tecnologia Tra Università e Aziende',
+        'Barreiras ao Capital Estrangeiro': 'Barriere al Capitale Straniero',
+        'Barreiras de Entrada e Compras Públicas': 'Barriere di Accesso e Acquisti Pubblici',
+        'Bases Curriculares Nacionais Desatualizadas': 'Basi Curricolari Nazionali Obsolete',
+        'Burocracia e lentidão excessivas no processo de abertura de empresas': 'Burocrazia e Lentezza Eccessive nel Processo di Apertura delle Aziende',
+        'Concentração Extrema do Venture Capital (VC) em Geografia, Setores e Fases de Maturidade das Investidas': 'Concentrazione Estrema del Venture Capital in Geografia Settori e Fasi di Maturità',
+        'Concentração Geográfica Excessiva de Hubs e Aceleradoras': 'Concentrazione Geografica Eccessiva di Hub e Acceleratori',
+        'Deficiências Estruturais na Educação STEM': 'Carenze Strutturali nell\'Educazione STEM',
+        'Descoordenação Sistêmica Entre os Agentes e Fragmentação Normativa': 'Mancanza di Coordinamento Sistemico Tra gli Agenti e Frammentazione Normativa',
+        'Descumprimento de Obrigações Orçamentárias em Fundações Estaduais de Fomento à Pesquisa': 'Mancato Adempimento degli Obblighi di Bilancio nelle Fondazioni Statali di Promozione della Ricerca',
+        'Desvio de Finalidade de Fundos Setoriais para Promoção da Inovação': 'Deviazione di Fondi Settoriali per la Promozione dell\'Innovazione',
+        'Dificuldade na Continuidade de Políticas Públicas Entre Gestões': 'Difficoltà nella Continuità delle Politiche Pubbliche Tra le Gestioni',
+        'Dificuldades de Acesso e Venda a Grandes Empresas': 'Difficoltà di Accesso e Vendita alle Grandi Aziende',
+        'Escassez de Educação para o Empreendedorismo': 'Scarsità di Educazione all\'Imprenditorialità',
+        'Escassez de Recursos Para Fomento Direto à Cultura de Inovação': 'Scarsità di Risorse per Promozione Diretta della Cultura dell\'Innovazione',
+        'Estigmatização das Relações Entre Academia e Mercado': 'Stigmatizzazione delle Relazioni Tra Accademia e Mercato',
+        'Estrutura societária inadequada para startups: MEI, LTDA e S/A': 'Struttura Societaria Inadatta per Startup MEI LTDA e SA',
+        'Incentivos escassos para negócios de impacto': 'Incentivi Scarsi per Affari di Impatto',
+        'Incertezas Sobre a Regulação de Inteligência Artificial': 'Incertezze sulla Regolazione dell\'Intelligenza Artificiale',
+        'Instrumentos de Fomento e Crédito Desalinhados': 'Strumenti di Promozione e Credito Disallineati',
+        'Lacunas em Letramento Digital e IA': 'Lacune in Alfabetizzazione Digitale e IA',
+        'Lei de Informática e Lei do Bem Complexas, Limitadas, Complexas e Rígidas': 'Legge sull\'Informatica e Legge del Bene Complesse Limitate e Rigide',
+        'Lentidão e Insegurança Jurídica nos Processos de Transferência de Tecnologia': 'Lentezza e Incertezza Giuridica nei Processi di Trasferimento di Tecnologia',
+        'Marco Civil da Internet em Xeque e Regulação das Plataformas Sociais': 'Marco Civile di Internet in Dubbio e Regolazione delle Piattaforme Sociali',
+        'Marco Legal das Startups Incompleto e Morosidade Institucional': 'Quadro Legale delle Startup Incompleto e Lentezza Istituzionale',
+        'Mercado de Investimento-Anjo Subdesenvolvido e Desincentivado': 'Mercato degli Investimenti Angel Sottosviluppato e Scoraggiato',
+        'Modelo de Sustentabilidade Frágil dos Ambientes de Inovação': 'Modello di Sostenibilità Fragile degli Ambienti di Innovazione',
+        'Modelos Alternativos de Financiamento Ainda Incipientes Para Startups': 'Modelli Alternativi di Finanziamento Ancora Incipenti per Startup',
+        'Morosidade e penalização da pessoa empreendedora no Processo de fechamento de empresas': 'Lentezza e Penalizzazione dell\'Imprenditore nel Processo di Chiusura Aziendale',
+        'Morosidade na Obtenção de Patentes': 'Lentezza nell\'Ottenimento di Brevetti',
+        'O "Custo Brasil": Complexidade Para Operar Negócios': 'Il Costo Brasile Complessità per Operare Affari',
+        'Políticas de Incentivo Insuficientes': 'Politiche di Incentivo Insufficienti',
+        'Programas de P&D&I Setoriais Incentivados Complexos e Pouco Eficazes': 'Programmi di R&S&I Settoriali Incentivati Complessi e Poco Efficaci',
+        'Qualidade Relativa Incipiente dos Ambientes de Inovação': 'Qualità Relativa Nascente degli Ambienti di Innovazione',
+        'Regulações Setoriais Rígidas e Descoordenadas': 'Normative Settoriali Rigide e Non Coordinate',
+        'Rigidez Regulatória Refratária à Inovação': 'Rigidità Regolatoria Refrattaria all\'Innovazione',
+        'Sistema de Incentivos à Pesquisa Desalinhados': 'Sistema di Incentivi per la Ricerca Disallineati',
+        'Subrepresentatividade regional': 'Sottorappresentazione Regionale',
+        'Tratamento Trabalhista Desproporcional Para Startups': 'Trattamento Lavorativo Sproporzionato per Startup',
+        'Tratamento Tributário Desproporcional Para Investidores Anjos: Desconsideração de Perdas na Apuração do Ganho de Capital': 'Trattamento Tributario Sproporzionato per Investitori Angel',
+        'Tratamento Tributário Desproporcional Para Startups': 'Trattamento Tributario Sproporzionato per Startup',
+        'Tratamento desproporcional da regulamentação da Lei de Proteção de Dados Pessoais Para Startups': 'Trattamento Sproporzionato della Regolazione della Legge sulla Protezione dei Dati Personali per Startup',
+        'Vácuo Regulatório do Novos Modelos de Trabalho da Economia Digital': 'Vuoto Normativo dei Nuovi Modelli di Lavoro dell\'Economia Digitale',
+    },
+    'ja': {
+        'Ausência de Políticas Claras sobre Governança e Soberania de Dados': 'データの統治と主権に関する明確なポリシーの欠如',
+        'Ausência de Políticas Imigratórias Eficazes de Incentivo à Inovação': 'イノベーション推奨のための効果的な移民政策の欠如',
+        'Ausência de Regulamentação sobre "Stock Options"': 'ストックオプション規制の欠如',
+        'Aversão ao Risco e Empreendedorismo de Necessidade': 'リスク回避と必要性起業家精神',
+        'Baixa Representatividade de Gênero e Raça': 'ジェンダーと人種の低い代表性',
+        'Baixo Nível de Confiança Para Geração de Negócios': 'ビジネス生成のための低い信頼レベル',
+        'Baixo Nível de Internacionalização': '国際化の低いレベル',
+        'Baixo Nível de Transferência de Tecnologia Entre Universidades e Empresas': '大学と企業間の技術移転の低いレベル',
+        'Barreiras ao Capital Estrangeiro': '外国資本への障壁',
+        'Barreiras de Entrada e Compras Públicas': '参入障壁と公共調達',
+        'Bases Curriculares Nacionais Desatualizadas': '古い国家カリキュラムベース',
+        'Burocracia e lentidão excessivas no processo de abertura de empresas': '企業開設プロセスでの過度な官僚主義と遅さ',
+        'Concentração Extrema do Venture Capital (VC) em Geografia, Setores e Fases de Maturidade das Investidas': 'ベンチャーキャピタルの極度の集中',
+        'Concentração Geográfica Excessiva de Hubs e Aceleradoras': 'ハブとアクセラレータの過度な地理的集中',
+        'Deficiências Estruturais na Educação STEM': 'STEM教育の構造的欠陥',
+        'Descoordenação Sistêmica Entre os Agentes e Fragmentação Normativa': '代理人間の体系的な非協調と規制的断片化',
+        'Descumprimento de Obrigações Orçamentárias em Fundações Estaduais de Fomento à Pesquisa': '州研究促進基金の予算義務不遵守',
+        'Desvio de Finalidade de Fundos Setoriais para Promoção da Inovação': 'セクターファンドのイノベーション推進への流用',
+        'Dificuldade na Continuidade de Políticas Públicas Entre Gestões': '管理間の公共政策の継続性の困難',
+        'Dificuldades de Acesso e Venda a Grandes Empresas': '大企業へのアクセスと販売の困難',
+        'Escassez de Educação para o Empreendedorismo': '起業教育の不足',
+        'Escassez de Recursos Para Fomento Direto à Cultura de Inovação': 'イノベーション文化の直接的な振興のためのリソース不足',
+        'Estigmatização das Relações Entre Academia e Mercado': 'アカデミアと市場関係のスティグマ化',
+        'Estrutura societária inadequada para startups: MEI, LTDA e S/A': 'スタートアップに不適切な企業構造',
+        'Incentivos escassos para negócios de impacto': 'インパクトビジネスのための希薄なインセンティブ',
+        'Incertezas Sobre a Regulação de Inteligência Artificial': '人工知能規制に関する不確実性',
+        'Instrumentos de Fomento e Crédito Desalinhados': '促進とクレジット機器の不調和',
+        'Lacunas em Letramento Digital e IA': 'デジタルリテラシーとAIのギャップ',
+        'Lei de Informática e Lei do Bem Complexas, Limitadas, Complexas e Rígidas': '複雑で制限された情報法と善法',
+        'Lentidão e Insegurança Jurídica nos Processos de Transferência de Tecnologia': '技術移転プロセスにおける遅さと法的不確実性',
+        'Marco Civil da Internet em Xeque e Regulação das Plataformas Sociais': 'インターネット市民枠組みと社会プラットフォーム規制',
+        'Marco Legal das Startups Incompleto e Morosidade Institucional': 'スタートアップ法枠組みの不完全と制度的遅さ',
+        'Mercado de Investimento-Anjo Subdesenvolvido e Desincentivado': 'エンジェル投資市場の未発達と制止',
+        'Modelo de Sustentabilidade Frágil dos Ambientes de Inovação': 'イノベーション環境の脆弱な持続可能性モデル',
+        'Modelos Alternativos de Financiamento Ainda Incipientes Para Startups': 'スタートアップのための代替資金調達モデル',
+        'Morosidade e penalização da pessoa empreendedora no Processo de fechamento de empresas': '企業閉鎖プロセスでの起業家の遅さと罰',
+        'Morosidade na Obtenção de Patentes': '特許取得の遅さ',
+        'O "Custo Brasil": Complexidade Para Operar Negócios': 'ブラジルコスト ビジネス運営の複雑さ',
+        'Políticas de Incentivo Insuficientes': '不十分な奨励政策',
+        'Programas de P&D&I Setoriais Incentivados Complexos e Pouco Eficazes': 'セクター研究開発イノベーション支援プログラムの複雑さと低効率',
+        'Qualidade Relativa Incipiente dos Ambientes de Inovação': 'イノベーション環境の初期段階の相対的品質',
+        'Regulações Setoriais Rígidas e Descoordenadas': '厳格で非協調的なセクター規制',
+        'Rigidez Regulatória Refratária à Inovação': 'イノベーションに対する拒否的な規制の硬さ',
+        'Sistema de Incentivos à Pesquisa Desalinhados': '調査インセンティブシステムの不調和',
+        'Subrepresentatividade regional': '地域的過小代表',
+        'Tratamento Trabalhista Desproporcional Para Startups': 'スタートアップへの不釣り合いな労働処遇',
+        'Tratamento Tributário Desproporcional Para Investidores Anjos: Desconsideração de Perdas na Apuração do Ganho de Capital': 'エンジェル投資家への不釣り合いな租税処遇',
+        'Tratamento Tributário Desproporcional Para Startups': 'スタートアップへの不釣り合いな租税処遇',
+        'Tratamento desproporcional da regulamentação da Lei de Proteção de Dados Pessoais Para Startups': 'スタートアップへの不釣り合いな個人データ保護法規制処遇',
+        'Vácuo Regulatório do Novos Modelos de Trabalho da Economia Digital': 'デジタル経済の新しい労働モデルの規制空白',
+    },
+    'ko': {
+        'Ausência de Políticas Claras sobre Governança e Soberania de Dados': '거버넌스 및 데이터 주권에 관한 명확한 정책 부재',
+        'Ausência de Políticas Imigratórias Eficazes de Incentivo à Inovação': '혁신 장려를 위한 효과적인 이민 정책 부재',
+        'Ausência de Regulamentação sobre "Stock Options"': 'Stock Options에 대한 규제 부재',
+        'Aversão ao Risco e Empreendedorismo de Necessidade': '위험 회피 및 필요성 기업가정신',
+        'Baixa Representatividade de Gênero e Raça': '낮은 성별 및 인종 대표성',
+        'Baixo Nível de Confiança Para Geração de Negócios': '비즈니스 창출을 위한 낮은 신뢰도',
+        'Baixo Nível de Internacionalização': '낮은 국제화 수준',
+        'Baixo Nível de Transferência de Tecnologia Entre Universidades e Empresas': '대학과 기업 간 기술 이전의 낮은 수준',
+        'Barreiras ao Capital Estrangeiro': '외국 자본의 장벽',
+        'Barreiras de Entrada e Compras Públicas': '시장 진입 장벽 및 공공 구매',
+        'Bases Curriculares Nacionais Desatualizadas': '구식 국가 교육 기준',
+        'Burocracia e lentidão excessivas no processo de abertura de empresas': '회사 설립 절차에서의 과도한 관료주의 및 완화',
+        'Concentração Extrema do Venture Capital (VC) em Geografia, Setores e Fases de Maturidade das Investidas': '벤처 캐피탈의 극단적 집중',
+        'Concentração Geográfica Excessiva de Hubs e Aceleradoras': '허브 및 액셀러레이터의 과도한 지리적 집중',
+        'Deficiências Estruturais na Educação STEM': 'STEM 교육의 구조적 결핍',
+        'Descoordenação Sistêmica Entre os Agentes e Fragmentação Normativa': '에이전트 간 체계적 비조정 및 규제 단편화',
+        'Descumprimento de Obrigações Orçamentárias em Fundações Estaduais de Fomento à Pesquisa': '주 연구 진흥 재단의 예산 의무 불이행',
+        'Desvio de Finalidade de Fundos Setoriais para Promoção da Inovação': '혁신 촉진을 위한 부문별 기금의 유용',
+        'Dificuldade na Continuidade de Políticas Públicas Entre Gestões': '행정 간 공공 정책의 지속성 어려움',
+        'Dificuldades de Acesso e Venda a Grandes Empresas': '대기업에 대한 접근 및 판매 어려움',
+        'Escassez de Educação para o Empreendedorismo': '기업가 교육 부족',
+        'Escassez de Recursos Para Fomento Direto à Cultura de Inovação': '혁신 문화 직접 진흥을 위한 리소스 부족',
+        'Estigmatização das Relações Entre Academia e Mercado': '학계와 시장 관계의 낙인',
+        'Estrutura societária inadequada para startups: MEI, LTDA e S/A': '스타트업에 부적절한 기업 구조',
+        'Incentivos escassos para negócios de impacto': '영향 비즈니스를 위한 부족한 인센티브',
+        'Incertezas Sobre a Regulação de Inteligência Artificial': '인공지능 규제에 대한 불확실성',
+        'Instrumentos de Fomento e Crédito Desalinhados': '진흥 및 신용 도구의 부정렬',
+        'Lacunas em Letramento Digital e IA': '디지털 문해력 및 AI의 격차',
+        'Lei de Informática e Lei do Bem Complexas, Limitadas, Complexas e Rígidas': '복잡하고 제한된 정보법과 선의법',
+        'Lentidão e Insegurança Jurídica nos Processos de Transferência de Tecnologia': '기술 이전 프로세스의 지연 및 법적 불확실성',
+        'Marco Civil da Internet em Xeque e Regulação das Plataformas Sociais': '인터넷 시민 틀과 소셜 플랫폼 규제',
+        'Marco Legal das Startups Incompleto e Morosidade Institucional': '스타트아업 법적 틀의 불완전 및 제도적 지연',
+        'Mercado de Investimento-Anjo Subdesenvolvido e Desincentivado': '천사 투자 시장의 과소 발전 및 억제',
+        'Modelo de Sustentabilidade Frágil dos Ambientes de Inovação': '혁신 환경의 취약한 지속 가능성 모델',
+        'Modelos Alternativos de Financiamento Ainda Incipientes Para Startups': '스타트업을 위한 대체 자금 조달 모델',
+        'Morosidade e penalização da pessoa empreendedora no Processo de fechamento de empresas': '회사 폐쇄 절차에서의 지연 및 기업가 처벌',
+        'Morosidade na Obtenção de Patentes': '특허 취득의 지연',
+        'O "Custo Brasil": Complexidade Para Operar Negócios': '브라질 비용 사업 운영의 복잡성',
+        'Políticas de Incentivo Insuficientes': '불충분한 인센티브 정책',
+        'Programas de P&D&I Setoriais Incentivados Complexos e Pouco Eficazes': '부문별 R&D&I 지원 프로그램의 복잡성 및 낮은 효율성',
+        'Qualidade Relativa Incipiente dos Ambientes de Inovação': '혁신 환경의 초기 상대적 품질',
+        'Regulações Setoriais Rígidas e Descoordenadas': '엄격하고 조정되지 않은 부문별 규제',
+        'Rigidez Regulatória Refratária à Inovação': '혁신에 대한 저항적 규제 경직성',
+        'Sistema de Incentivos à Pesquisa Desalinhados': '연구 인센티브 시스템의 부정렬',
+        'Subrepresentatividade regional': '지역적 과소 대표',
+        'Tratamento Trabalhista Desproporcional Para Startups': '스타트업에 대한 불균형 노동 처우',
+        'Tratamento Tributário Desproporcional Para Investidores Anjos: Desconsideração de Perdas na Apuração do Ganho de Capital': '천사 투자자에 대한 불균형 조세 처우',
+        'Tratamento Tributário Desproporcional Para Startups': '스타트업에 대한 불균형 조세 처우',
+        'Tratamento desproporcional da regulamentação da Lei de Proteção de Dados Pessoais Para Startups': '스타트업에 대한 불균형 개인데이터 보호법 규제 처우',
+        'Vácuo Regulatório do Novos Modelos de Trabalho da Economia Digital': '디지털 경제의 새로운 노동 모델의 규제 공백',
+    },
+    'he': {
+        'Ausência de Políticas Claras sobre Governança e Soberania de Dados': 'היעדרות מדיניות ברורה על ניהול וריבונות נתונים',
+        'Ausência de Políticas Imigratórias Eficazes de Incentivo à Inovação': 'היעדרות מדיניות הגירה יעילות לתמריץ חדשנות',
+        'Ausência de Regulamentação sobre "Stock Options"': 'היעדרות תקנות על Stock Options',
+        'Aversão ao Risco e Empreendedorismo de Necessidade': 'גורלות סיכון ויזמות הכרח',
+        'Baixa Representatividade de Gênero e Raça': 'ייצוג נמוך של מין וגזע',
+        'Baixo Nível de Confiança Para Geração de Negócios': 'רמה נמוכה של אמון לייצור עסקים',
+        'Baixo Nível de Internacionalização': 'רמה נמוכה של בינלאומיות',
+        'Baixo Nível de Transferência de Tecnologia Entre Universidades e Empresas': 'רמה נמוכה של העברת טכנולוגיה בין אוניברסיטות וחברות',
+        'Barreiras ao Capital Estrangeiro': 'מחסומים להון זר',
+        'Barreiras de Entrada e Compras Públicas': 'מחסומי כניסה וקניות ציבוריות',
+        'Bases Curriculares Nacionais Desatualizadas': 'בסיסי תכנית לימודים לאומיים מיושנים',
+        'Burocracia e lentidão excessivas no processo de abertura de empresas': 'בירוקרטיה ובטלות מופרזות בתהליך פתיחת חברות',
+        'Concentração Extrema do Venture Capital (VC) em Geografia, Setores e Fases de Maturidade das Investidas': 'ריכוז קיצוני של הון סיכון',
+        'Concentração Geográfica Excessiva de Hubs e Aceleradoras': 'ריכוז גיאוגרפי מופרז של רכזות ומאיצים',
+        'Deficiências Estruturais na Educação STEM': 'חסרונות מבניים בחינוך STEM',
+        'Descoordenação Sistêmica Entre os Agentes e Fragmentação Normativa': 'חוסר תיאום שיטתי בין סוכנים וקטעי נורמטיב',
+        'Descumprimento de Obrigações Orçamentárias em Fundações Estaduais de Fomento à Pesquisa': 'אי ציות לחובות תקציביות בקרנות מדינתיות לקידום מחקר',
+        'Desvio de Finalidade de Fundos Setoriais para Promoção da Inovação': 'סטייה מתכלית של קרנות סקטוריאליות לקידום חדשנות',
+        'Dificuldade na Continuidade de Políticas Públicas Entre Gestões': 'קושי בהמשכיות של מדיניות ציבורית בין ניהול',
+        'Dificuldades de Acesso e Venda a Grandes Empresas': 'קשיים בגישה ומכירה לחברות גדולות',
+        'Escassez de Educação para o Empreendedorismo': 'מחסור בחינוך ליזמות',
+        'Escassez de Recursos Para Fomento Direto à Cultura de Inovação': 'מחסור במשאבים לקידום ישיר של תרבות חדשנות',
+        'Estigmatização das Relações Entre Academia e Mercado': 'תיוג יחסים בין אקדמיה לשוק',
+        'Estrutura societária inadequada para startups: MEI, LTDA e S/A': 'מבנה קורפורטיבי לא הולם לסטארטאפים',
+        'Incentivos escassos para negócios de impacto': 'תמריצים דלים לעסקי השפעה',
+        'Incertezas Sobre a Regulação de Inteligência Artificial': 'אי ודאויות לגבי רגולציה של בינה מלאכותית',
+        'Instrumentos de Fomento e Crédito Desalinhados': 'כלים לקידום ואשראי לא מיושרים',
+        'Lacunas em Letramento Digital e IA': 'פערים באוריינות דיגיטלית וAI',
+        'Lei de Informática e Lei do Bem Complexas, Limitadas, Complexas e Rígidas': 'חוק מידע וחוק טוב מורכבים מוגבלים וקשיחים',
+        'Lentidão e Insegurança Jurídica nos Processos de Transferência de Tecnologia': 'איטיות ואי ביטחון משפטי בתהליכי העברת טכנולוגיה',
+        'Marco Civil da Internet em Xeque e Regulação das Plataformas Sociais': 'מסגרת אזרחית של אינטרנט בחשד ורגולציה של פלטפורמות חברתיות',
+        'Marco Legal das Startups Incompleto e Morosidade Institucional': 'מסגרת משפטית של סטארטאפים לא שלמה ואיטיות מוסדית',
+        'Mercado de Investimento-Anjo Subdesenvolvido e Desincentivado': 'שוק השקעה מלאך תת מפותח ומדוכדך',
+        'Modelo de Sustentabilidade Frágil dos Ambientes de Inovação': 'מודל קיימות שביר של סביבות חדשנות',
+        'Modelos Alternativos de Financiamento Ainda Incipientes Para Startups': 'מודלים חלופיים של מימון עדיין בעתותם לסטארטאפים',
+        'Morosidade e penalização da pessoa empreendedora no Processo de fechamento de empresas': 'איטיות ועונש ליזם בתהליך סגירת חברות',
+        'Morosidade na Obtenção de Patentes': 'איטיות בהשגת פטנטים',
+        'O "Custo Brasil": Complexidade Para Operar Negócios': 'עלות ברזיל מורכבות להפעלת עסקים',
+        'Políticas de Incentivo Insuficientes': 'מדיניות תמריצים לא מספיקה',
+        'Programas de P&D&I Setoriais Incentivados Complexos e Pouco Eficazes': 'תוכניות R&D&I סקטוריאליות מעוררות מורכבות ויעילות נמוכה',
+        'Qualidade Relativa Incipiente dos Ambientes de Inovação': 'איכות יחסית בעתותה של סביבות חדשנות',
+        'Regulações Setoriais Rígidas e Descoordenadas': 'תקנות סקטוריאליות קשוחות לא מתואמות',
+        'Rigidez Regulatória Refratária à Inovação': 'קשיחות תקנות עמידה בפני חדשנות',
+        'Sistema de Incentivos à Pesquisa Desalinhados': 'מערכת תמריצים למחקר לא מיושרת',
+        'Subrepresentatividade regional': 'ייצוג תת אזורי',
+        'Tratamento Trabalhista Desproporcional Para Startups': 'יחס עבודה לא פרופורציוני לסטארטאפים',
+        'Tratamento Tributário Desproporcional Para Investidores Anjos: Desconsideração de Perdas na Apuração do Ganho de Capital': 'יחס מיסוי לא פרופורציוני למשקיעי מלאך',
+        'Tratamento Tributário Desproporcional Para Startups': 'יחס מיסוי לא פרופורציוני לסטארטאפים',
+        'Tratamento desproporcional da regulamentação da Lei de Proteção de Dados Pessoais Para Startups': 'יחס לא פרופורציוני לתקנות חוק הגנת הנתונים האישיים לסטארטאפים',
+        'Vácuo Regulatório do Novos Modelos de Trabalho da Economia Digital': 'ריק תקנות של מודלי עבודה חדשים של הכלכלה הדיגיטלית',
+    },
+}
+
+def extrair_titulo_portugues(query):
+    """Tenta extrair o título em português da query"""
+    for titulo in MAPEAMENTO_COMPLETO['ar'].keys():
+        if titulo.lower() in query.lower():
+            return titulo
+    return None
+
+def regenerar_queries():
+    """Regenera TODAS as queries de forma limpa"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    total_atualizadas = 0
+
+    for idioma in ['ar', 'ja', 'ko', 'he', 'it']:
+        print(f"\nRegenerando {idioma.upper()}...")
+
+        mapeamento = MAPEAMENTO_COMPLETO.get(idioma, {})
+        atualizadas_idioma = 0
+
+        # Obter TODAS as queries deste idioma
+        cursor.execute(
+            "SELECT DISTINCT query FROM fila_pesquisas WHERE idioma = ? AND status = 'pendente'",
+            (idioma,)
+        )
+
+        queries = [r[0] for r in cursor.fetchall()]
+
+        for query in queries:
+            # Tentar extrair o título português
+            titulo_pt = extrair_titulo_portugues(query)
+
+            if titulo_pt and titulo_pt in mapeamento:
+                titulo_traduzido = mapeamento[titulo_pt]
+
+                # Atualizar TODAS as instâncias desta query
+                cursor.execute(
+                    "UPDATE fila_pesquisas SET query = ? WHERE idioma = ? AND query = ? AND status = 'pendente'",
+                    (titulo_traduzido, idioma, query)
+                )
+                atualizadas_idioma += cursor.rowcount
+
+        print(f"  ✓ {atualizadas_idioma} queries regeneradas")
+        total_atualizadas += atualizadas_idioma
+
+    conn.commit()
+    conn.close()
+
+    print(f"\n✓ Total: {total_atualizadas} queries regeneradas de forma limpa")
+
+if __name__ == "__main__":
+    regenerar_queries()
