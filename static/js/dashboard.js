@@ -55,21 +55,47 @@ function dashboardApp() {
 
         // Inicializacao
         async init() {
-            await this.carregar_falhas();
-            await this.carregar_resultados();
-            await this.carregar_canais();
-            await this.carregar_ferramentas_config();
-            await this.carregar_teste_mode();
-            await this.atualizar_stats();
+            try {
+                await this.carregar_falhas();
+                await this.carregar_resultados();
+                await this.carregar_canais();
+                await this.carregar_ferramentas_config();
+                await this.carregar_teste_mode();
+                await this.atualizar_stats();
 
-            // IMPORTANTE: Sempre iniciar a página com pesquisa pausada
-            // Isto garante que o usuário tem controle total e deve clicar para iniciar
-            if (this.status_pesquisa.ativo) {
-                await this.pausar_pesquisas();
+                // IMPORTANTE: Sempre iniciar a página com pesquisa pausada
+                // Isto garante que o usuário tem controle total e deve clicar para iniciar
+                // Usar versão silenciosa que não mostra diálogos de confirmação
+                if (this.status_pesquisa.ativo) {
+                    await this.pausar_pesquisas_silenciosamente();
+                }
+            } catch (erro) {
+                console.error('Erro durante inicialização do dashboard:', erro);
+                // Dashboard continua funcionando mesmo com erros na inicialização
             }
 
             // Atualizar stats a cada 3 segundos quando pesquisa ativa, 10 segundos se inativa
             setInterval(() => this.atualizar_stats(), 3000);
+        },
+
+        // Pausa pesquisas sem mostrar diálogos (usado apenas na inicialização)
+        async pausar_pesquisas_silenciosamente() {
+            try {
+                const response = await fetch('/api/pesquisas/pausar', {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    this.pesquisa_pausada = true;
+                    console.log('Pesquisas pausadas automaticamente na inicialização');
+                    // Atualizar stats silenciosamente
+                    await this.atualizar_stats();
+                } else {
+                    console.warn('Aviso: Não foi possível pausar pesquisas na inicialização');
+                }
+            } catch (erro) {
+                console.warn('Aviso: Erro ao pausar pesquisas na inicialização:', erro);
+                // Não abortar inicialização por causa disso
+            }
         },
 
         // Carregar dados da API
