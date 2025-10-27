@@ -68,6 +68,20 @@
                                 class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition">
                             Reiniciar Tudo
                         </button>
+
+                        <!-- Modo Teste -->
+                        <div class="flex gap-2 ml-auto items-center">
+                            <label class="text-sm font-medium" style="color: #374151;">Modo Teste:</label>
+                            <button @click="alternar_teste_mode()"
+                                    :class="teste_mode_ativado ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-500 hover:bg-gray-600'"
+                                    class="text-white px-4 py-2 rounded-lg font-medium text-sm transition">
+                                <span x-text="teste_mode_ativado ? '🧪 Ativado (' + teste_mode_limit + ' queries)' : '🧪 Desativado'"></span>
+                            </button>
+                            <input type="number" x-model.number="teste_mode_limit" min="1" max="1000"
+                                   @change="atualizar_teste_limit()"
+                                   class="w-20 px-2 py-2 border border-gray-300 rounded-lg text-sm"
+                                   placeholder="Limite">
+                        </div>
                     </div>
                 </div>
             </div>

@@ -49,12 +49,17 @@ function dashboardApp() {
         },
         salvando_config: false,
 
+        // Modo Teste
+        teste_mode_ativado: false,
+        teste_mode_limit: 10,
+
         // Inicializacao
         async init() {
             await this.carregar_falhas();
             await this.carregar_resultados();
             await this.carregar_canais();
             await this.carregar_ferramentas_config();
+            await this.carregar_teste_mode();
             await this.atualizar_stats();
             // Atualizar stats a cada 3 segundos quando pesquisa ativa, 10 segundos se inativa
             setInterval(() => this.atualizar_stats(), 3000);
@@ -533,6 +538,68 @@ function dashboardApp() {
 
             // Arredondar para evitar flutuações
             return Math.round(percentual);
+        },
+
+        // ==================== MODO TESTE ====================
+
+        async carregar_teste_mode() {
+            try {
+                const response = await fetch('/api/config/test-mode');
+                if (response.ok) {
+                    const dados = await response.json();
+                    this.teste_mode_ativado = dados.test_mode_enabled;
+                    this.teste_mode_limit = dados.test_mode_limit;
+                } else {
+                    console.error('Erro carregando status do modo teste:', response.status);
+                }
+            } catch (erro) {
+                console.error('Erro na requisicao:', erro);
+            }
+        },
+
+        async alternar_teste_mode() {
+            try {
+                const novo_estado = !this.teste_mode_ativado;
+                const response = await fetch(`/api/config/test-mode/${novo_estado}`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    const dados = await response.json();
+                    this.teste_mode_ativado = dados.test_mode_enabled;
+                    alert(dados.mensagem);
+                } else {
+                    alert('Erro ao alternar modo teste');
+                    console.error('Erro:', response.status);
+                }
+            } catch (erro) {
+                console.error('Erro na requisicao:', erro);
+                alert('Erro ao conectar com servidor');
+            }
+        },
+
+        async atualizar_teste_limit() {
+            try {
+                if (this.teste_mode_limit < 1 || this.teste_mode_limit > 1000) {
+                    alert('Limite deve estar entre 1 e 1000');
+                    return;
+                }
+
+                const response = await fetch(`/api/config/test-mode/limit/${this.teste_mode_limit}`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    const dados = await response.json();
+                    alert(dados.mensagem);
+                } else {
+                    alert('Erro ao atualizar limite');
+                    console.error('Erro:', response.status);
+                }
+            } catch (erro) {
+                console.error('Erro na requisicao:', erro);
+                alert('Erro ao conectar com servidor');
+            }
         }
     };
 }
