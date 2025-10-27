@@ -92,8 +92,9 @@ class Settings(BaseSettings):
     RAG_SIMILARITY_THRESHOLD_DEDUP: float = 0.85  # Threshold para deduplicação
 
 
-# Arquivo de configuracao persistente (definir antes de instanciar settings)
+# Arquivos de configuracao persistente (definir antes de instanciar settings)
 CONFIG_FILE_PATH = Path(__file__).parent.parent / "config_channels.json"
+TEST_MODE_CONFIG_FILE_PATH = Path(__file__).parent.parent / "config_test_mode.json"
 
 
 def get_config_file_path() -> Path:
@@ -143,17 +144,63 @@ def save_search_channels_config(config: dict) -> bool:
         return False
 
 
+def load_test_mode_config() -> dict:
+    """
+    Carrega configuracao de modo teste do arquivo JSON.
+    Se o arquivo nao existir, retorna configuracao padrao.
+    """
+    if TEST_MODE_CONFIG_FILE_PATH.exists():
+        try:
+            with open(TEST_MODE_CONFIG_FILE_PATH, "r") as f:
+                config = json.load(f)
+                print(f"[INFO] Configuracao de modo teste carregada de {TEST_MODE_CONFIG_FILE_PATH}")
+                return config
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"[WARN] Erro ao carregar config_test_mode.json: {e}")
+            return {"test_mode": False, "test_mode_limit": 10}
+    else:
+        print(f"[INFO] Arquivo config_test_mode.json nao encontrado, usando padrao")
+        return {"test_mode": False, "test_mode_limit": 10}
+
+
+def save_test_mode_config(test_mode: bool, test_mode_limit: int) -> bool:
+    """
+    Salva configuracao de modo teste em arquivo JSON.
+    Retorna True se salvo com sucesso, False caso contrario.
+    """
+    try:
+        # Criar diretorio se nao existir
+        TEST_MODE_CONFIG_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+        config = {"test_mode": test_mode, "test_mode_limit": test_mode_limit}
+        with open(TEST_MODE_CONFIG_FILE_PATH, "w") as f:
+            json.dump(config, f, indent=2)
+
+        print(f"[INFO] Configuracao de modo teste salva em {TEST_MODE_CONFIG_FILE_PATH}")
+        return True
+    except IOError as e:
+        print(f"[ERROR] Erro ao salvar config_test_mode.json: {e}")
+        return False
+
+
 # Instancia global de configuracoes
 settings = Settings()
 
 # Carregar configuracao persistente na inicializacao
 def initialize_settings():
     """Inicializa as configuracoes carregando do arquivo persistente se existir"""
+    # Carregar configuracao de canais de pesquisa
     loaded_config = load_search_channels_config(settings.SEARCH_CHANNELS_ENABLED)
     # Atualizar dict in-place para garantir que as mudanças persistem
     settings.SEARCH_CHANNELS_ENABLED.clear()
     settings.SEARCH_CHANNELS_ENABLED.update(loaded_config)
     print(f"[CONFIG] Configuracao de canais atualizada: {settings.SEARCH_CHANNELS_ENABLED}")
+
+    # Carregar configuracao de modo teste
+    test_mode_config = load_test_mode_config()
+    settings.TEST_MODE = test_mode_config.get("test_mode", False)
+    settings.TEST_MODE_LIMIT = test_mode_config.get("test_mode_limit", 10)
+    print(f"[CONFIG] Modo teste: {settings.TEST_MODE}, limite: {settings.TEST_MODE_LIMIT}")
 
 
 def get_database_path() -> Path:

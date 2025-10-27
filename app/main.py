@@ -29,9 +29,12 @@ async def worker_processador():
 
     Utiliza processamento paralelo com até 5 workers simultâneos
     para acelerar o processamento da fila de pesquisas
+
+    IMPORTANTE: Inicia em estado PAUSADO. Usuário deve clicar "Pesquisa em Andamento" para começar
     """
     global processador_global
     processador = Processador(max_workers=5)  # Parallelismo: até 5 buscas simultâneas
+    processador.ativo = False  # INICIAR EM ESTADO PAUSADO - Usuário controla quando começar
     processador_global = processador  # Armazenar referência global para pausar/retomar
 
     # Configurar rate limiting para permitir processamento mais rápido
@@ -42,7 +45,7 @@ async def worker_processador():
 
     intervalo = 20  # Reduzido de 30 para 20 segundos entre iterações
 
-    print("[WORKER] Iniciado processador de fila com PARALLELISMO (5 workers)...")
+    print("[WORKER] Iniciado em estado PAUSADO. Clique 'Pesquisa em Andamento' para começar...")
     print("[WORKER] Rate limiting: 0.3s delay, 150 req/min")
 
     try:

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Endpoints para gerenciar configuracoes da aplicacao
-Permite habilitar/desabilitar canais de pesquisa
+Permite habilitar/desabilitar canais de pesquisa e controlar modo teste
 """
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
-from app.config import settings, save_search_channels_config
+from app.config import settings, save_search_channels_config, save_test_mode_config
 
 router = APIRouter(tags=["Config"])
 
@@ -213,6 +213,8 @@ async def toggle_test_mode(enabled: bool) -> Dict[str, Any]:
         Novo status do modo teste
     """
     settings.TEST_MODE = enabled
+    # Persistir configuracao em arquivo JSON
+    save_test_mode_config(settings.TEST_MODE, settings.TEST_MODE_LIMIT)
 
     return {
         "mensagem": f"Modo teste {'ATIVADO' if enabled else 'DESATIVADO'}",
@@ -246,6 +248,8 @@ async def set_test_mode_limit(limit: int) -> Dict[str, Any]:
         )
 
     settings.TEST_MODE_LIMIT = limit
+    # Persistir configuracao em arquivo JSON
+    save_test_mode_config(settings.TEST_MODE, settings.TEST_MODE_LIMIT)
 
     return {
         "mensagem": f"Limite do modo teste atualizado para {limit} queries",
