@@ -18,6 +18,7 @@ from app.agente.pesquisador import AgentePesquisador
 from app.agente.avaliador import Avaliador
 from app.agente.deduplicador import Deduplicador
 from app.utils.hash_utils import gerar_hash_conteudo
+from app.config import settings
 
 
 class Processador:
@@ -107,12 +108,21 @@ class Processador:
         """
         Obtem proxima entrada pendente da fila
 
+        Se TEST_MODE está ativado, limita a TEST_MODE_LIMIT queries para testes
+
         Returns:
             Primeira entrada pendente ou None
         """
         entradas = await listar_fila_pesquisas(status="pendente")
 
         if entradas:
+            # Se modo teste está ativado, contar quantas já foram processadas em modo teste
+            if settings.TEST_MODE:
+                # Limite: retorna None se já processamos TEST_MODE_LIMIT entradas
+                if self.processadas >= settings.TEST_MODE_LIMIT:
+                    print(f"[TESTE MODE] Limite de {settings.TEST_MODE_LIMIT} queries atingido. Parando.")
+                    return None
+
             return entradas[0]
 
         return None
@@ -301,15 +311,49 @@ class Processador:
                 "criado_em": datetime.now().isoformat()
             }
 
-            # Adicionar tradução automática para português se não for PT
-            # DESABILITADO TEMPORARIAMENTE: OpenRouter API está retornando HTTP 405
-            # idioma = dados.get("idioma", "pt")
-            # if idioma != "pt" and idioma:
-            #     try:
-            #         from app.integracao.openrouter_api import traduzir_com_openrouter
-            #         # ... translation code disabled ...
-            #     except Exception as e:
-            #         print(f"[TRADUÇÃO] Aviso: Falha ao traduzir resultado: {str(e)[:100]}")
+            # Adicionar tradução automática para português e inglês
+            idioma_original = dados.get("idioma", "pt")
+            if idioma_original != "pt":
+                try:
+                    from app.utils.idiomas import traduzir_query
+                    from anthropic import Anthropic
+
+                    titulo = dados.get("titulo", "")
+                    descricao = dados.get("descricao", "")
+
+                    # Traduzir para português
+                    if titulo:
+                        dados["titulo_pt"] = await traduzir_query(titulo, idioma_original, "pt")
+                    if descricao:
+                        dados["descricao_pt"] = await traduzir_query(descricao, idioma_original, "pt")
+
+                    # Traduzir para inglês
+                    if titulo and idioma_original != "en":
+                        dados["titulo_en"] = await traduzir_query(titulo, idioma_original, "en")
+                    elif titulo and idioma_original == "en":
+                        dados["titulo_en"] = titulo
+
+                    if descricao and idioma_original != "en":
+                        dados["descricao_en"] = await traduzir_query(descricao, idioma_original, "en")
+                    elif descricao and idioma_original == "en":
+                        dados["descricao_en"] = descricao
+
+                except Exception as e:
+                    print(f"[TRADUÇÃO] Aviso: Falha ao traduzir resultado: {str(e)[:100]}")
+            else:
+                # Se já é português, adicionar inglês
+                try:
+                    titulo = dados.get("titulo", "")
+                    descricao = dados.get("descricao", "")
+
+                    from app.utils.idiomas import traduzir_query
+
+                    if titulo:
+                        dados["titulo_en"] = await traduzir_query(titulo, "pt", "en")
+                    if descricao:
+                        dados["descricao_en"] = await traduzir_query(descricao, "pt", "en")
+                except Exception as e:
+                    print(f"[TRADUÇÃO] Aviso: Falha ao traduzir para inglês: {str(e)[:100]}")
 
             # Salvar no banco
             await insert_resultado(dados)

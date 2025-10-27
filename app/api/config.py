@@ -182,3 +182,74 @@ async def update_search_channels_config(config: Dict[str, Any]) -> Dict[str, Any
     }
 
     return resultado
+
+
+# ==================== MODO TESTE ====================
+
+@router.get("/config/test-mode")
+async def get_test_mode() -> Dict[str, Any]:
+    """
+    Retorna status do modo teste
+
+    Returns:
+        Status atual do modo teste e limit de queries
+    """
+    return {
+        "test_mode_enabled": settings.TEST_MODE,
+        "test_mode_limit": settings.TEST_MODE_LIMIT,
+        "descricao": "Quando ativado, processa apenas as primeiras N queries para testes"
+    }
+
+
+@router.post("/config/test-mode/{enabled}")
+async def toggle_test_mode(enabled: bool) -> Dict[str, Any]:
+    """
+    Ativa ou desativa o modo teste
+
+    Args:
+        enabled: True para ativar, False para desativar
+
+    Returns:
+        Novo status do modo teste
+    """
+    settings.TEST_MODE = enabled
+
+    return {
+        "mensagem": f"Modo teste {'ATIVADO' if enabled else 'DESATIVADO'}",
+        "test_mode_enabled": settings.TEST_MODE,
+        "test_mode_limit": settings.TEST_MODE_LIMIT,
+        "timestamp": __import__("datetime").datetime.now().isoformat()
+    }
+
+
+@router.post("/config/test-mode/limit/{limit}")
+async def set_test_mode_limit(limit: int) -> Dict[str, Any]:
+    """
+    Define o número máximo de queries para processar em modo teste
+
+    Args:
+        limit: Número de queries (ex: 10, 20, 50)
+
+    Returns:
+        Novo limite configurado
+    """
+    if limit < 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Limite deve ser maior que 0"
+        )
+
+    if limit > 1000:
+        raise HTTPException(
+            status_code=400,
+            detail="Limite não pode exceder 1000 queries"
+        )
+
+    settings.TEST_MODE_LIMIT = limit
+
+    return {
+        "mensagem": f"Limite do modo teste atualizado para {limit} queries",
+        "test_mode_enabled": settings.TEST_MODE,
+        "test_mode_limit": settings.TEST_MODE_LIMIT,
+        "timestamp": __import__("datetime").datetime.now().isoformat()
+    }

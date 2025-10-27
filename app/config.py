@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     MIN_CONFIDENCE_THRESHOLD: float = 0.3
     QUERIES_PER_FALHA: int = 5
 
+    # Modo Teste - Limita pesquisa a um pequeno número de queries para testes
+    TEST_MODE: bool = False
+    TEST_MODE_LIMIT: int = 10  # Número de queries a processar em modo teste
+
     # Busca Adaptativa (inteligente com LLM)
     MIN_BUSCAS_POR_FALHA: int = 2  # Mínimo obrigatório
     MAX_BUSCAS_POR_FALHA: int = 8  # Máximo permitido
