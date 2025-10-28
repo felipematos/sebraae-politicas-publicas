@@ -6,8 +6,20 @@ Usa OpenRouter para tradução com LLM gratuito (fallback entre modelos)
 """
 import re
 import asyncio
+import aiohttp
 from typing import List, Dict, Any
 from app.config import settings
+
+# Model rotation para OpenRouter (free/cheap models com boa qualidade)
+# Modelos testados para tradução com preço baixo/gratuito
+OPENROUTER_MODELS = [
+    "mistralai/mistral-7b-instruct:free",      # Fallback rápido e gratuito
+    "meta-llama/llama-2-7b-chat:free",         # Alternativa gratuita
+    "gryphe/mythomist-7b:free",                # Modelo versátil
+]
+
+# Índice do modelo atual (rodeia entre eles)
+_current_model_index = 0
 
 
 # Mapa de idiomas com nomes descritivos
@@ -50,20 +62,161 @@ def normalizar_query(query: str) -> str:
     return normalizada
 
 
+async def traduzir_com_openrouter(
+    texto: str,
+    idioma_alvo: str,
+    idioma_origem: str = "pt"
+) -> str:
+    """
+    Traduz texto usando OpenRouter com rotação de modelos gratuitos e fallback
+
+    Tenta modelos em sequência: se um falhar (rate limit, erro), passa para o próximo
+
+    Args:
+        texto: Texto a traduzir
+        idioma_alvo: Idioma alvo (código, ex: 'en', 'es')
+        idioma_origem: Idioma origem (padrão: 'pt')
+
+    Returns:
+        Texto traduzido ou original em caso de falha
+
+    Raises:
+        Levanta exceção se todos os modelos falharem
+    """
+    global _current_model_index
+
+    if not settings.OPENROUTER_API_KEY:
+        raise ValueError("OPENROUTER_API_KEY não configurada")
+
+    # Mapa de nomes de idiomas completos para prompt
+    idioma_nomes = {
+        "pt": "Portuguese",
+        "en": "English",
+        "es": "Spanish",
+        "fr": "French",
+        "de": "German",
+        "it": "Italian",
+        "ar": "Arabic",
+        "ja": "Japanese",
+        "ko": "Korean",
+        "he": "Hebrew",
+    }
+
+    idioma_origem_nome = idioma_nomes.get(idioma_origem, idioma_origem)
+    idioma_alvo_nome = idioma_nomes.get(idioma_alvo, idioma_alvo)
+
+    # Prompt simples e direto para tradução
+    prompt = f"""Translate the following text from {idioma_origem_nome} to {idioma_alvo_nome}.
+Only output the translated text, nothing else. No explanations, no original text.
+
+Text to translate: {texto}
+
+Translated text:"""
+
+    # Tentar cada modelo em sequência
+    última_exceção = None
+    modelos_tentados = 0
+
+    for tentativa in range(len(OPENROUTER_MODELS)):
+        try:
+            # Pega o próximo modelo (rodeia ciclicamente)
+            _current_model_index = (_current_model_index + 1) % len(OPENROUTER_MODELS)
+            modelo = OPENROUTER_MODELS[_current_model_index]
+            modelos_tentados += 1
+
+            print(f"[TRADUÇÃO] Tentando {modelo} ({tentativa + 1}/{len(OPENROUTER_MODELS)})")
+
+            async with aiohttp.ClientSession() as session:
+                headers = {
+                    "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                    "HTTP-Referer": "https://github.com/felipematos/sebraae",
+                    "X-Title": "Sebrae Research",
+                }
+
+                payload = {
+                    "model": modelo,
+                    "messages": [
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.3,  # Tradução deve ser precisa, não criativa
+                    "max_tokens": 500,
+                    "top_p": 0.9,
+                }
+
+                async with session.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    json=payload,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=30)
+                ) as response:
+                    if response.status == 429:  # Rate limit
+                        print(f"[TRADUÇÃO] Rate limit no modelo {modelo}, tentando próximo...")
+                        última_exceção = f"Rate limit (429)"
+                        continue
+
+                    if response.status >= 500:  # Erro servidor
+                        print(f"[TRADUÇÃO] Erro servidor {response.status} no modelo {modelo}, tentando próximo...")
+                        última_exceção = f"Erro servidor ({response.status})"
+                        continue
+
+                    if response.status != 200:
+                        erro_text = await response.text()
+                        print(f"[TRADUÇÃO] Erro HTTP {response.status} no modelo {modelo}")
+                        última_exceção = f"HTTP {response.status}"
+                        continue
+
+                    data = await response.json()
+
+                    # Verificar se há erro na resposta
+                    if "error" in data:
+                        print(f"[TRADUÇÃO] Erro API: {data.get('error', {}).get('message', 'desconhecido')}")
+                        última_exceção = data.get('error', {}).get('message', 'erro desconhecido')
+                        continue
+
+                    # Extrair o texto traduzido
+                    if "choices" in data and len(data["choices"]) > 0:
+                        tradução = data["choices"][0].get("message", {}).get("content", "").strip()
+                        if tradução:
+                            print(f"[TRADUÇÃO] Sucesso com {modelo}")
+                            return tradução
+
+                    print(f"[TRADUÇÃO] Resposta inválida do modelo {modelo}")
+                    última_exceção = "Resposta inválida"
+                    continue
+
+        except asyncio.TimeoutError:
+            print(f"[TRADUÇÃO] Timeout no modelo {modelo}")
+            última_exceção = "Timeout"
+            continue
+        except aiohttp.ClientError as e:
+            print(f"[TRADUÇÃO] Erro de conexão com {modelo}: {str(e)[:50]}")
+            última_exceção = f"Erro de conexão: {str(e)[:50]}"
+            continue
+        except Exception as e:
+            print(f"[TRADUÇÃO] Erro inesperado com {modelo}: {str(e)[:50]}")
+            última_exceção = f"Erro: {str(e)[:50]}"
+            continue
+
+    # Se chegou aqui, todos os modelos falharam
+    raise Exception(
+        f"Todos os {modelos_tentados} modelos falharam ao traduzir. "
+        f"Última exceção: {última_exceção}"
+    )
+
+
 async def traduzir_query(
     query: str,
     idioma_origem: str,
     idioma_alvo: str,
-    usar_llm: bool = False
+    usar_llm: bool = True
 ) -> str:
     """
     Traduz uma query de um idioma para outro
 
     Prioridade:
-    1. OpenRouter com modelos gratuitos (se usar_llm=True e API disponível)
+    1. OpenRouter com modelos gratuitos com fallback/rotação (se API disponível)
     2. Mapeamento de traduções predefinidas
-    3. Tradução em cadeia (pt->en->outro)
-    4. Retornar original como último fallback
+    3. Retornar original como fallback final
 
     Args:
         query: Query a traduzir
@@ -78,19 +231,18 @@ async def traduzir_query(
     if idioma_origem == idioma_alvo:
         return query
 
-    # DESABILITADO: OpenRouter está causando HTTP 405 errors
-    # if usar_llm and settings.OPENROUTER_API_KEY:
-    #     try:
-    #         resultado = await traduzir_com_openrouter(
-    #             query,
-    #             idioma_alvo,
-    #             idioma_origem
-    #         )
-    #         if resultado and resultado != query:
-    #             return resultado
-    #     except Exception as e:
-    #         print(f"[WARN] Tradução OpenRouter falhou: {str(e)[:100]}, usando fallback")
-    pass
+    # Tentar OpenRouter primeiro
+    if usar_llm and settings.OPENROUTER_API_KEY:
+        try:
+            resultado = await traduzir_com_openrouter(
+                query,
+                idioma_alvo,
+                idioma_origem
+            )
+            if resultado and resultado != query:
+                return resultado
+        except Exception as e:
+            print(f"[WARN] Tradução OpenRouter falhou: {str(e)[:100]}, usando mapeamento")
 
     # Fallback: Mapping simples de traducoes comuns para idiomas principais
     # (para casos onde OpenRouter não está disponível ou falhou)
