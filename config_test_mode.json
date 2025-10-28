@@ -1,5 +1,7 @@
 {
-  "test_mode": true,
-  "limit": 500,
-  "description": "Phase 3: Gradual expansion with 500 queries for comprehensive metrics"
+  "test_mode": false,
+  "test_mode_limit": null,
+  "description": "PRODUCTION MODE - Full reprocessing with fixed pipeline",
+  "enabled_at": "2025-10-28T17:25:00Z",
+  "note": "All validation tests passed - pipeline fixes verified"
 }
