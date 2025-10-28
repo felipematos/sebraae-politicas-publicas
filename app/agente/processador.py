@@ -327,13 +327,13 @@ class Processador:
                     if descricao:
                         dados["descricao_pt"] = await traduzir_query(descricao, idioma_original, "pt")
 
-                    # Traduzir para inglês
-                    if titulo and idioma_original != "en":
+                    # Traduzir para inglês (apenas para idiomas que não são PT e EN)
+                    if titulo and idioma_original != "en" and idioma_original != "pt":
                         dados["titulo_en"] = await traduzir_query(titulo, idioma_original, "en")
                     elif titulo and idioma_original == "en":
                         dados["titulo_en"] = titulo
 
-                    if descricao and idioma_original != "en":
+                    if descricao and idioma_original != "en" and idioma_original != "pt":
                         dados["descricao_en"] = await traduzir_query(descricao, idioma_original, "en")
                     elif descricao and idioma_original == "en":
                         dados["descricao_en"] = descricao
@@ -341,19 +341,9 @@ class Processador:
                 except Exception as e:
                     print(f"[TRADUÇÃO] Aviso: Falha ao traduzir resultado: {str(e)[:100]}")
             else:
-                # Se já é português, adicionar inglês
-                try:
-                    titulo = dados.get("titulo", "")
-                    descricao = dados.get("descricao", "")
-
-                    from app.utils.idiomas import traduzir_query
-
-                    if titulo:
-                        dados["titulo_en"] = await traduzir_query(titulo, "pt", "en")
-                    if descricao:
-                        dados["descricao_en"] = await traduzir_query(descricao, "pt", "en")
-                except Exception as e:
-                    print(f"[TRADUÇÃO] Aviso: Falha ao traduzir para inglês: {str(e)[:100]}")
+                # Se já é português, não precisa traduzir (já está no idioma base)
+                # Pular tradução para inglês (otimização)
+                pass
 
             # Salvar no banco
             await insert_resultado(dados)
