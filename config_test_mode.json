@@ -1,4 +1,5 @@
 {
   "test_mode": true,
-  "test_mode_limit": 10
+  "limit": 500,
+  "description": "Phase 3: Gradual expansion with 500 queries for comprehensive metrics"
 }
