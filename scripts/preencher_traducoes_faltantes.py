@@ -20,9 +20,6 @@ async def preencher_traducoes():
     print("=" * 80)
 
     try:
-        # Conectar ao banco
-        await db.initialize()
-
         # Buscar todos os resultados com traduções faltantes
         print("\n📊 Buscando resultados com traduções faltantes...")
         resultados = await db.fetch_all("""
@@ -75,7 +72,7 @@ async def preencher_traducoes():
                 # Atualizar no banco se houver traduções
                 if atualizacoes:
                     campos = ', '.join([f'{k} = ?' for k in atualizacoes.keys()])
-                    valores = list(atualizacoes.values()) + [resultado_id]
+                    valores = tuple(list(atualizacoes.values()) + [resultado_id])
 
                     await db.execute(
                         f"UPDATE resultados_pesquisa SET {campos} WHERE id = ?",
@@ -102,8 +99,6 @@ async def preencher_traducoes():
         print(f"\n❌ Erro crítico: {str(e)}")
         import traceback
         traceback.print_exc()
-    finally:
-        await db.close()
 
 
 if __name__ == "__main__":
