@@ -578,8 +578,13 @@ async def traduzir_resultado_para_pt(resultado_id: int) -> Dict[str, Any]:
     - traduzido: bool
     - titulo_pt: str (tradução do título)
     - descricao_pt: str (tradução da descrição)
+
+    FIX #1: Remove pre-initialization with original text before translation
+    FIX #2: Add validation that translation is actually in target language
+    FIX #3: Don't store if translations failed for non-Portuguese originals
     """
     from app.integracao.openrouter_api import traduzir_com_openrouter
+    from langdetect import detect, LangDetectException
 
     # Buscar resultado
     resultado = await db.fetch_one(
@@ -599,8 +604,10 @@ async def traduzir_resultado_para_pt(resultado_id: int) -> Dict[str, Any]:
             'descricao_pt': resultado['descricao']
         }
 
-    titulo_pt = resultado['titulo']
-    descricao_pt = resultado['descricao']
+    # FIX #1: Initialize as None instead of original text
+    # This way, if translation fails, we'll know it wasn't translated
+    titulo_pt = None
+    descricao_pt = None
 
     try:
         # Traduzir título
@@ -611,6 +618,22 @@ async def traduzir_resultado_para_pt(resultado_id: int) -> Dict[str, Any]:
                 idioma_origem=resultado['idioma']
             )
 
+            # FIX #2: Validate translation is actually in Portuguese
+            if titulo_pt:
+                try:
+                    detected_lang = detect(titulo_pt)
+                    if detected_lang == resultado['idioma']:
+                        # Translation failed silently - got original language back
+                        print(f"[AVISO] Tradução de título falhou (voltou ao idioma original {resultado['idioma']})")
+                        titulo_pt = None
+                    elif detected_lang not in ['pt', 'en']:
+                        # Got unexpected language
+                        print(f"[AVISO] Tradução resultou em idioma incorreto: {detected_lang}")
+                        titulo_pt = None
+                except LangDetectException:
+                    # If detection fails, keep the translation but log warning
+                    print(f"[AVISO] Não foi possível validar idioma da tradução de título")
+
         # Traduzir descrição
         if resultado['descricao']:
             descricao_pt = await traduzir_com_openrouter(
@@ -619,7 +642,32 @@ async def traduzir_resultado_para_pt(resultado_id: int) -> Dict[str, Any]:
                 idioma_origem=resultado['idioma']
             )
 
-        # Armazenar traduções
+            # FIX #2: Validate translation is actually in Portuguese
+            if descricao_pt:
+                try:
+                    detected_lang = detect(descricao_pt)
+                    if detected_lang == resultado['idioma']:
+                        # Translation failed silently - got original language back
+                        print(f"[AVISO] Tradução de descrição falhou (voltou ao idioma original {resultado['idioma']})")
+                        descricao_pt = None
+                    elif detected_lang not in ['pt', 'en']:
+                        # Got unexpected language
+                        print(f"[AVISO] Tradução resultou em idioma incorreto: {detected_lang}")
+                        descricao_pt = None
+                except LangDetectException:
+                    # If detection fails, keep the translation but log warning
+                    print(f"[AVISO] Não foi possível validar idioma da tradução de descrição")
+
+        # FIX #3: Only store if we got valid translations for non-Portuguese originals
+        if titulo_pt is None and descricao_pt is None:
+            # Both translations failed - don't store anything
+            return {
+                'traduzido': False,
+                'erro': 'Ambas traduções falharam - não foram armazenadas',
+                'resultado_id': resultado_id
+            }
+
+        # At least one translation succeeded - store what we have
         await db.execute(
             "UPDATE resultados_pesquisa SET titulo_pt = ?, descricao_pt = ? WHERE id = ?",
             (titulo_pt, descricao_pt, resultado_id)
@@ -634,10 +682,13 @@ async def traduzir_resultado_para_pt(resultado_id: int) -> Dict[str, Any]:
 
     except Exception as e:
         print(f"[ERRO] Falha ao traduzir resultado {resultado_id}: {str(e)}")
+        # Don't store partial/corrupted translations
         return {
             'traduzido': False,
             'erro': str(e),
-            'resultado_id': resultado_id
+            'resultado_id': resultado_id,
+            'titulo_pt': titulo_pt,
+            'descricao_pt': descricao_pt
         }
 
 
