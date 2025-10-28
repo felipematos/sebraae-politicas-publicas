@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-10-28T17:20:52.568860",
+  "test_result": "PASSOU",
+  "recommendation": "PROCEDER",
+  "sample_size": 0,
+  "passed": 0,
+  "failed": 0,
+  "database_stats_before": {
+    "total_resultados": 3460,
+    "com_pt": 0,
+    "com_en": 2130,
+    "sem_traducao": 3460
+  }
+}
