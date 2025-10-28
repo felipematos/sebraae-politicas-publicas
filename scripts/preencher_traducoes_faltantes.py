@@ -20,12 +20,12 @@ async def preencher_traducoes():
     print("=" * 80)
 
     try:
-        # Buscar todos os resultados com traduções faltantes
-        print("\n📊 Buscando resultados com traduções faltantes...")
+        # Buscar apenas resultados NÃO-PORTUGUESES com traduções faltantes
+        print("\n📊 Buscando resultados não-portugueses com traduções faltantes...")
         resultados = await db.fetch_all("""
             SELECT id, titulo, descricao, idioma
             FROM resultados_pesquisa
-            WHERE (titulo_pt IS NULL OR descricao_pt IS NULL OR titulo_en IS NULL OR descricao_en IS NULL)
+            WHERE idioma != 'pt' AND (titulo_pt IS NULL OR descricao_pt IS NULL OR titulo_en IS NULL OR descricao_en IS NULL)
             ORDER BY id DESC
         """)
 
@@ -49,25 +49,17 @@ async def preencher_traducoes():
             try:
                 atualizacoes = {}
 
-                # Traduzir para português se necessário
-                if idioma != 'pt':
-                    if titulo:
-                        atualizacoes['titulo_pt'] = await traduzir_query(titulo, idioma, 'pt')
-                    if descricao:
-                        atualizacoes['descricao_pt'] = await traduzir_query(descricao, idioma, 'pt')
+                # Traduzir para português
+                if titulo:
+                    atualizacoes['titulo_pt'] = await traduzir_query(titulo, idioma, 'pt')
+                if descricao:
+                    atualizacoes['descricao_pt'] = await traduzir_query(descricao, idioma, 'pt')
 
-                # Traduzir para inglês se necessário
-                if idioma != 'en':
-                    if titulo:
-                        atualizacoes['titulo_en'] = await traduzir_query(titulo, idioma, 'en')
-                    if descricao:
-                        atualizacoes['descricao_en'] = await traduzir_query(descricao, idioma, 'en')
-                else:
-                    # Se já é inglês
-                    if titulo:
-                        atualizacoes['titulo_en'] = titulo
-                    if descricao:
-                        atualizacoes['descricao_en'] = descricao
+                # Traduzir para inglês
+                if titulo:
+                    atualizacoes['titulo_en'] = await traduzir_query(titulo, idioma, 'en')
+                if descricao:
+                    atualizacoes['descricao_en'] = await traduzir_query(descricao, idioma, 'en')
 
                 # Atualizar no banco se houver traduções
                 if atualizacoes:
