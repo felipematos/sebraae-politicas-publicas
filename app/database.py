@@ -161,13 +161,13 @@ async def get_resultados_by_falha(falha_id: int) -> List[Dict[str, Any]]:
 
 
 async def insert_resultado(resultado: Dict[str, Any]) -> int:
-    """Insere um novo resultado de pesquisa"""
+    """Insere um novo resultado de pesquisa com suporte a traduções multilíngues"""
     query = """
     INSERT INTO resultados_pesquisa (
         falha_id, titulo, descricao, fonte_url, fonte_tipo,
         pais_origem, idioma, query, confidence_score, ferramenta_origem,
-        hash_conteudo, url_valida, titulo_pt, descricao_pt
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        hash_conteudo, url_valida, titulo_pt, descricao_pt, titulo_en, descricao_en
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
 
     async with db.get_connection() as conn:
@@ -185,7 +185,9 @@ async def insert_resultado(resultado: Dict[str, Any]) -> int:
             resultado['hash_conteudo'],
             resultado.get('url_valida', True),
             resultado.get('titulo_pt'),
-            resultado.get('descricao_pt')
+            resultado.get('descricao_pt'),
+            resultado.get('titulo_en'),
+            resultado.get('descricao_en')
         ))
         await conn.commit()
         return cursor.lastrowid
