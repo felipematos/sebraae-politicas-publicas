@@ -55,11 +55,19 @@ async def preencher_traducoes():
                 if descricao:
                     atualizacoes['descricao_pt'] = await traduzir_query(descricao, idioma, 'pt')
 
-                # Traduzir para inglês
-                if titulo:
-                    atualizacoes['titulo_en'] = await traduzir_query(titulo, idioma, 'en')
-                if descricao:
-                    atualizacoes['descricao_en'] = await traduzir_query(descricao, idioma, 'en')
+                # Traduzir para inglês (ou usar original se já é inglês)
+                if idioma == 'en':
+                    # Se já é inglês, usar o original
+                    if titulo:
+                        atualizacoes['titulo_en'] = titulo
+                    if descricao:
+                        atualizacoes['descricao_en'] = descricao
+                else:
+                    # Traduzir para inglês
+                    if titulo:
+                        atualizacoes['titulo_en'] = await traduzir_query(titulo, idioma, 'en')
+                    if descricao:
+                        atualizacoes['descricao_en'] = await traduzir_query(descricao, idioma, 'en')
 
                 # Atualizar no banco se houver traduções
                 if atualizacoes:
