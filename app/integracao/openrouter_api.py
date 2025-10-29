@@ -307,3 +307,42 @@ async def traduzir_com_openrouter(
     """
     cliente = await get_openrouter_client()
     return await cliente.traduzir_texto(texto, idioma_alvo, idioma_origem)
+
+
+async def consultar_openrouter(
+    prompt: str,
+    modelo: Optional[str] = None
+) -> str:
+    """
+    Função auxiliar para consultar OpenRouter com um prompt específico
+
+    Args:
+        prompt: Prompt/pergunta para o modelo
+        modelo: Nome do modelo a usar (opcional, usa padrão se não especificado)
+
+    Returns:
+        Resposta do modelo
+    """
+    cliente = await get_openrouter_client()
+
+    # Usar modelo especificado ou usar o primeiro modelo gratuito como padrão
+    modelo_usar = modelo or cliente.MODELOS_GRATUITOS[0]
+
+    try:
+        resposta = await cliente._chamar_modelo(modelo_usar, prompt)
+        return resposta
+    except Exception as e:
+        print(f"[ERRO] Consulta OpenRouter falhou com modelo {modelo_usar}: {str(e)[:100]}")
+        # Tentar com modelos alternativos como fallback
+        for modelo_alt in cliente.MODELOS_GRATUITOS:
+            if modelo_alt != modelo_usar:
+                try:
+                    print(f"[FALLBACK] Tentando com modelo alternativo: {modelo_alt}")
+                    resposta = await cliente._chamar_modelo(modelo_alt, prompt)
+                    return resposta
+                except Exception as e2:
+                    print(f"[FALLBACK FALHOU] {modelo_alt}: {str(e2)[:100]}")
+                    continue
+
+        # Se todas as tentativas falharem, lançar exceção original
+        raise e
