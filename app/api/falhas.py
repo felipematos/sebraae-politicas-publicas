@@ -3,7 +3,7 @@
 Endpoints para gerenciamento de falhas de mercado
 """
 from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from app.database import (
     get_falhas_mercado,
@@ -17,12 +17,12 @@ from app.schemas import FalhaResponse, FalhaComResultados, EstatisticasFalhaResp
 router = APIRouter(tags=["Falhas"])
 
 
-@router.get("/falhas", response_model=List[dict])
+@router.get("/falhas")
 async def listar_falhas(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     pilar: Optional[str] = None
-):
+) -> Dict[str, Any]:
     """
     Listar todas as falhas de mercado com paginacao, filtros e estatisticas de resultados
 
@@ -30,7 +30,7 @@ async def listar_falhas(
     - **limit**: Numero maximo de registros a retornar (default: 50, max: 100)
     - **pilar**: Filtrar por pilar especifico (opcional)
 
-    Retorna cada falha com:
+    Retorna um objeto com 'dados' contendo array de falhas com:
     - id, titulo, pilar, descricao, dica_busca
     - total_resultados: quantidade de resultados encontrados
     - confidence_medio: score medio dos resultados
@@ -86,7 +86,8 @@ async def listar_falhas(
         falha_dict['max_searches'] = settings.MAX_BUSCAS_POR_FALHA
         result.append(falha_dict)
 
-    return result
+    # Retornar wrapped em "dados" para compatibilidade com frontend
+    return {"dados": result}
 
 
 @router.get("/falhas/{falha_id}", response_model=FalhaResponse)
