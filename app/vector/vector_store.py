@@ -110,6 +110,45 @@ class VectorStore:
         self.resultados_collection = SimpleVectorCollection("resultados")
         self.falhas_collection = SimpleVectorCollection("falhas")
         self.queries_collection = SimpleVectorCollection("queries")
+        self.documents_collection = SimpleVectorCollection("documents")  # Para documentos RAG
+
+    async def add_texts(
+        self,
+        texts: List[str],
+        metadatas: List[Dict[str, Any]],
+        ids: List[str]
+    ) -> bool:
+        """
+        Adiciona textos/documentos ao banco vetorial (para RAG)
+
+        Args:
+            texts: Lista de textos a adicionar
+            metadatas: Lista de dicionários com metadados
+            ids: Lista de IDs únicos para os documentos
+
+        Returns:
+            True se todos foram adicionados com sucesso
+        """
+        try:
+            # Gerar embeddings para todos os textos
+            embeddings = []
+            for text in texts:
+                embedding = await self.embedding_client.embed_text(text)
+                embeddings.append(embedding)
+
+            # Adicionar à coleção
+            self.documents_collection.add(
+                ids=ids,
+                embeddings=embeddings,
+                metadatas=metadatas,
+                documents=texts
+            )
+
+            return True
+
+        except Exception as e:
+            print(f"Erro ao adicionar textos ao VectorStore: {e}")
+            return False
 
     async def add_resultado(
         self,
@@ -415,6 +454,8 @@ class VectorStore:
             return self.falhas_collection
         elif collection_name == "queries":
             return self.queries_collection
+        elif collection_name == "documents":
+            return self.documents_collection
         else:
             raise ValueError(f"Coleção desconhecida: {collection_name}")
 
@@ -429,6 +470,7 @@ class VectorStore:
             "resultados_count": self.resultados_collection.count(),
             "falhas_count": self.falhas_collection.count(),
             "queries_count": self.queries_collection.count(),
+            "documents_count": self.documents_collection.count(),
             "embedding_cache_stats": self.embedding_client.get_cache_stats()
         }
 
