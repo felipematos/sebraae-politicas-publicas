@@ -1,0 +1,28 @@
+{
+  "timestamp": "2025-10-29T20:04:49.072155",
+  "queue": {
+    "total": 12840,
+    "completed": 0,
+    "processing": 0,
+    "pending": 0,
+    "error": 0,
+    "completion_pct": 0.0
+  },
+  "results": {
+    "total": 16402,
+    "with_pt": 10448,
+    "with_en": 12578,
+    "language_distribution": {
+      "pt": 5933,
+      "en": 1779,
+      "fr": 1745,
+      "de": 1498,
+      "es": 1356,
+      "ar": 884,
+      "it": 877,
+      "ja": 852,
+      "ko": 740,
+      "he": 738
+    }
+  }
+}
