@@ -232,7 +232,13 @@
 
                 <!-- Upload Area -->
                 <div class="bg-white rounded-lg shadow p-8">
-                    <div class="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center hover:border-blue-500 transition cursor-pointer" @click="$refs.fileInput.click()">
+                    <div class="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center transition cursor-pointer"
+                         @click="$refs.fileInput.click()"
+                         @dragover.prevent="dragover_kb = true"
+                         @dragenter.prevent="dragover_kb = true"
+                         @dragleave="dragover_kb = false"
+                         @drop.prevent="handleFileDrops($event); dragover_kb = false"
+                         :class="dragover_kb ? 'border-blue-600 bg-blue-50' : 'hover:border-blue-500'">
                         <div class="text-4xl mb-2">📁</div>
                         <h3 class="text-lg font-bold mb-2">Arraste arquivos ou clique para selecionar</h3>
                         <p class="text-gray-600 mb-4">Suporta DOCX e PDF (máximo 10MB por arquivo)</p>
@@ -415,6 +421,7 @@
                 analisando: false,
                 uploading: false,
                 upload_progress: 0,
+                dragover_kb: false,
                 percentual_processamento: 0,
                 aba_priorizacao: 'tabela',
                 chartMatriz: null,
@@ -671,6 +678,18 @@
                     } finally {
                         this.analisando = false;
                     }
+                },
+
+                handleFileDrops(event) {
+                    const files = event.dataTransfer.files;
+                    if (!files || files.length === 0) return;
+
+                    // Criar um evento sintético compatível com handleFileUpload
+                    const syntheticEvent = {
+                        target: { files: files }
+                    };
+
+                    this.handleFileUpload(syntheticEvent);
                 },
 
                 async handleFileUpload(event) {
