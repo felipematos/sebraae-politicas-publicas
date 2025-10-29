@@ -121,6 +121,22 @@ class Database:
             FOREIGN KEY (falha_id) REFERENCES falhas_mercado(id)
         );
 
+        -- Tabela de fontes usadas nas priorizações
+        CREATE TABLE IF NOT EXISTS priorizacoes_fontes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            priorizacao_id INTEGER NOT NULL,
+            falha_id INTEGER NOT NULL,
+            fonte_tipo TEXT NOT NULL,
+            fonte_id INTEGER,
+            fonte_titulo TEXT,
+            fonte_descricao TEXT,
+            fonte_url TEXT,
+            fonte_conteudo TEXT,
+            criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (priorizacao_id) REFERENCES priorizacoes_falhas(id),
+            FOREIGN KEY (falha_id) REFERENCES falhas_mercado(id)
+        );
+
         -- Indices para performance
         CREATE INDEX IF NOT EXISTS idx_resultados_falha
             ON resultados_pesquisa(falha_id);
@@ -139,6 +155,12 @@ class Database:
 
         CREATE INDEX IF NOT EXISTS idx_priorizacoes_esforco
             ON priorizacoes_falhas(esforco);
+
+        CREATE INDEX IF NOT EXISTS idx_priorizacoes_fontes_priorizacao
+            ON priorizacoes_fontes(priorizacao_id);
+
+        CREATE INDEX IF NOT EXISTS idx_priorizacoes_fontes_falha
+            ON priorizacoes_fontes(falha_id);
         """
 
         async with self.get_connection() as conn:
@@ -862,6 +884,64 @@ async def obter_quadrantes_matriz() -> Dict[str, List[Dict[str, Any]]]:
             quadrantes['low_priority'].append(falha)
 
     return quadrantes
+
+
+# Funcoes para gerenciar fontes de priorizacao
+
+async def inserir_fonte_priorizacao(
+    priorizacao_id: int,
+    falha_id: int,
+    fonte_tipo: str,  # 'pesquisa' ou 'documento'
+    fonte_id: Optional[int],
+    fonte_titulo: str,
+    fonte_descricao: Optional[str] = None,
+    fonte_url: Optional[str] = None,
+    fonte_conteudo: Optional[str] = None
+) -> int:
+    """Insere uma fonte usada na priorização"""
+    query = """
+    INSERT INTO priorizacoes_fontes (
+        priorizacao_id, falha_id, fonte_tipo, fonte_id,
+        fonte_titulo, fonte_descricao, fonte_url, fonte_conteudo
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """
+    await db.execute(
+        query,
+        (priorizacao_id, falha_id, fonte_tipo, fonte_id,
+         fonte_titulo, fonte_descricao, fonte_url, fonte_conteudo)
+    )
+
+
+async def obter_fontes_priorizacao(priorizacao_id: int) -> List[Dict[str, Any]]:
+    """Obtém todas as fontes de uma priorização"""
+    return await db.fetch_all(
+        """
+        SELECT * FROM priorizacoes_fontes
+        WHERE priorizacao_id = ?
+        ORDER BY criado_em DESC
+        """,
+        (priorizacao_id,)
+    )
+
+
+async def obter_fontes_por_falha(falha_id: int) -> List[Dict[str, Any]]:
+    """Obtém todas as fontes de uma falha"""
+    return await db.fetch_all(
+        """
+        SELECT * FROM priorizacoes_fontes
+        WHERE falha_id = ?
+        ORDER BY criado_em DESC
+        """,
+        (falha_id,)
+    )
+
+
+async def limpar_fontes_priorizacao(priorizacao_id: int) -> None:
+    """Remove todas as fontes de uma priorização"""
+    await db.execute(
+        "DELETE FROM priorizacoes_fontes WHERE priorizacao_id = ?",
+        (priorizacao_id,)
+    )
 
 
 # Script para inicializar o banco

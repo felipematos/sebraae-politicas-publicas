@@ -5,13 +5,16 @@ Usa IA para avaliar impacto e esforço de implementação
 """
 import json
 import asyncio
-from typing import Dict, Any, Optional, List
+import re
+from typing import Dict, Any, Optional, List, Tuple
 from app.database import (
     get_falha_by_id,
     get_resultados_by_falha,
     criar_priorizacao,
     atualizar_priorizacao,
-    obter_priorizacao
+    obter_priorizacao,
+    inserir_fonte_priorizacao,
+    limpar_fontes_priorizacao
 )
 from app.integracao.openrouter_api import consultar_openrouter
 from app.utils.logger import logger
@@ -28,7 +31,7 @@ class AgentePriorizador:
 
     async def analisar_falha(self, falha_id: int) -> Dict[str, Any]:
         """
-        Analisa uma falha e retorna scores de impacto e esforço
+        Analisa uma falha e retorna scores de impacto, esforço e fontes utilizadas
 
         Retorna:
         {
@@ -36,6 +39,7 @@ class AgentePriorizador:
             'impacto': int (0-10),
             'esforco': int (0-10),
             'analise': str,
+            'fontes': List[Dict] (fontes utilizadas),
             'sucesso': bool
         }
         """
@@ -55,11 +59,11 @@ class AgentePriorizador:
             # Obter contexto RAG da base de conhecimento
             rag_contexto = await self._obter_contexto_rag(falha)
 
-            # Construir contexto para análise
-            contexto = self._construir_contexto(falha, resultados, rag_contexto)
+            # Construir contexto para análise (agora retorna contexto E fontes)
+            contexto, fontes = self._construir_contexto(falha, resultados, rag_contexto)
 
             # Chamar IA para análise
-            resposta_ia = await self._consultar_ia(contexto, falha)
+            resposta_ia = await self._consultar_ia(contexto, falha, fontes)
 
             # Processar resposta
             scores = self._extrair_scores(resposta_ia)
@@ -74,21 +78,42 @@ class AgentePriorizador:
                     scores['esforco'],
                     resposta_ia
                 )
+                priorizacao_id = priorization_existente['id']
             else:
-                await criar_priorizacao(
+                priorizacao_id = await criar_priorizacao(
                     falha_id,
                     scores['impacto'],
                     scores['esforco'],
                     resposta_ia
                 )
 
-            logger.info(f"✓ Falha {falha_id} analisada: Impacto={scores['impacto']}, Esforço={scores['esforco']}")
+            # Extrair e salvar fontes utilizadas pela IA
+            fontes_utilizadas = self._extrair_fontes_resposta(resposta_ia, fontes)
+
+            if priorizacao_id:
+                # Limpar fontes antigas
+                await limpar_fontes_priorizacao(priorizacao_id)
+                # Salvar novas fontes
+                for fonte in fontes_utilizadas:
+                    await inserir_fonte_priorizacao(
+                        priorizacao_id=priorizacao_id,
+                        falha_id=falha_id,
+                        fonte_tipo=fonte['tipo'],
+                        fonte_id=fonte.get('id'),
+                        fonte_titulo=fonte['titulo'],
+                        fonte_descricao=fonte.get('descricao'),
+                        fonte_url=fonte.get('url'),
+                        fonte_conteudo=fonte.get('conteudo')
+                    )
+
+            logger.info(f"✓ Falha {falha_id} analisada: Impacto={scores['impacto']}, Esforço={scores['esforco']}, Fontes={len(fontes_utilizadas)}")
 
             return {
                 'falha_id': falha_id,
                 'impacto': scores['impacto'],
                 'esforco': scores['esforco'],
                 'analise': resposta_ia,
+                'fontes': fontes_utilizadas,
                 'sucesso': True
             }
 
@@ -142,8 +167,16 @@ class AgentePriorizador:
             logger.warning(f"Erro ao obter contexto RAG: {str(e)}")
             return ""
 
-    def _construir_contexto(self, falha: Dict[str, Any], resultados: List[Dict[str, Any]], rag_contexto: str = "") -> str:
-        """Constrói contexto para análise"""
+    def _construir_contexto(self, falha: Dict[str, Any], resultados: List[Dict[str, Any]], rag_contexto: str = "") -> Tuple[str, List[Dict[str, Any]]]:
+        """
+        Constrói contexto para análise com rastreamento de fontes
+
+        Retorna:
+            Tuple[str, List[Dict]]: (contexto, lista de fontes numeradas)
+        """
+        fontes = []
+        numero_fonte = 1
+
         contexto = f"""
 FALHA DE MERCADO: {falha['titulo']}
 
@@ -157,20 +190,34 @@ TOTAL DE POLÍTICAS/ESTUDOS ENCONTRADOS: {len(resultados)}
 
 EXEMPLOS DE POLÍTICAS RELACIONADAS:
 """
-        # Incluir top 5 resultados como exemplo
+        # Incluir top 5 resultados como exemplo com numeração de fontes
         for resultado in resultados[:5]:
-            contexto += f"\n- {resultado['titulo']}\n"
+            fonte_info = {
+                'numero': numero_fonte,
+                'tipo': 'pesquisa',
+                'id': resultado.get('id'),
+                'titulo': resultado['titulo'],
+                'descricao': resultado.get('descricao', ''),
+                'url': resultado.get('url'),
+                'conteudo': resultado.get('conteudo', resultado.get('descricao', ''))
+            }
+            fontes.append(fonte_info)
+
+            contexto += f"\n[FONTE-{numero_fonte}] {resultado['titulo']}\n"
             if resultado.get('descricao'):
                 contexto += f"  {resultado['descricao'][:200]}...\n"
+            numero_fonte += 1
 
         # Incluir contexto RAG se disponível
         if rag_contexto:
+            contexto += "\nCONTEXTO DA BASE DE CONHECIMENTO (DOCUMENTOS):\n"
+            # Parse RAG context que já tem numeração (vem de _obter_contexto_rag)
             contexto += rag_contexto
 
-        return contexto
+        return contexto, fontes
 
-    async def _consultar_ia(self, contexto: str, falha: Dict[str, Any]) -> str:
-        """Consulta IA para análise com fallback inteligente"""
+    async def _consultar_ia(self, contexto: str, falha: Dict[str, Any], fontes: List[Dict[str, Any]] = None) -> str:
+        """Consulta IA para análise com fallback inteligente e rastreamento de fontes"""
         prompt = f"""
 Você é um especialista em políticas públicas e ecossistema de inovação brasileiro.
 
@@ -191,11 +238,15 @@ Analise a seguinte falha de mercado e atribua:
 
 {contexto}
 
+IMPORTANTE: Na sua justificativa, cite as fontes que você utilizou usando o formato [FONTE-X] onde X é o número da fonte.
+Exemplo: "De acordo com [FONTE-1] e [FONTE-3], o impacto seria significativo..."
+
 Responda EXATAMENTE no seguinte formato JSON:
 {{
     "impacto": <número 0-10>,
     "esforço": <número 0-10>,
-    "justificativa": "<explicação breve da análise em português>"
+    "justificativa": "<explicação breve da análise em português com citações [FONTE-X]>",
+    "fontes_utilizadas": [<lista dos números de fontes citadas, ex: [1, 3, 5]>]
 }}
 
 IMPORTANTE: Responda APENAS com o JSON, sem texto adicional.
@@ -246,6 +297,55 @@ IMPORTANTE: Responda APENAS com o JSON, sem texto adicional.
                 'impacto': 5,
                 'esforco': 5
             }
+
+    def _extrair_fontes_resposta(self, resposta_ia: str, fontes_disponiveis: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Extrai as fontes citadas pela IA na resposta
+
+        Retorna:
+            Lista de fontes que foram utilizadas pela IA
+        """
+        try:
+            # Tentar parsear como JSON
+            dados = json.loads(resposta_ia)
+            fontes_utilizadas_numeros = dados.get('fontes_utilizadas', [])
+
+            if not fontes_utilizadas_numeros:
+                # Se não houver fontes explícitas, tentar extrair da justificativa
+                justificativa = dados.get('justificativa', '')
+                fontes_utilizadas_numeros = self._extrair_numeros_fonte_texto(justificativa)
+
+            # Mapear números para objetos de fonte
+            fontes_mapeadas = []
+            for numero in fontes_utilizadas_numeros:
+                for fonte in fontes_disponiveis:
+                    if fonte['numero'] == numero:
+                        fontes_mapeadas.append(fonte)
+                        break
+
+            return fontes_mapeadas
+
+        except (json.JSONDecodeError, ValueError, TypeError) as e:
+            logger.warning(f"Erro ao extrair fontes: {str(e)}")
+            # Retornar lista vazia se houver erro
+            return []
+
+    def _extrair_numeros_fonte_texto(self, texto: str) -> List[int]:
+        """
+        Extrai números de fontes citadas no formato [FONTE-X] do texto
+
+        Retorna:
+            Lista de números de fontes encontrados
+        """
+        try:
+            # Procurar por padrão [FONTE-X] ou [FONTE-0-9]
+            pattern = r'\[FONTE-(\d+)\]'
+            matches = re.findall(pattern, texto)
+            # Converter para int e remover duplicatas
+            return sorted(list(set(int(m) for m in matches)))
+        except Exception as e:
+            logger.warning(f"Erro ao extrair números de fonte do texto: {str(e)}")
+            return []
 
     async def analisar_todas_falhas(self) -> Dict[str, Any]:
         """

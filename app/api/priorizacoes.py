@@ -13,7 +13,8 @@ from app.database import (
     obter_quadrantes_matriz,
     atualizar_priorizacao,
     criar_priorizacao,
-    get_falhas_mercado
+    get_falhas_mercado,
+    obter_fontes_por_falha
 )
 from app.agente.priorizador import AgentePriorizador
 from app.utils.logger import logger
@@ -63,18 +64,29 @@ async def listar_priorizacoes_endpoint() -> Dict[str, Any]:
 
 
 @router.get("/{falha_id}")
-async def obter_priorizacao_endpoint(falha_id: int) -> Dict[str, Any]:
+async def obter_priorizacao_endpoint(falha_id: int, incluir_fontes: bool = True) -> Dict[str, Any]:
     """
     Retorna a priorização de uma falha específica
+
+    Query params:
+    - incluir_fontes: bool (default=True) - Incluir fontes utilizadas na análise
     """
     try:
         priorizacao = await obter_priorizacao(falha_id)
         if not priorizacao:
             raise HTTPException(status_code=404, detail=f"Priorização para falha {falha_id} não encontrada")
 
+        # Obter fontes utilizadas se solicitado
+        fontes = []
+        if incluir_fontes:
+            fontes = await obter_fontes_por_falha(falha_id)
+
         return {
             'sucesso': True,
-            'dados': priorizacao
+            'dados': {
+                **priorizacao,
+                'fontes': fontes
+            }
         }
     except HTTPException:
         raise
