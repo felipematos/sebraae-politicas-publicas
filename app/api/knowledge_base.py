@@ -31,6 +31,9 @@ router = APIRouter(prefix="/api/knowledge-base", tags=["Knowledge Base"])
 DOCS_DIR = Path(__file__).parent.parent.parent / "documentos"
 DOCS_DIR.mkdir(parents=True, exist_ok=True)
 
+# Limite máximo de tamanho de arquivo (25MB)
+MAX_FILE_SIZE = 25 * 1024 * 1024  # 26,214,400 bytes
+
 
 def extract_text_from_docx(file_content: bytes) -> str:
     """Extrai texto de arquivo DOCX"""
@@ -118,6 +121,13 @@ async def upload_documents(files: list[UploadFile] = File(...)):
         uploaded_files = []
 
         for file in files:
+            # Ler conteúdo
+            file_content = await file.read()
+            
+            # Validar tamanho do arquivo (máximo 25MB)
+            if len(file_content) > MAX_FILE_SIZE:
+                continue
+            
             # Validar tipo
             if file.content_type not in [
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -125,15 +135,12 @@ async def upload_documents(files: list[UploadFile] = File(...)):
             ]:
                 continue
 
-            # Ler conteúdo
-            content = await file.read()
-
             # Extrair texto baseado no tipo
             if file.filename.endswith('.docx'):
-                text = extract_text_from_docx(content)
+                text = extract_text_from_docx(file_content)
                 file_type = 'docx'
             elif file.filename.endswith('.pdf'):
-                text = extract_text_from_pdf(content)
+                text = extract_text_from_pdf(file_content)
                 file_type = 'pdf'
             else:
                 continue
@@ -149,11 +156,11 @@ async def upload_documents(files: list[UploadFile] = File(...)):
                 # Salvar arquivo localmente também
                 file_path = DOCS_DIR / file.filename
                 with open(file_path, 'wb') as f:
-                    f.write(content)
+                    f.write(file_content)
 
                 uploaded_files.append({
                     "nome": file.filename,
-                    "tamanho": len(content),
+                    "tamanho": len(file_content),
                     "tipo": file_type,
                     "status": "indexado",
                     "upload_em": datetime.now().isoformat()

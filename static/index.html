@@ -241,7 +241,7 @@
                          :class="dragover_kb ? 'border-blue-600 bg-blue-50' : 'hover:border-blue-500'">
                         <div class="text-4xl mb-2">📁</div>
                         <h3 class="text-lg font-bold mb-2">Arraste arquivos ou clique para selecionar</h3>
-                        <p class="text-gray-600 mb-4">Suporta DOCX e PDF (máximo 10MB por arquivo)</p>
+                        <p class="text-gray-600 mb-4">Suporta DOCX e PDF (máximo 25MB por arquivo)</p>
                         <input type="file" multiple accept=".docx,.pdf" @change="handleFileUpload" class="hidden" x-ref="fileInput">
                         <button @click="$refs.fileInput.click()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
                             Selecionar Arquivos
@@ -698,8 +698,8 @@
                         }
 
                         // Validate file size (10MB max)
-                        if (file.size > 10 * 1024 * 1024) {
-                            alert(`Arquivo muito grande: ${file.name}. Máximo 10MB.`);
+                        if (file.size > 25 * 1024 * 1024) {
+                            alert(`Arquivo muito grande: ${file.name}. Máximo 25MB.`);
                             continue;
                         }
 
