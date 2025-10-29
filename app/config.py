@@ -9,13 +9,15 @@ import json
 from pathlib import Path
 from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
-from typing import Optional
+from typing import Optional, ClassVar
 
 
 class Settings(BaseSettings):
     """Configuracoes globais da aplicacao"""
 
-    model_config = ConfigDict(env_file=".env", case_sensitive=True)
+    # Usar caminho absoluto para o arquivo .env para evitar problemas de working directory
+    env_file_path: ClassVar[Path] = Path(__file__).parent.parent / ".env"
+    model_config = ConfigDict(env_file=str(Path(__file__).parent.parent / ".env"), case_sensitive=True)
 
     # Ambiente
     ENV: str = "development"

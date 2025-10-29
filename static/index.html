@@ -71,7 +71,7 @@
                         <button @click="mudar_fase(idx)"
                                 :class="idx === fase_atual ? 'phase-nav-active' : 'phase-nav-inactive'"
                                 class="phase-badge-nav text-sm">
-                            <span x-text="`${idx + 1}. ${fase.nome}`"></span>
+                            <span x-text="idx === 0 ? fase.nome : `${idx}. ${fase.nome}`"></span>
                             <template x-if="idx < fase_atual">
                                 <span class="ml-2">✓</span>
                             </template>
@@ -128,8 +128,11 @@
                         <button @click="mudar_fase(1)" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition">
                             ▶ Fase 1: Pesquisa de Políticas Públicas
                         </button>
-                        <button @click="mudar_fase(2)" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition">
-                            ▶ Fase 2: Priorização de Falhas
+                        <button @click="mudar_fase(2)" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition">
+                            ▶ Fase 2: Base de Conhecimento
+                        </button>
+                        <button @click="mudar_fase(3)" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition">
+                            ▶ Fase 3: Priorização de Falhas
                         </button>
                     </div>
                 </div>
@@ -139,7 +142,7 @@
             <section x-show="fase_atual === 1" class="space-y-6">
                 <div class="flex justify-between items-center">
                     <div>
-                        <h2 class="text-3xl font-bold">Fase 1: Pesquisa de Políticas Públicas</h2>
+                        <h2 class="text-3xl font-bold">1. Pesquisa de Políticas Públicas</h2>
                         <p class="text-gray-600 mt-1">Identifique e pesquise políticas públicas relevantes para cada falha de mercado</p>
                     </div>
                 </div>
@@ -218,11 +221,83 @@
                 </div>
             </section>
 
-            <!-- Fase 2: Priorização -->
+            <!-- Fase 2: Base de Conhecimento -->
             <section x-show="fase_atual === 2" class="space-y-6">
                 <div class="flex justify-between items-center">
                     <div>
-                        <h2 class="text-3xl font-bold">Fase 2: Priorização de Falhas</h2>
+                        <h2 class="text-3xl font-bold">2. Base de Conhecimento</h2>
+                        <p class="text-gray-600 mt-1">Faça upload de documentos (DOCX, PDF) para criar uma base de conhecimento vetorial</p>
+                    </div>
+                </div>
+
+                <!-- Upload Area -->
+                <div class="bg-white rounded-lg shadow p-8">
+                    <div class="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center hover:border-blue-500 transition cursor-pointer" @click="$refs.fileInput.click()">
+                        <div class="text-4xl mb-2">📁</div>
+                        <h3 class="text-lg font-bold mb-2">Arraste arquivos ou clique para selecionar</h3>
+                        <p class="text-gray-600 mb-4">Suporta DOCX e PDF (máximo 10MB por arquivo)</p>
+                        <input type="file" multiple accept=".docx,.pdf" @change="handleFileUpload" class="hidden" x-ref="fileInput">
+                        <button @click="$refs.fileInput.click()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
+                            Selecionar Arquivos
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Upload Status -->
+                <template x-if="uploading">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                        <div class="flex items-center">
+                            <div class="animate-spin mr-3">⟳</div>
+                            <div>
+                                <p class="font-bold">Fazendo upload...</p>
+                                <p class="text-sm text-gray-600" x-text="`${upload_progress}%`"></p>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Documents List -->
+                <div class="bg-white rounded-lg shadow overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-100 border-b">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-sm font-medium">Nome</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium">Tamanho</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium">Tipo</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium">Status</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-documentos">
+                            <tr class="border-b hover:bg-gray-50">
+                                <td colspan="5" class="px-6 py-4 text-center text-gray-500">Carregando documentos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Statistics -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <p class="text-sm font-medium text-gray-600">Total de Documentos</p>
+                        <p class="text-3xl font-bold text-blue-700 mt-2" x-text="stats.total_documentos || 0">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <p class="text-sm font-medium text-gray-600">Documentos Indexados</p>
+                        <p class="text-3xl font-bold text-green-700 mt-2" x-text="stats.total_indexados || 0">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <p class="text-sm font-medium text-gray-600">Vetores no Banco</p>
+                        <p class="text-3xl font-bold text-purple-700 mt-2" x-text="stats.total_vetores || 0">0</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Fase 3: Priorização -->
+            <section x-show="fase_atual === 3" class="space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-3xl font-bold">3. Priorização de Falhas</h2>
                         <p class="text-gray-600 mt-1">Analise o impacto e esforço de implementação para cada falha</p>
                     </div>
                 </div>
@@ -331,12 +406,15 @@
                 fases: [
                     { nome: 'Home', descricao: 'Visão geral do projeto' },
                     { nome: 'Pesquisa', descricao: 'Busca por políticas públicas' },
+                    { nome: 'Base de Conhecimento', descricao: 'Gerenciamento de documentos e RAG' },
                     { nome: 'Priorização', descricao: 'Análise de impacto e esforço' }
                 ],
-                stats: { total_falhas: 0, total_priorizadas: 0, total_resultados: 0, total_pendentes: 0, total_processando: 0, total_concluidas: 0 },
+                stats: { total_falhas: 0, total_priorizadas: 0, total_resultados: 0, total_pendentes: 0, total_processando: 0, total_concluidas: 0, total_documentos: 0, total_indexados: 0, total_vetores: 0 },
                 ativo: false,
                 pesquisa_iniciando: false,
                 analisando: false,
+                uploading: false,
+                upload_progress: 0,
                 percentual_processamento: 0,
                 aba_priorizacao: 'tabela',
                 chartMatriz: null,
@@ -344,7 +422,8 @@
                 mudar_fase(idx) {
                     this.fase_atual = idx;
                     if (idx === 1) this.carregar_dados_pesquisa();
-                    if (idx === 2) this.carregar_dados_priorizacao();
+                    if (idx === 2) this.carregar_documentos();
+                    if (idx === 3) this.carregar_dados_priorizacao();
                 },
 
                 async inicializar() {
@@ -591,6 +670,93 @@
                         alert('Erro: ' + e.message);
                     } finally {
                         this.analisando = false;
+                    }
+                },
+
+                async handleFileUpload(event) {
+                    const files = event.target.files;
+                    if (!files || files.length === 0) return;
+
+                    this.uploading = true;
+                    this.upload_progress = 0;
+                    const formData = new FormData();
+
+                    for (let file of files) {
+                        // Validate file type
+                        const validTypes = ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf'];
+                        if (!validTypes.includes(file.type)) {
+                            alert(`Arquivo inválido: ${file.name}. Apenas DOCX e PDF são suportados.`);
+                            continue;
+                        }
+
+                        // Validate file size (10MB max)
+                        if (file.size > 10 * 1024 * 1024) {
+                            alert(`Arquivo muito grande: ${file.name}. Máximo 10MB.`);
+                            continue;
+                        }
+
+                        formData.append('files', file);
+                    }
+
+                    try {
+                        const xhr = new XMLHttpRequest();
+
+                        xhr.upload.addEventListener('progress', (e) => {
+                            if (e.lengthComputable) {
+                                this.upload_progress = Math.round((e.loaded / e.total) * 100);
+                            }
+                        });
+
+                        xhr.addEventListener('load', () => {
+                            if (xhr.status === 200) {
+                                alert('Arquivos enviados com sucesso!');
+                                this.carregar_documentos();
+                            } else {
+                                alert('Erro ao enviar arquivos: ' + xhr.statusText);
+                            }
+                            this.uploading = false;
+                            this.upload_progress = 0;
+                        });
+
+                        xhr.addEventListener('error', () => {
+                            alert('Erro de conexão ao enviar arquivos');
+                            this.uploading = false;
+                        });
+
+                        xhr.open('POST', '/api/knowledge-base/upload');
+                        xhr.send(formData);
+                    } catch (e) {
+                        alert('Erro ao processar upload: ' + e.message);
+                        this.uploading = false;
+                    }
+                },
+
+                async carregar_documentos() {
+                    try {
+                        const res = await fetch('/api/knowledge-base/documentos');
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        const tbody = document.getElementById('tabela-documentos');
+
+                        if (data.dados && Array.isArray(data.dados)) {
+                            tbody.innerHTML = data.dados.map(doc => `
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="px-6 py-4 text-sm font-medium">${doc.nome}</td>
+                                    <td class="px-6 py-4 text-sm">${(doc.tamanho / 1024).toFixed(2)} KB</td>
+                                    <td class="px-6 py-4 text-sm"><span class="bg-gray-100 px-2 py-1 rounded text-xs">${doc.tipo}</span></td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <span class="${doc.status === 'indexado' ? 'text-green-600 font-bold' : 'text-yellow-600'}">${doc.status}</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <button onclick="alert('Funcionalidade em desenvolvimento')" class="text-red-600 hover:underline text-xs">Remover</button>
+                                    </td>
+                                </tr>
+                            `).join('');
+                        } else {
+                            tbody.innerHTML = '<tr class="border-b"><td colspan="5" class="px-6 py-4 text-center text-gray-500">Nenhum documento enviado</td></tr>';
+                        }
+                    } catch (e) {
+                        console.error('Erro ao carregar documentos:', e);
                     }
                 }
             };
