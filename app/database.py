@@ -267,9 +267,9 @@ async def get_estatisticas_gerais() -> Dict[str, Any]:
     result = await db.fetch_one("SELECT COUNT(*) as total FROM resultados_pesquisa")
     stats['total_resultados'] = result['total']
 
-    # Total de pesquisas executadas
+    # Total de priorizações com análise de IA concluída
     result = await db.fetch_one(
-        "SELECT COUNT(*) as total FROM historico_pesquisas WHERE status = 'concluido'"
+        "SELECT COUNT(*) as total FROM priorizacoes_falhas WHERE analise_ia IS NOT NULL"
     )
     stats['pesquisas_concluidas'] = result['total']
 
