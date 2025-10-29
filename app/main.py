@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 
 from app.config import settings, get_static_path, get_chroma_path
 from app.database import db
-from app.api import falhas, resultados, pesquisas, health_check, config, vector_search
+from app.api import falhas, resultados, pesquisas, health_check, config, vector_search, priorizacoes
 from app.agente.processador import Processador
 from app.vector.vector_store import get_vector_store
 from app.vector.embeddings import EmbeddingClient
@@ -120,6 +120,7 @@ app.include_router(resultados.router, prefix=settings.API_PREFIX)
 app.include_router(pesquisas.router, prefix=settings.API_PREFIX)
 app.include_router(health_check.router, prefix=settings.API_PREFIX)
 app.include_router(config.router, prefix=settings.API_PREFIX)
+app.include_router(priorizacoes.router)  # Sem prefix pois as rotas já têm /api/priorizacoes
 app.include_router(vector_search.router)  # Sem prefix pois as rotas já têm /api/
 
 # Montar pasta static

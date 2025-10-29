@@ -108,6 +108,19 @@ class Database:
             FOREIGN KEY (falha_id) REFERENCES falhas_mercado(id)
         );
 
+        -- Tabela de priorização de falhas (Fase 2)
+        CREATE TABLE IF NOT EXISTS priorizacoes_falhas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            falha_id INTEGER NOT NULL UNIQUE,
+            impacto INTEGER DEFAULT 5,
+            esforco INTEGER DEFAULT 5,
+            analise_ia TEXT,
+            priorizado_por TEXT DEFAULT 'manual',
+            criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+            atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (falha_id) REFERENCES falhas_mercado(id)
+        );
+
         -- Indices para performance
         CREATE INDEX IF NOT EXISTS idx_resultados_falha
             ON resultados_pesquisa(falha_id);
@@ -120,6 +133,12 @@ class Database:
 
         CREATE INDEX IF NOT EXISTS idx_fila_status
             ON fila_pesquisas(status, prioridade DESC);
+
+        CREATE INDEX IF NOT EXISTS idx_priorizacoes_impacto
+            ON priorizacoes_falhas(impacto DESC);
+
+        CREATE INDEX IF NOT EXISTS idx_priorizacoes_esforco
+            ON priorizacoes_falhas(esforco);
         """
 
         async with self.get_connection() as conn:
@@ -733,6 +752,116 @@ async def traduzir_todos_resultados() -> Dict[str, Any]:
         'falhados': falhados,
         'sucesso': True
     }
+
+
+async def obter_priorizacao(falha_id: int) -> Optional[Dict[str, Any]]:
+    """Obtém a priorização de uma falha específica"""
+    return await db.fetch_one(
+        "SELECT * FROM priorizacoes_falhas WHERE falha_id = ?",
+        (falha_id,)
+    )
+
+
+async def criar_priorizacao(falha_id: int, impacto: int = 5, esforco: int = 5,
+                             analise_ia: Optional[str] = None) -> int:
+    """Cria uma nova priorização para uma falha"""
+    query = """
+    INSERT INTO priorizacoes_falhas (falha_id, impacto, esforco, analise_ia, priorizado_por)
+    VALUES (?, ?, ?, ?, ?)
+    """
+    async with db.get_connection() as conn:
+        cursor = await conn.execute(query, (falha_id, impacto, esforco, analise_ia, 'ia' if analise_ia else 'manual'))
+        await conn.commit()
+        return cursor.lastrowid
+
+
+async def atualizar_priorizacao(falha_id: int, impacto: int, esforco: int,
+                                 analise_ia: Optional[str] = None) -> None:
+    """Atualiza a priorização de uma falha"""
+    query = """
+    UPDATE priorizacoes_falhas
+    SET impacto = ?, esforco = ?, analise_ia = ?, priorizado_por = ?, atualizado_em = CURRENT_TIMESTAMP
+    WHERE falha_id = ?
+    """
+    await db.execute(query, (impacto, esforco, analise_ia, 'ia' if analise_ia else 'manual', falha_id))
+
+
+async def listar_priorizacoes() -> List[Dict[str, Any]]:
+    """Lista todas as priorizações com dados das falhas"""
+    query = """
+    SELECT
+        pf.id, pf.falha_id, pf.impacto, pf.esforco, pf.analise_ia, pf.priorizado_por,
+        pf.criado_em, pf.atualizado_em,
+        fm.titulo, fm.pilar, fm.descricao
+    FROM priorizacoes_falhas pf
+    JOIN falhas_mercado fm ON pf.falha_id = fm.id
+    ORDER BY pf.impacto DESC, pf.esforco ASC
+    """
+    return await db.fetch_all(query)
+
+
+async def listar_priorizacoes_sem_analise() -> List[Dict[str, Any]]:
+    """Lista priorizações que ainda não têm análise de IA"""
+    query = """
+    SELECT
+        pf.id, pf.falha_id, pf.impacto, pf.esforco, pf.analise_ia, pf.priorizado_por,
+        pf.criado_em, pf.atualizado_em,
+        fm.titulo, fm.pilar, fm.descricao, fm.dica_busca,
+        COUNT(rp.id) as total_resultados
+    FROM priorizacoes_falhas pf
+    JOIN falhas_mercado fm ON pf.falha_id = fm.id
+    LEFT JOIN resultados_pesquisa rp ON fm.id = rp.falha_id
+    WHERE pf.analise_ia IS NULL
+    GROUP BY pf.falha_id
+    ORDER BY pf.falha_id
+    """
+    return await db.fetch_all(query)
+
+
+async def gerar_matriz_2x2() -> List[Dict[str, Any]]:
+    """Gera dados para a matriz 2x2 (impacto vs esforço)"""
+    query = """
+    SELECT
+        pf.id, pf.falha_id, pf.impacto, pf.esforco,
+        fm.titulo, fm.pilar,
+        COUNT(rp.id) as total_resultados
+    FROM priorizacoes_falhas pf
+    JOIN falhas_mercado fm ON pf.falha_id = fm.id
+    LEFT JOIN resultados_pesquisa rp ON fm.id = rp.falha_id
+    GROUP BY pf.falha_id
+    ORDER BY pf.impacto DESC, pf.esforco ASC
+    """
+    return await db.fetch_all(query)
+
+
+async def obter_quadrantes_matriz() -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Agrupa as falhas nos 4 quadrantes da matriz:
+    - Quick Wins: Alto impacto, Baixo esforço (impacto >= 6, esforço <= 4)
+    - Strategic: Alto impacto, Alto esforço (impacto >= 6, esforço > 4)
+    - Fill-in: Baixo impacto, Baixo esforço (impacto < 6, esforço <= 4)
+    - Low Priority: Baixo impacto, Alto esforço (impacto < 6, esforço > 4)
+    """
+    dados = await gerar_matriz_2x2()
+
+    quadrantes = {
+        'quick_wins': [],
+        'strategic': [],
+        'fill_in': [],
+        'low_priority': []
+    }
+
+    for falha in dados:
+        if falha['impacto'] >= 6 and falha['esforco'] <= 4:
+            quadrantes['quick_wins'].append(falha)
+        elif falha['impacto'] >= 6 and falha['esforco'] > 4:
+            quadrantes['strategic'].append(falha)
+        elif falha['impacto'] < 6 and falha['esforco'] <= 4:
+            quadrantes['fill_in'].append(falha)
+        else:
+            quadrantes['low_priority'].append(falha)
+
+    return quadrantes
 
 
 # Script para inicializar o banco
