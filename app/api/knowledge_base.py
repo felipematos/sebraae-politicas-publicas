@@ -187,6 +187,9 @@ async def upload_documents(files: List[UploadFile] = File(...)):
             "mensagem": f"{len(uploaded_files)} arquivo(s) enviado(s) com sucesso"
         })
 
+    except HTTPException:
+        # Re-raise HTTPException as-is (don't convert to 500)
+        raise
     except Exception as e:
         print(f"[KB] Erro geral no upload: {str(e)}")
         import traceback
