@@ -450,43 +450,28 @@
 
                 async carregar_stats() {
                     try {
-                        // Carregar total de falhas
-                        try {
-                            const res = await fetch('/api/falhas');
-                            if (res.ok) {
-                                const data = await res.json();
-                                this.stats.total_falhas = data.total || 0;
+                        // Carregar todas as estatísticas de uma única vez
+                        const res = await fetch('/api/stats');
+                        if (res.ok) {
+                            const response = await res.json();
+                            if (response.sucesso && response.dados) {
+                                const dados = response.dados;
+                                this.stats.total_falhas = dados.total_falhas || 0;
+                                this.stats.total_resultados = dados.total_resultados || 0;
+                                this.stats.total_priorizadas = dados.pesquisas_concluidas || 0;
+                                console.log('✓ Stats carregadas:', this.stats);
                             }
-                        } catch (e) {
-                            console.warn('Aviso ao carregar falhas:', e);
+                        } else {
+                            console.warn('Resposta não ok ao carregar stats:', res.status);
                             this.stats.total_falhas = 0;
-                        }
-
-                        // Carregar total de resultados
-                        try {
-                            const res2 = await fetch('/api/resultados');
-                            if (res2.ok) {
-                                const data2 = await res2.json();
-                                this.stats.total_resultados = data2.total || 0;
-                            }
-                        } catch (e) {
-                            console.warn('Aviso ao carregar resultados:', e);
                             this.stats.total_resultados = 0;
-                        }
-
-                        // Carregar total de priorizações
-                        try {
-                            const res3 = await fetch('/api/priorizacoes/');
-                            if (res3.ok) {
-                                const data3 = await res3.json();
-                                this.stats.total_priorizadas = data3.total || 0;
-                            }
-                        } catch (e) {
-                            console.warn('Aviso ao carregar priorizações:', e);
                             this.stats.total_priorizadas = 0;
                         }
                     } catch (e) {
-                        console.error('Erro crítico ao carregar stats:', e);
+                        console.error('Erro ao carregar stats:', e);
+                        this.stats.total_falhas = 0;
+                        this.stats.total_resultados = 0;
+                        this.stats.total_priorizadas = 0;
                     }
                 },
 

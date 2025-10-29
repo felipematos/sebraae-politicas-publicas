@@ -6,6 +6,7 @@ Permite habilitar/desabilitar canais de pesquisa e controlar modo teste
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
 from app.config import settings, save_search_channels_config, save_test_mode_config
+from app.database import get_estatisticas_gerais
 
 router = APIRouter(tags=["Config"])
 
@@ -257,3 +258,37 @@ async def set_test_mode_limit(limit: int) -> Dict[str, Any]:
         "test_mode_limit": settings.TEST_MODE_LIMIT,
         "timestamp": __import__("datetime").datetime.now().isoformat()
     }
+
+
+# ==================== ESTATÍSTICAS ====================
+
+@router.get("/stats")
+async def get_stats() -> Dict[str, Any]:
+    """
+    Retorna estatísticas gerais do sistema
+
+    Returns:
+        - total_falhas: Total de falhas de mercado
+        - total_resultados: Total de resultados de pesquisa
+        - pesquisas_concluidas: Pesquisas processadas
+        - pesquisas_pendentes: Pesquisas aguardando processamento
+        - confidence_medio: Confiança média das análises
+    """
+    try:
+        stats = await get_estatisticas_gerais()
+        return {
+            "sucesso": True,
+            "dados": stats
+        }
+    except Exception as e:
+        return {
+            "sucesso": False,
+            "erro": str(e),
+            "dados": {
+                "total_falhas": 0,
+                "total_resultados": 0,
+                "pesquisas_concluidas": 0,
+                "pesquisas_pendentes": 0,
+                "confidence_medio": 0.0
+            }
+        }
