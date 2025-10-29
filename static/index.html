@@ -482,14 +482,16 @@
                         const tbody = document.getElementById('tabela-falhas');
                         if (data.dados && Array.isArray(data.dados)) {
                             tbody.innerHTML = data.dados.map(falha => `
-                                <tr class="border-b hover:bg-gray-50">
+                                <tr class="border-b hover:bg-blue-50 cursor-pointer" onclick="console.log('Clicou na falha: ' + ${falha.id})">
                                     <td class="px-6 py-4 text-sm">${falha.id}</td>
                                     <td class="px-6 py-4 text-sm font-medium">${falha.titulo}</td>
                                     <td class="px-6 py-4 text-sm"><span class="bg-blue-100 text-blue-800 px-3 py-1 rounded">${falha.pilar}</span></td>
-                                    <td class="px-6 py-4 text-sm">
-                                        <div class="w-32 bg-gray-200 rounded h-2"><div class="bg-blue-600 h-2 rounded" style="width: ${(falha.total_resultados || 0) * 5}%"></div></div>
+                                    <td class="px-6 py-4 text-sm flex items-center gap-3">
+                                        <div class="flex-1 max-w-xs">
+                                            <div class="w-16 bg-gray-200 rounded h-2"><div class="bg-blue-600 h-2 rounded" style="width: ${Math.min((falha.total_resultados || 0) * 5, 100)}%"></div></div>
+                                        </div>
+                                        <span class="font-medium whitespace-nowrap text-blue-600">${falha.total_resultados || 0}</span>
                                     </td>
-                                    <td class="px-6 py-4 text-sm font-medium">${falha.total_resultados || 0}</td>
                                 </tr>
                             `).join('');
                         }
@@ -513,7 +515,7 @@
                             tbody.innerHTML = data.dados.map(p => {
                                 const quadrante = this.obter_quadrante(p.impacto, p.esforco);
                                 return `
-                                    <tr class="border-b hover:bg-gray-50">
+                                    <tr class="border-b hover:bg-blue-50 cursor-pointer" onclick="console.log('Clicou na falha: ' + ${falha.id})">
                                         <td class="px-6 py-4 text-sm">${p.falha_id}</td>
                                         <td class="px-6 py-4 text-sm font-medium">${p.titulo}</td>
                                         <td class="px-6 py-4 text-sm"><span class="bg-green-100 text-green-800 px-3 py-1 rounded font-bold">${p.impacto}/10</span></td>
@@ -746,7 +748,7 @@
 
                         if (data.dados && Array.isArray(data.dados)) {
                             tbody.innerHTML = data.dados.map(doc => `
-                                <tr class="border-b hover:bg-gray-50">
+                                <tr class="border-b hover:bg-blue-50 cursor-pointer" onclick="console.log('Clicou na falha: ' + ${falha.id})">
                                     <td class="px-6 py-4 text-sm font-medium">${doc.nome}</td>
                                     <td class="px-6 py-4 text-sm">${(doc.tamanho / 1024).toFixed(2)} KB</td>
                                     <td class="px-6 py-4 text-sm"><span class="bg-gray-100 px-2 py-1 rounded text-xs">${doc.tipo}</span></td>
