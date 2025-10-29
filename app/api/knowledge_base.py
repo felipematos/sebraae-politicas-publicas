@@ -121,18 +121,18 @@ async def upload_documents(files: list[UploadFile] = File(...)):
         uploaded_files = []
 
         for file in files:
-            # Ler conteúdo
-            file_content = await file.read()
-            
-            # Validar tamanho do arquivo (máximo 25MB)
-            if len(file_content) > MAX_FILE_SIZE:
-                continue
-            
             # Validar tipo
             if file.content_type not in [
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                 'application/pdf'
             ]:
+                continue
+
+            # Ler conteúdo
+            file_content = await file.read()
+            
+            # Validar tamanho do arquivo (máximo 25MB)
+            if len(file_content) > MAX_FILE_SIZE:
                 continue
 
             # Extrair texto baseado no tipo
