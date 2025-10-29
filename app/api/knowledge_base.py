@@ -5,6 +5,7 @@ Gerencia upload de DOCX/PDF e armazenamento em vector database
 """
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
+from typing import List
 import io
 import os
 from pathlib import Path
@@ -112,7 +113,7 @@ async def store_document_in_vector_db(
 
 
 @router.post("/upload")
-async def upload_documents(files: list[UploadFile] = File(...)):
+async def upload_documents(files: List[UploadFile] = File(...)):
     """
     Upload de documentos DOCX ou PDF
     Armazena em vector database para RAG
@@ -121,50 +122,64 @@ async def upload_documents(files: list[UploadFile] = File(...)):
         uploaded_files = []
 
         for file in files:
-            # Validar tipo
-            if file.content_type not in [
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'application/pdf'
-            ]:
-                continue
+            try:
+                # Validar tipo
+                if file.content_type not in [
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'application/pdf'
+                ]:
+                    print(f"[KB] Arquivo {file.filename} com tipo {file.content_type} ignorado")
+                    continue
 
-            # Ler conteúdo
-            file_content = await file.read()
-            
-            # Validar tamanho do arquivo (máximo 25MB)
-            if len(file_content) > MAX_FILE_SIZE:
-                continue
+                # Ler conteúdo
+                file_content = await file.read()
 
-            # Extrair texto baseado no tipo
-            if file.filename.endswith('.docx'):
-                text = extract_text_from_docx(file_content)
-                file_type = 'docx'
-            elif file.filename.endswith('.pdf'):
-                text = extract_text_from_pdf(file_content)
-                file_type = 'pdf'
-            else:
-                continue
+                # Validar tamanho do arquivo (máximo 25MB)
+                if len(file_content) > MAX_FILE_SIZE:
+                    print(f"[KB] Arquivo {file.filename} excede 25MB ({len(file_content)} bytes)")
+                    continue
 
-            # Armazenar em vector DB
-            success = await store_document_in_vector_db(
-                file_name=file.filename,
-                text_content=text,
-                file_type=file_type
-            )
+                # Extrair texto baseado no tipo
+                if file.filename.endswith('.docx'):
+                    text = extract_text_from_docx(file_content)
+                    file_type = 'docx'
+                elif file.filename.endswith('.pdf'):
+                    text = extract_text_from_pdf(file_content)
+                    file_type = 'pdf'
+                else:
+                    print(f"[KB] Arquivo {file.filename} com extensão não suportada")
+                    continue
 
-            if success:
-                # Salvar arquivo localmente também
-                file_path = DOCS_DIR / file.filename
-                with open(file_path, 'wb') as f:
-                    f.write(file_content)
+                # Armazenar em vector DB
+                success = await store_document_in_vector_db(
+                    file_name=file.filename,
+                    text_content=text,
+                    file_type=file_type
+                )
 
-                uploaded_files.append({
-                    "nome": file.filename,
-                    "tamanho": len(file_content),
-                    "tipo": file_type,
-                    "status": "indexado",
-                    "upload_em": datetime.now().isoformat()
-                })
+                if success:
+                    # Salvar arquivo localmente também
+                    file_path = DOCS_DIR / file.filename
+                    with open(file_path, 'wb') as f:
+                        f.write(file_content)
+
+                    uploaded_files.append({
+                        "nome": file.filename,
+                        "tamanho": len(file_content),
+                        "tipo": file_type,
+                        "status": "indexado",
+                        "upload_em": datetime.now().isoformat()
+                    })
+                    print(f"[KB] Arquivo {file.filename} enviado com sucesso")
+                else:
+                    print(f"[KB] Falha ao armazenar {file.filename} em vector DB")
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                print(f"[KB] Erro ao processar arquivo {file.filename}: {str(e)}")
+                import traceback
+                traceback.print_exc()
 
         return JSONResponse({
             "total": len(uploaded_files),
@@ -173,6 +188,9 @@ async def upload_documents(files: list[UploadFile] = File(...)):
         })
 
     except Exception as e:
+        print(f"[KB] Erro geral no upload: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erro no upload: {str(e)}")
 
 
