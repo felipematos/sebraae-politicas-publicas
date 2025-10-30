@@ -119,7 +119,7 @@ async def store_document_in_vector_db(
                 }
 
                 # Add to vector store
-                vector_store.add_texts(
+                await vector_store.add_texts(
                     texts=[chunk],
                     metadatas=[metadata],
                     ids=[doc_id]
