@@ -271,3 +271,37 @@ async def get_statistics():
             "total_vetores": 0,
             "erro": str(e)
         })
+
+
+@router.delete("/documentos/{filename}")
+async def delete_document(filename: str):
+    """
+    Deleta um documento da base de conhecimento
+    """
+    try:
+        # Validar o nome do arquivo para prevenir path traversal
+        if "/" in filename or "\\" in filename or ".." in filename:
+            raise HTTPException(status_code=400, detail="Nome de arquivo inválido")
+
+        file_path = DOCS_DIR / filename
+
+        # Verificar se o arquivo existe
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail=f"Arquivo {filename} não encontrado")
+
+        # Deletar o arquivo
+        file_path.unlink()
+        print(f"[KB] Arquivo {filename} deletado com sucesso")
+
+        return JSONResponse({
+            "mensagem": f"Documento {filename} removido com sucesso",
+            "status": "deletado"
+        })
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[KB] Erro ao deletar documento {filename}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar documento: {str(e)}")
