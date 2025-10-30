@@ -64,6 +64,25 @@ def extract_text_from_pdf(file_content: bytes) -> str:
         raise HTTPException(status_code=400, detail=f"Erro ao extrair PDF: {str(e)}")
 
 
+def extract_text_from_csv(file_content: bytes) -> str:
+    """Extrai texto de arquivo CSV"""
+    try:
+        text = file_content.decode('utf-8')
+        return text
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao extrair CSV: {str(e)}")
+
+
+def extract_text_from_markdown(file_content: bytes) -> str:
+    """Extrai texto de arquivo Markdown"""
+    try:
+        text = file_content.decode('utf-8')
+        return text
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao extrair Markdown: {str(e)}")
+
+
+
 async def store_document_in_vector_db(
     file_name: str,
     text_content: str,
@@ -123,10 +142,24 @@ async def upload_documents(files: List[UploadFile] = File(...)):
 
         for file in files:
             try:
-                # Validar tipo
+                # Validar tipo baseado na extensão do arquivo (mais importante que content-type)
+                # Alguns clientes enviam application/octet-stream para CSV/MD
+                if not (file.filename.endswith('.docx') or
+                        file.filename.endswith('.pdf') or
+                        file.filename.endswith('.csv') or
+                        file.filename.endswith('.md') or
+                        file.filename.endswith('.txt')):
+                    print(f"[KB] Arquivo {file.filename} com extensão não suportada")
+                    continue
+
+                # Validar content-type também (com fallback para octet-stream)
                 if file.content_type not in [
                     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                    'application/pdf'
+                    'application/pdf',
+                    'text/csv',
+                    'text/markdown',
+                    'text/plain',
+                    'application/octet-stream'  # Fallback para clientes que enviam tipo genérico
                 ]:
                     print(f"[KB] Arquivo {file.filename} com tipo {file.content_type} ignorado")
                     continue
@@ -146,6 +179,15 @@ async def upload_documents(files: List[UploadFile] = File(...)):
                 elif file.filename.endswith('.pdf'):
                     text = extract_text_from_pdf(file_content)
                     file_type = 'pdf'
+                elif file.filename.endswith('.csv'):
+                    text = extract_text_from_csv(file_content)
+                    file_type = 'csv'
+                elif file.filename.endswith('.md'):
+                    text = extract_text_from_markdown(file_content)
+                    file_type = 'markdown'
+                elif file.filename.endswith('.txt'):
+                    text = extract_text_from_markdown(file_content)  # Usar mesma função para .txt
+                    file_type = 'txt'
                 else:
                     print(f"[KB] Arquivo {file.filename} com extensão não suportada")
                     continue

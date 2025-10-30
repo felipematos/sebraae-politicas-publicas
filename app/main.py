@@ -122,7 +122,7 @@ app.include_router(health_check.router, prefix=settings.API_PREFIX)
 app.include_router(config.router, prefix=settings.API_PREFIX)
 app.include_router(priorizacoes.router)  # Sem prefix pois as rotas já têm /api/priorizacoes
 app.include_router(vector_search.router)  # Sem prefix pois as rotas já têm /api/
-app.include_router(knowledge_base.router)  # Sem prefix pois as rotas já têm /api/knowledge-base
+app.include_router(knowledge_base.router)  # Knowledge base with CSV/MD support
 
 # Montar pasta static
 try:
