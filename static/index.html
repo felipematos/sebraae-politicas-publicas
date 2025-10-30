@@ -51,6 +51,25 @@
 </head>
 <body class="bg-gray-50 text-gray-900">
     <div id="app" class="min-h-screen" x-data="app()" x-init="inicializar()" style="display: block;">
+        <!-- Container de Notificações -->
+        <div id="notificacoes-container" class="fixed top-4 right-4 z-[9999] space-y-2" style="max-width: 400px;"></div>
+
+        <!-- Container de Confirmação Modal -->
+        <div id="confirmacao-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] hidden flex items-center justify-center" @click.self="fechar_confirmacao()" x-show="confirmacao_aberta" style="display: none;">
+            <div class="bg-white rounded-lg p-6 max-w-sm" @click.stop>
+                <h3 class="text-lg font-bold mb-2" x-text="confirmacao_titulo"></h3>
+                <p class="text-gray-600 mb-6" x-text="confirmacao_mensagem"></p>
+                <div class="flex gap-3 justify-end">
+                    <button @click="fechar_confirmacao()" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded font-medium">
+                        Cancelar
+                    </button>
+                    <button @click="executar_confirmacao()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-medium">
+                        Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Header Principal -->
         <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
             <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
@@ -240,8 +259,8 @@
                          :class="dragover_kb ? 'border-blue-600 bg-blue-50' : 'hover:border-blue-500'">
                         <div class="text-4xl mb-2">📁</div>
                         <h3 class="text-lg font-bold mb-2">Arraste arquivos ou clique para selecionar</h3>
-                        <p class="text-gray-600 mb-4">Suporta DOCX e PDF (máximo 25MB por arquivo)</p>
-                        <input type="file" multiple accept=".docx,.pdf" @change="handleFileUpload" class="hidden" x-ref="fileInput">
+                        <p class="text-gray-600 mb-4">Suporta DOCX, PDF, CSV e Markdown (máximo 25MB por arquivo)</p>
+                        <input type="file" multiple accept=".docx,.pdf,.csv,.md" @change="handleFileUpload" class="hidden" x-ref="fileInput">
                         <button @click.stop="$refs.fileInput.click()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
                             Selecionar Arquivos
                         </button>
@@ -426,18 +445,85 @@
                 chartMatriz: null,
                 modal_aberto: false,
                 detalhes_modal: null,
+                confirmacao_aberta: false,
+                confirmacao_titulo: '',
+                confirmacao_mensagem: '',
+                confirmacao_callback: null,
 
                 mudar_fase(idx) {
                     this.fase_atual = idx;
+                    window.location.hash = this.get_hash_from_fase(idx);
                     if (idx === 1) this.carregar_dados_pesquisa();
                     if (idx === 2) this.carregar_documentos();
                     if (idx === 3) this.carregar_dados_priorizacao();
                 },
 
+                get_hash_from_fase(idx) {
+                    const hashes = ['home', 'pesquisa', 'conhecimento', 'priorizacao'];
+                    return `#${hashes[idx] || 'home'}`;
+                },
+
+                get_fase_from_hash() {
+                    const hash = window.location.hash.slice(1) || 'home';
+                    const hashes = { 'home': 0, 'pesquisa': 1, 'conhecimento': 2, 'priorizacao': 3 };
+                    return hashes[hash] || 0;
+                },
+
+                mostrar_notificacao(mensagem, tipo = 'info') {
+                    const container = document.getElementById('notificacoes-container');
+                    const cores = {
+                        'sucesso': 'bg-green-100 border-green-400 text-green-800',
+                        'erro': 'bg-red-100 border-red-400 text-red-800',
+                        'info': 'bg-blue-100 border-blue-400 text-blue-800',
+                        'aviso': 'bg-yellow-100 border-yellow-400 text-yellow-800'
+                    };
+                    const div = document.createElement('div');
+                    div.className = `border rounded px-4 py-3 ${cores[tipo] || cores['info']} animate-pulse`;
+                    div.textContent = mensagem;
+                    container.appendChild(div);
+
+                    setTimeout(() => {
+                        div.style.opacity = '0';
+                        div.style.transition = 'opacity 0.3s';
+                        setTimeout(() => div.remove(), 300);
+                    }, 4000);
+                },
+
+                mostrar_confirmacao(titulo, mensagem, callback) {
+                    this.confirmacao_titulo = titulo;
+                    this.confirmacao_mensagem = mensagem;
+                    this.confirmacao_callback = callback;
+                    this.confirmacao_aberta = true;
+                },
+
+                fechar_confirmacao() {
+                    this.confirmacao_aberta = false;
+                    this.confirmacao_callback = null;
+                },
+
+                executar_confirmacao() {
+                    if (this.confirmacao_callback) {
+                        this.confirmacao_callback();
+                    }
+                    this.fechar_confirmacao();
+                },
+
                 async inicializar() {
                     try {
+                        // Carregar página baseada na URL
+                        this.fase_atual = this.get_fase_from_hash();
+
+                        // Listener para mudança de URL
+                        window.addEventListener('hashchange', () => {
+                            this.fase_atual = this.get_fase_from_hash();
+                        });
+
                         await this.carregar_stats();
-                        this.carregar_dados_pesquisa();
+                        if (this.fase_atual === 0) this.carregar_dados_pesquisa();
+                        if (this.fase_atual === 1) this.carregar_dados_pesquisa();
+                        if (this.fase_atual === 2) this.carregar_documentos();
+                        if (this.fase_atual === 3) this.carregar_dados_priorizacao();
+
                         setInterval(() => this.carregar_stats(), 5000);
                     } catch (e) {
                         console.error('Erro ao inicializar aplicação:', e);
@@ -626,7 +712,7 @@
                             setTimeout(() => this.carregar_stats(), 1000);
                         }
                     } catch (e) {
-                        alert('Erro ao iniciar pesquisas: ' + e.message);
+                        this.mostrar_notificacao('✗ Erro ao iniciar pesquisas: ' + e.message, 'erro');
                     } finally {
                         this.pesquisa_iniciando = false;
                     }
@@ -636,20 +722,22 @@
                     try {
                         await fetch('/api/pesquisas/pausar', { method: 'POST' });
                         this.ativo = false;
+                        this.mostrar_notificacao('✓ Pesquisa pausada', 'sucesso');
                     } catch (e) {
-                        alert('Erro: ' + e.message);
+                        this.mostrar_notificacao('✗ Erro: ' + e.message, 'erro');
                     }
                 },
 
                 async reiniciar_pesquisas() {
-                    if (confirm('Tem certeza que deseja reiniciar todas as pesquisas?')) {
+                    this.mostrar_confirmacao('Reiniciar pesquisas?', 'Todas as pesquisas serão resetadas para o status inicial.', async () => {
                         try {
                             await fetch('/api/pesquisas/reiniciar', { method: 'POST' });
+                            this.mostrar_notificacao('✓ Pesquisas reiniciadas com sucesso', 'sucesso');
                             this.carregar_stats();
                         } catch (e) {
-                            alert('Erro: ' + e.message);
+                            this.mostrar_notificacao('✗ Erro: ' + e.message, 'erro');
                         }
-                    }
+                    });
                 },
 
                 async analisar_todas_falhas() {
@@ -658,11 +746,13 @@
                         await fetch('/api/priorizacoes/inicializar/padrao');
                         const res = await fetch('/api/priorizacoes/analisar-todas', { method: 'POST' });
                         if (res.ok) {
-                            alert('Análise concluída!');
+                            this.mostrar_notificacao('✓ Análise concluída com sucesso!', 'sucesso');
                             this.carregar_priorizacoes();
+                        } else {
+                            this.mostrar_notificacao('✗ Erro na análise', 'erro');
                         }
                     } catch (e) {
-                        alert('Erro: ' + e.message);
+                        this.mostrar_notificacao('✗ Erro: ' + e.message, 'erro');
                     } finally {
                         this.analisando = false;
                     }
@@ -689,20 +779,38 @@
                     const formData = new FormData();
 
                     for (let file of files) {
-                        // Validate file type
-                        const validTypes = ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf'];
-                        if (!validTypes.includes(file.type)) {
-                            alert(`Arquivo inválido: ${file.name}. Apenas DOCX e PDF são suportados.`);
+                        // Validate file type by extension (more reliable)
+                        const validExtensions = ['.docx', '.pdf', '.csv', '.md', '.txt'];
+                        const hasValidExtension = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+
+                        if (!hasValidExtension) {
+                            this.mostrar_notificacao(`Arquivo inválido: ${file.name}. Suportados: DOCX, PDF, CSV, Markdown.`, 'erro');
                             continue;
                         }
 
-                        // Validate file size (10MB max)
+                        // Validate file size (25MB max)
                         if (file.size > 25 * 1024 * 1024) {
-                            alert(`Arquivo muito grande: ${file.name}. Máximo 25MB.`);
+                            this.mostrar_notificacao(`Arquivo muito grande: ${file.name}. Máximo 25MB.`, 'erro');
                             continue;
                         }
 
                         formData.append('files', file);
+                    }
+
+                    // Verificar se há arquivos para enviar
+                    const formDataIterator = formData.entries();
+                    let hasFiles = false;
+                    for (let [key, value] of formDataIterator) {
+                        if (key === 'files') {
+                            hasFiles = true;
+                            break;
+                        }
+                    }
+
+                    if (!hasFiles) {
+                        this.mostrar_notificacao('✗ Nenhum arquivo válido selecionado', 'erro');
+                        this.uploading = false;
+                        return;
                     }
 
                     try {
@@ -716,24 +824,24 @@
 
                         xhr.addEventListener('load', () => {
                             if (xhr.status === 200) {
-                                alert('Arquivos enviados com sucesso!');
+                                this.mostrar_notificacao('✓ Arquivos enviados com sucesso!', 'sucesso');
                                 this.carregar_documentos();
                             } else {
-                                alert('Erro ao enviar arquivos: ' + xhr.statusText);
+                                this.mostrar_notificacao('✗ Erro ao enviar arquivos: ' + xhr.statusText, 'erro');
                             }
                             this.uploading = false;
                             this.upload_progress = 0;
                         });
 
                         xhr.addEventListener('error', () => {
-                            alert('Erro de conexão ao enviar arquivos');
+                            this.mostrar_notificacao('✗ Erro de conexão ao enviar arquivos', 'erro');
                             this.uploading = false;
                         });
 
                         xhr.open('POST', '/api/knowledge-base/upload');
                         xhr.send(formData);
                     } catch (e) {
-                        alert('Erro ao processar upload: ' + e.message);
+                        this.mostrar_notificacao('✗ Erro ao processar upload: ' + e.message, 'erro');
                         this.uploading = false;
                     }
                 },
@@ -771,7 +879,7 @@
                         try {
                             const res = await fetch(`/api/priorizacoes/${falha_id}?incluir_fontes=true`);
                             if (!res.ok) {
-                                alert('Erro ao carregar detalhes da priorização');
+                                this.mostrar_notificacao('✗ Erro ao carregar detalhes da priorização', 'erro');
                                 return;
                             }
                             const data = await res.json();
@@ -779,7 +887,7 @@
                             this.modal_aberto = true;
                         } catch (e) {
                             console.error('Erro ao abrir detalhes:', e);
-                            alert('Erro ao carregar detalhes da priorização');
+                            this.mostrar_notificacao('✗ Erro ao carregar detalhes da priorização', 'erro');
                         }
                     }).call(this);
                 },
@@ -804,24 +912,22 @@
                 },
 
                 remover_documento(filename) {
-                    if (!confirm(`Tem certeza que deseja remover o documento "${filename}"? Esta ação não pode ser desfeita.`)) {
-                        return;
-                    }
-
-                    fetch(`/api/knowledge-base/documentos/${encodeURIComponent(filename)}`, {
-                        method: 'DELETE'
-                    })
-                    .then(res => {
-                        if (res.ok) {
-                            alert(`Documento "${filename}" removido com sucesso!`);
-                            this.carregar_documentos();  // Recarregar a lista
-                        } else {
-                            alert(`Erro ao remover documento: ${res.statusText}`);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Erro ao remover documento:', error);
-                        alert(`Erro ao remover documento: ${error.message}`);
+                    this.mostrar_confirmacao(`Remover "${filename}"?`, `Esta ação não pode ser desfeita.`, () => {
+                        fetch(`/api/knowledge-base/documentos/${encodeURIComponent(filename)}`, {
+                            method: 'DELETE'
+                        })
+                        .then(res => {
+                            if (res.ok) {
+                                this.mostrar_notificacao(`✓ Documento "${filename}" removido com sucesso!`, 'sucesso');
+                                this.carregar_documentos();
+                            } else {
+                                this.mostrar_notificacao(`✗ Erro ao remover documento: ${res.statusText}`, 'erro');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Erro ao remover documento:', error);
+                            this.mostrar_notificacao(`✗ Erro ao remover documento: ${error.message}`, 'erro');
+                        });
                     });
                 }
             };
