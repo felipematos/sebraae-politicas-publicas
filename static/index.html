@@ -827,7 +827,16 @@
                                 this.mostrar_notificacao('✓ Arquivos enviados com sucesso!', 'sucesso');
                                 this.carregar_documentos();
                             } else {
-                                this.mostrar_notificacao('✗ Erro ao enviar arquivos: ' + xhr.statusText, 'erro');
+                                let errorMsg = xhr.statusText;
+                                try {
+                                    const response = JSON.parse(xhr.responseText);
+                                    if (response.detail) {
+                                        errorMsg = response.detail;
+                                    }
+                                } catch (e) {
+                                    // Fallback se resposta não for JSON
+                                }
+                                this.mostrar_notificacao('✗ Erro ao enviar arquivos: ' + errorMsg, 'erro');
                             }
                             this.uploading = false;
                             this.upload_progress = 0;
@@ -855,7 +864,7 @@
 
                         if (data.dados && Array.isArray(data.dados)) {
                             tbody.innerHTML = data.dados.map(doc => `
-                                <tr class="border-b hover:bg-blue-50 cursor-pointer" onclick="console.log('Documento: ' + '${doc.nome}')">
+                                <tr class="border-b hover:bg-blue-50">
                                     <td class="px-6 py-4 text-sm font-medium">${doc.nome}</td>
                                     <td class="px-6 py-4 text-sm">${(doc.tamanho / 1024).toFixed(2)} KB</td>
                                     <td class="px-6 py-4 text-sm"><span class="bg-gray-100 px-2 py-1 rounded text-xs">${doc.tipo}</span></td>
@@ -863,10 +872,19 @@
                                         <span class="${doc.status === 'indexado' ? 'text-green-600 font-bold' : 'text-yellow-600'}">${doc.status}</span>
                                     </td>
                                     <td class="px-6 py-4 text-sm">
-                                        <button @click="remover_documento('${doc.nome}')" class="text-red-600 hover:underline text-xs">Remover</button>
+                                        <button class="btn-remover text-red-600 hover:underline text-xs" data-filename="${doc.nome}">Remover</button>
                                     </td>
                                 </tr>
                             `).join('');
+
+                            // Add event delegation for delete buttons
+                            tbody.querySelectorAll('.btn-remover').forEach(btn => {
+                                btn.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    const filename = btn.getAttribute('data-filename');
+                                    this.remover_documento(filename);
+                                });
+                            });
                         } else {
                             tbody.innerHTML = '<tr class="border-b"><td colspan="5" class="px-6 py-4 text-center text-gray-500">Nenhum documento enviado</td></tr>';
                         }
