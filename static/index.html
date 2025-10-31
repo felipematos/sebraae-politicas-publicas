@@ -373,23 +373,117 @@
                 </template>
 
                 <!-- Documents List -->
-                <div class="bg-white rounded-lg shadow overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gray-100 border-b">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-sm font-medium">Nome</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium">Tamanho</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium">Tipo</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium">Status</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabela-documentos">
-                            <tr class="border-b hover:bg-gray-50">
-                                <td colspan="5" class="px-6 py-4 text-center text-gray-500">Carregando documentos...</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="bg-white rounded-lg shadow">
+                    <!-- Search Bar -->
+                    <div class="p-4 border-b">
+                        <input type="text"
+                               x-model="busca_documentos"
+                               @input="filtrar_documentos()"
+                               placeholder="🔍 Buscar documentos por nome, tipo ou status..."
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-100 border-b">
+                                <tr>
+                                    <th @click="ordenar_documentos('nome')" class="px-6 py-3 text-left text-sm font-medium cursor-pointer hover:bg-gray-200 select-none">
+                                        Nome <span x-show="ordem_campo === 'nome'" x-text="ordem_direcao === 'asc' ? '↑' : '↓'"></span>
+                                    </th>
+                                    <th @click="ordenar_documentos('tamanho')" class="px-6 py-3 text-left text-sm font-medium cursor-pointer hover:bg-gray-200 select-none">
+                                        Tamanho <span x-show="ordem_campo === 'tamanho'" x-text="ordem_direcao === 'asc' ? '↑' : '↓'"></span>
+                                    </th>
+                                    <th @click="ordenar_documentos('tipo')" class="px-6 py-3 text-left text-sm font-medium cursor-pointer hover:bg-gray-200 select-none">
+                                        Tipo <span x-show="ordem_campo === 'tipo'" x-text="ordem_direcao === 'asc' ? '↑' : '↓'"></span>
+                                    </th>
+                                    <th @click="ordenar_documentos('status')" class="px-6 py-3 text-left text-sm font-medium cursor-pointer hover:bg-gray-200 select-none">
+                                        Status <span x-show="ordem_campo === 'status'" x-text="ordem_direcao === 'asc' ? '↑' : '↓'"></span>
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-sm font-medium">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabela-documentos">
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">Carregando documentos...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Chat RAG Panel -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-4 border-b bg-gradient-to-r from-blue-50 to-purple-50">
+                        <h3 class="text-lg font-bold text-gray-800">💬 Converse com a Base de Conhecimento</h3>
+                        <p class="text-sm text-gray-600 mt-1">Faça perguntas sobre os documentos indexados</p>
+                    </div>
+
+                    <!-- Chat Messages -->
+                    <div class="p-4 h-96 overflow-y-auto bg-gray-50" id="chat-kb-container">
+                        <template x-if="chat_kb_mensagens.length === 0">
+                            <div class="text-center text-gray-400 py-16">
+                                <p class="text-lg">👋 Olá! Pergunte algo sobre os documentos da base</p>
+                                <p class="text-sm mt-2">Exemplo: "Quais são os principais desafios mencionados nos documentos?"</p>
+                            </div>
+                        </template>
+
+                        <div class="space-y-4">
+                            <template x-for="(msg, idx) in chat_kb_mensagens" :key="idx">
+                                <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
+                                    <div :class="msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-white text-gray-800 border border-gray-200'"
+                                         class="max-w-3xl rounded-lg p-4 shadow-sm">
+                                        <div class="flex items-start space-x-2">
+                                            <span x-text="msg.role === 'user' ? '👤' : '🤖'" class="text-lg"></span>
+                                            <div class="flex-1">
+                                                <p class="text-sm whitespace-pre-wrap" x-html="msg.content"></p>
+                                                <template x-if="msg.fontes && msg.fontes.length > 0">
+                                                    <div class="mt-3 pt-3 border-t" :class="msg.role === 'user' ? 'border-blue-400' : 'border-gray-200'">
+                                                        <p class="text-xs font-semibold mb-2" :class="msg.role === 'user' ? 'text-blue-100' : 'text-gray-600'">📚 Fontes:</p>
+                                                        <div class="space-y-1">
+                                                            <template x-for="fonte in msg.fontes" :key="fonte">
+                                                                <p class="text-xs" :class="msg.role === 'user' ? 'text-blue-100' : 'text-gray-600'">
+                                                                    • <span x-text="fonte"></span>
+                                                                </p>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="chat_kb_carregando">
+                                <div class="flex justify-start">
+                                    <div class="bg-white text-gray-800 border border-gray-200 rounded-lg p-4 shadow-sm">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="text-lg">🤖</span>
+                                            <span class="text-sm text-gray-600">Pesquisando na base...</span>
+                                            <span class="animate-pulse">⟳</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Chat Input -->
+                    <div class="p-4 border-t bg-white">
+                        <form @submit.prevent="enviar_pergunta_kb()" class="flex space-x-2">
+                            <input type="text"
+                                   x-model="chat_kb_input"
+                                   :disabled="chat_kb_carregando"
+                                   placeholder="Digite sua pergunta..."
+                                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+                            <button type="submit"
+                                    :disabled="chat_kb_carregando || !chat_kb_input.trim()"
+                                    class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span x-show="!chat_kb_carregando">Enviar</span>
+                                <span x-show="chat_kb_carregando">⟳</span>
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
                 <!-- Statistics -->
@@ -538,6 +632,17 @@
                 arquivos_duplicados: [],
                 arquivos_pendentes: null,
                 opcao_duplicados: 'ask',
+                documentos: [],
+                documentos_filtrados: [],
+                busca_documentos: '',
+                ordem_campo: 'nome',
+                ordem_direcao: 'asc',
+                chat_kb_mensagens: [],
+                chat_kb_input: '',
+                chat_kb_carregando: false,
+                chat_pesquisa_mensagens: [],
+                chat_pesquisa_input: '',
+                chat_pesquisa_carregando: false,
                 percentual_processamento: 0,
                 aba_priorizacao: 'tabela',
                 chartMatriz: null,
@@ -1132,38 +1237,172 @@
                         const res = await fetch('/api/knowledge-base/documentos');
                         if (!res.ok) return;
                         const data = await res.json();
-                        const tbody = document.getElementById('tabela-documentos');
 
                         if (data.dados && Array.isArray(data.dados)) {
-                            tbody.innerHTML = data.dados.map(doc => `
-                                <tr class="border-b hover:bg-blue-50">
-                                    <td class="px-6 py-4 text-sm font-medium">${doc.nome}</td>
-                                    <td class="px-6 py-4 text-sm">${(doc.tamanho / 1024).toFixed(2)} KB</td>
-                                    <td class="px-6 py-4 text-sm"><span class="bg-gray-100 px-2 py-1 rounded text-xs">${doc.tipo}</span></td>
-                                    <td class="px-6 py-4 text-sm">
-                                        <span class="${doc.status === 'indexado' ? 'text-green-600 font-bold' : 'text-yellow-600'}">${doc.status}</span>
-                                    </td>
-                                    <td class="px-6 py-4 text-sm">
-                                        <button class="btn-remover text-red-600 hover:underline text-xs" data-filename="${doc.nome}">Remover</button>
-                                    </td>
-                                </tr>
-                            `).join('');
-
-                            // Add event delegation for delete buttons
-                            tbody.querySelectorAll('.btn-remover').forEach(btn => {
-                                btn.addEventListener('click', (e) => {
-                                    e.stopPropagation();
-                                    const filename = btn.getAttribute('data-filename');
-                                    this.remover_documento(filename);
-                                });
-                            });
+                            this.documentos = data.dados;
+                            this.documentos_filtrados = [...this.documentos];
+                            this.aplicar_ordenacao();
+                            this.renderizar_documentos();
                         } else {
-                            tbody.innerHTML = '<tr class="border-b"><td colspan="5" class="px-6 py-4 text-center text-gray-500">Nenhum documento enviado</td></tr>';
+                            this.documentos = [];
+                            this.documentos_filtrados = [];
+                            this.renderizar_documentos();
                         }
                     } catch (e) {
                         console.error('Erro ao carregar documentos:', e);
                     }
                 },
+
+                renderizar_documentos() {
+                    const tbody = document.getElementById('tabela-documentos');
+
+                    if (this.documentos_filtrados.length === 0) {
+                        const mensagem = this.busca_documentos ? 'Nenhum documento encontrado com essa busca' : 'Nenhum documento enviado';
+                        tbody.innerHTML = `<tr class="border-b"><td colspan="5" class="px-6 py-4 text-center text-gray-500">${mensagem}</td></tr>`;
+                        return;
+                    }
+
+                    tbody.innerHTML = this.documentos_filtrados.map(doc => `
+                        <tr class="border-b hover:bg-blue-50">
+                            <td class="px-6 py-4 text-sm font-medium">${doc.nome}</td>
+                            <td class="px-6 py-4 text-sm">${(doc.tamanho / 1024).toFixed(2)} KB</td>
+                            <td class="px-6 py-4 text-sm"><span class="bg-gray-100 px-2 py-1 rounded text-xs">${doc.tipo}</span></td>
+                            <td class="px-6 py-4 text-sm">
+                                <span class="${doc.status === 'indexado' ? 'text-green-600 font-bold' : 'text-yellow-600'}">${doc.status}</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                <button class="btn-remover text-red-600 hover:underline text-xs" data-filename="${doc.nome}">Remover</button>
+                            </td>
+                        </tr>
+                    `).join('');
+
+                    // Add event delegation for delete buttons
+                    tbody.querySelectorAll('.btn-remover').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const filename = btn.getAttribute('data-filename');
+                            this.remover_documento(filename);
+                        });
+                    });
+                },
+
+                ordenar_documentos(campo) {
+                    // Se clicar no mesmo campo, inverte a direção
+                    if (this.ordem_campo === campo) {
+                        this.ordem_direcao = this.ordem_direcao === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        this.ordem_campo = campo;
+                        this.ordem_direcao = 'asc';
+                    }
+                    this.aplicar_ordenacao();
+                    this.renderizar_documentos();
+                },
+
+                aplicar_ordenacao() {
+                    this.documentos_filtrados.sort((a, b) => {
+                        let valA, valB;
+
+                        switch(this.ordem_campo) {
+                            case 'nome':
+                                valA = a.nome.toLowerCase();
+                                valB = b.nome.toLowerCase();
+                                break;
+                            case 'tamanho':
+                                valA = a.tamanho;
+                                valB = b.tamanho;
+                                break;
+                            case 'tipo':
+                                valA = a.tipo.toLowerCase();
+                                valB = b.tipo.toLowerCase();
+                                break;
+                            case 'status':
+                                valA = a.status.toLowerCase();
+                                valB = b.status.toLowerCase();
+                                break;
+                            default:
+                                valA = a.nome.toLowerCase();
+                                valB = b.nome.toLowerCase();
+                        }
+
+                        if (valA < valB) return this.ordem_direcao === 'asc' ? -1 : 1;
+                        if (valA > valB) return this.ordem_direcao === 'asc' ? 1 : -1;
+                        return 0;
+                    });
+                },
+
+                filtrar_documentos() {
+                    const busca = this.busca_documentos.toLowerCase().trim();
+
+                    if (!busca) {
+                        this.documentos_filtrados = [...this.documentos];
+                    } else {
+                        this.documentos_filtrados = this.documentos.filter(doc =>
+                            doc.nome.toLowerCase().includes(busca) ||
+                            doc.tipo.toLowerCase().includes(busca) ||
+                            doc.status.toLowerCase().includes(busca)
+                        );
+                    }
+
+                    this.aplicar_ordenacao();
+                    this.renderizar_documentos();
+                },
+
+                async enviar_pergunta_kb() {
+                    if (!this.chat_kb_input.trim() || this.chat_kb_carregando) return;
+
+                    const pergunta = this.chat_kb_input.trim();
+                    this.chat_kb_input = '';
+                    this.chat_kb_carregando = true;
+
+                    // Adicionar mensagem do usuário
+                    this.chat_kb_mensagens.push({
+                        role: 'user',
+                        content: pergunta
+                    });
+
+                    // Scroll para o fim
+                    setTimeout(() => {
+                        const container = document.getElementById('chat-kb-container');
+                        if (container) container.scrollTop = container.scrollHeight;
+                    }, 100);
+
+                    try {
+                        const res = await fetch('/api/knowledge-base/chat', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ pergunta })
+                        });
+
+                        if (!res.ok) {
+                            throw new Error('Erro ao processar pergunta');
+                        }
+
+                        const data = await res.json();
+
+                        // Adicionar resposta do assistente
+                        this.chat_kb_mensagens.push({
+                            role: 'assistant',
+                            content: data.resposta || 'Não consegui encontrar uma resposta.',
+                            fontes: data.fontes || []
+                        });
+
+                        // Scroll para o fim
+                        setTimeout(() => {
+                            const container = document.getElementById('chat-kb-container');
+                            if (container) container.scrollTop = container.scrollHeight;
+                        }, 100);
+                    } catch (e) {
+                        console.error('Erro no chat:', e);
+                        this.mostrar_notificacao('✗ Erro ao processar pergunta', 'erro');
+                        this.chat_kb_mensagens.push({
+                            role: 'assistant',
+                            content: 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.'
+                        });
+                    } finally {
+                        this.chat_kb_carregando = false;
+                    }
+                },
+
                 abrir_detalhes_priorizacao(falha_id) {
                     (async () => {
                         try {

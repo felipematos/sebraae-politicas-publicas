@@ -6,6 +6,7 @@ Gerencia upload de DOCX/PDF e armazenamento em vector database
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from typing import List
+from pydantic import BaseModel
 import io
 import os
 from pathlib import Path
@@ -34,6 +35,10 @@ DOCS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Limite máximo de tamanho de arquivo (25MB)
 MAX_FILE_SIZE = 25 * 1024 * 1024  # 26,214,400 bytes
+
+
+class ChatRequest(BaseModel):
+    pergunta: str
 
 
 def extract_text_from_docx(file_content: bytes) -> str:
@@ -378,6 +383,77 @@ async def get_statistics():
             "total_vetores": 0,
             "erro": str(e)
         })
+
+
+@router.post("/chat")
+async def chat_knowledge_base(request: ChatRequest):
+    """
+    Chat com RAG sobre a base de conhecimento
+    """
+    try:
+        from app.llm.openai_client import OpenAIClient
+
+        # Obter vector store
+        embedding_client = EmbeddingClient(api_key=settings.OPENAI_API_KEY)
+        from app.config import get_chroma_path
+        vector_store = await get_vector_store(
+            persist_path=get_chroma_path(),
+            embedding_client=embedding_client
+        )
+
+        # Buscar documentos relevantes
+        resultados = await vector_store.similarity_search(
+            query=request.pergunta,
+            k=5  # Top 5 documentos mais relevantes
+        )
+
+        if not resultados:
+            return JSONResponse({
+                "resposta": "Não encontrei informações relevantes na base de conhecimento para responder sua pergunta.",
+                "fontes": []
+            })
+
+        # Preparar contexto a partir dos documentos
+        contexto_partes = []
+        fontes = set()
+
+        for i, doc in enumerate(resultados):
+            contexto_partes.append(f"[Documento {i+1}]:\n{doc['text']}\n")
+            if 'metadata' in doc and 'source' in doc['metadata']:
+                fontes.add(doc['metadata']['source'])
+
+        contexto = "\n".join(contexto_partes)
+
+        # Criar prompt para o LLM
+        prompt = f"""Você é um assistente especializado em analisar documentos da base de conhecimento do Sebrae Nacional sobre inovação e políticas públicas.
+
+Contexto dos documentos encontrados:
+{contexto}
+
+Pergunta do usuário: {request.pergunta}
+
+Por favor, responda a pergunta baseando-se EXCLUSIVAMENTE nas informações fornecidas no contexto acima. Se a informação não estiver disponível no contexto, informe isso claramente.
+
+Responda de forma clara, objetiva e estruturada."""
+
+        # Chamar LLM
+        llm_client = OpenAIClient(api_key=settings.OPENAI_API_KEY)
+        resposta = await llm_client.generate_completion(
+            prompt=prompt,
+            model="gpt-4o-mini",
+            temperature=0.3
+        )
+
+        return JSONResponse({
+            "resposta": resposta,
+            "fontes": list(fontes)
+        })
+
+    except Exception as e:
+        print(f"[KB Chat] Erro: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro ao processar pergunta: {str(e)}")
 
 
 @router.delete("/documentos/{filename}")
