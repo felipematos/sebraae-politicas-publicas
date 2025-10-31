@@ -131,14 +131,50 @@ async def store_document_in_vector_db(
         return False
 
 
+@router.post("/check-duplicates")
+async def check_duplicates(files: List[UploadFile] = File(...)):
+    """
+    Verifica se há arquivos duplicados antes do upload
+    Retorna lista de arquivos duplicados
+    """
+    try:
+        duplicates = []
+
+        for file in files:
+            # Verificar se arquivo já existe
+            file_path = DOCS_DIR / file.filename
+            if file_path.exists():
+                stat = file_path.stat()
+                duplicates.append({
+                    "nome": file.filename,
+                    "tamanho_existente": stat.st_size,
+                    "tamanho_novo": file.size
+                })
+
+        return JSONResponse({
+            "duplicates": duplicates,
+            "has_duplicates": len(duplicates) > 0
+        })
+    except Exception as e:
+        print(f"[KB] Erro ao verificar duplicatas: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao verificar duplicatas: {str(e)}")
+
+
 @router.post("/upload")
-async def upload_documents(files: List[UploadFile] = File(...)):
+async def upload_documents(
+    files: List[UploadFile] = File(...),
+    overwrite: str = "ask"  # "ask", "overwrite", "copy", "skip"
+):
     """
     Upload de documentos DOCX ou PDF
     Armazena em vector database para RAG
+
+    Parâmetros:
+    - overwrite: "ask" (padrão), "overwrite" (sobrescrever), "copy" (criar cópia), "skip" (ignorar)
     """
     try:
         uploaded_files = []
+        skipped_files = []
 
         for file in files:
             try:
@@ -163,6 +199,33 @@ async def upload_documents(files: List[UploadFile] = File(...)):
                 ]:
                     print(f"[KB] Arquivo {file.filename} com tipo {file.content_type} ignorado")
                     continue
+
+                # Verificar se arquivo já existe
+                file_path = DOCS_DIR / file.filename
+                file_exists = file_path.exists()
+
+                # Determinar nome do arquivo baseado na política de duplicatas
+                final_filename = file.filename
+
+                if file_exists:
+                    if overwrite == "skip":
+                        print(f"[KB] Arquivo {file.filename} já existe - ignorado")
+                        skipped_files.append(file.filename)
+                        continue
+                    elif overwrite == "copy":
+                        # Criar nome único com sufixo
+                        base_name = file.filename.rsplit('.', 1)[0]
+                        extension = file.filename.rsplit('.', 1)[1] if '.' in file.filename else ''
+                        counter = 1
+                        while (DOCS_DIR / f"{base_name} ({counter}).{extension}").exists():
+                            counter += 1
+                        final_filename = f"{base_name} ({counter}).{extension}"
+                        print(f"[KB] Criando cópia: {final_filename}")
+                    elif overwrite == "overwrite":
+                        # Remover arquivo antigo do vector store antes de sobrescrever
+                        print(f"[KB] Sobrescrevendo arquivo {file.filename}")
+                        # TODO: Implementar remoção do vector store
+                    # Se overwrite == "ask", não deveria chegar aqui pois frontend deve perguntar primeiro
 
                 # Ler conteúdo
                 file_content = await file.read()
@@ -194,25 +257,26 @@ async def upload_documents(files: List[UploadFile] = File(...)):
 
                 # Armazenar em vector DB
                 success = await store_document_in_vector_db(
-                    file_name=file.filename,
+                    file_name=final_filename,
                     text_content=text,
                     file_type=file_type
                 )
 
                 if success:
                     # Salvar arquivo localmente também
-                    file_path = DOCS_DIR / file.filename
+                    file_path = DOCS_DIR / final_filename
                     with open(file_path, 'wb') as f:
                         f.write(file_content)
 
                     uploaded_files.append({
-                        "nome": file.filename,
+                        "nome": final_filename,
+                        "nome_original": file.filename if final_filename != file.filename else None,
                         "tamanho": len(file_content),
                         "tipo": file_type,
                         "status": "indexado",
                         "upload_em": datetime.now().isoformat()
                     })
-                    print(f"[KB] Arquivo {file.filename} enviado com sucesso")
+                    print(f"[KB] Arquivo {final_filename} enviado com sucesso")
                 else:
                     print(f"[KB] Falha ao armazenar {file.filename} em vector DB")
 
@@ -226,7 +290,8 @@ async def upload_documents(files: List[UploadFile] = File(...)):
         return JSONResponse({
             "total": len(uploaded_files),
             "dados": uploaded_files,
-            "mensagem": f"{len(uploaded_files)} arquivo(s) enviado(s) com sucesso"
+            "ignorados": skipped_files,
+            "mensagem": f"{len(uploaded_files)} arquivo(s) enviado(s) com sucesso" + (f", {len(skipped_files)} ignorado(s)" if skipped_files else "")
         })
 
     except HTTPException:

@@ -55,7 +55,7 @@
         <div id="notificacoes-container" class="fixed top-4 right-4 z-[9999] space-y-2" style="max-width: 400px;"></div>
 
         <!-- Container de Confirmação Modal -->
-        <div id="confirmacao-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] hidden flex items-center justify-center" @click.self="fechar_confirmacao()" x-show="confirmacao_aberta" style="display: none;">
+        <div id="confirmacao-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="fechar_confirmacao()" x-show="confirmacao_aberta" x-cloak>
             <div class="bg-white rounded-lg p-6 max-w-sm" @click.stop>
                 <h3 class="text-lg font-bold mb-2" x-text="confirmacao_titulo"></h3>
                 <p class="text-gray-600 mb-6" x-text="confirmacao_mensagem"></p>
@@ -65,6 +65,70 @@
                     </button>
                     <button @click="executar_confirmacao()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-medium">
                         Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Arquivos Duplicados -->
+        <div id="duplicados-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="fechar_duplicados_modal()" x-show="duplicados_modal_aberto" x-cloak>
+            <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4" @click.stop>
+                <h3 class="text-xl font-bold mb-3 text-orange-600">⚠️ Arquivos Duplicados Detectados</h3>
+                <p class="text-gray-600 mb-4">Os seguintes arquivos já existem na base de conhecimento. Como deseja proceder?</p>
+
+                <!-- Lista de arquivos duplicados -->
+                <div class="bg-gray-50 rounded p-4 mb-4 max-h-60 overflow-y-auto">
+                    <template x-for="dup in arquivos_duplicados" :key="dup.nome">
+                        <div class="flex items-center justify-between py-2 px-3 bg-white rounded mb-2">
+                            <div class="flex items-center space-x-3 flex-1 min-w-0">
+                                <span class="text-orange-500 text-xl">📄</span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-medium text-sm truncate" x-text="dup.nome"></p>
+                                    <p class="text-xs text-gray-500">
+                                        Existente: <span x-text="(dup.tamanho_existente / 1024).toFixed(2)"></span> KB
+                                        / Novo: <span x-text="(dup.tamanho_novo / 1024).toFixed(2)"></span> KB
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Opções de ação -->
+                <div class="mb-6">
+                    <p class="text-sm font-semibold mb-3 text-gray-700">Escolha uma ação:</p>
+                    <div class="space-y-2">
+                        <label class="flex items-center p-3 border-2 rounded cursor-pointer hover:bg-blue-50" :class="opcao_duplicados === 'overwrite' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'">
+                            <input type="radio" name="duplicate-action" value="overwrite" x-model="opcao_duplicados" class="mr-3">
+                            <div>
+                                <p class="font-medium text-sm">Sobrescrever arquivos existentes</p>
+                                <p class="text-xs text-gray-500">Substitui os arquivos antigos pelos novos</p>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 border-2 rounded cursor-pointer hover:bg-green-50" :class="opcao_duplicados === 'copy' ? 'border-green-500 bg-green-50' : 'border-gray-200'">
+                            <input type="radio" name="duplicate-action" value="copy" x-model="opcao_duplicados" class="mr-3">
+                            <div>
+                                <p class="font-medium text-sm">Criar uma cópia</p>
+                                <p class="text-xs text-gray-500">Mantém o arquivo antigo e cria "arquivo (1).pdf"</p>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 border-2 rounded cursor-pointer hover:bg-gray-50" :class="opcao_duplicados === 'skip' ? 'border-gray-500 bg-gray-50' : 'border-gray-200'">
+                            <input type="radio" name="duplicate-action" value="skip" x-model="opcao_duplicados" class="mr-3">
+                            <div>
+                                <p class="font-medium text-sm">Ignorar duplicados</p>
+                                <p class="text-xs text-gray-500">Mantém os arquivos existentes e não envia os duplicados</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Botões de ação -->
+                <div class="flex gap-3 justify-end">
+                    <button @click="fechar_duplicados_modal()" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded font-medium">
+                        Cancelar Upload
+                    </button>
+                    <button @click="proceder_com_upload()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium">
+                        Continuar
                     </button>
                 </div>
             </div>
@@ -267,16 +331,44 @@
                     </div>
                 </div>
 
-                <!-- Upload Status -->
+                <!-- Upload Status - Melhorado com detalhes por arquivo -->
                 <template x-if="uploading">
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                        <div class="flex items-center">
-                            <div class="animate-spin mr-3">⟳</div>
-                            <div>
-                                <p class="font-bold">Fazendo upload...</p>
-                                <p class="text-sm text-gray-600" x-text="`${upload_progress}%`"></p>
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center">
+                                    <div class="animate-spin mr-3 text-xl">⟳</div>
+                                    <div>
+                                        <p class="font-bold text-blue-900" x-text="upload_status || 'Fazendo upload...'"></p>
+                                        <p class="text-sm text-blue-700">Progresso geral: <span x-text="`${upload_progress}%`"></span></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Barra de progresso geral -->
+                            <div class="w-full bg-blue-200 rounded-full h-2.5 overflow-hidden">
+                                <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" :style="`width: ${upload_progress}%`"></div>
                             </div>
                         </div>
+
+                        <!-- Lista de arquivos com status individual -->
+                        <template x-if="upload_files_status.length > 0">
+                            <div class="space-y-2 mt-4">
+                                <p class="text-sm font-semibold text-blue-900 mb-2">Arquivos:</p>
+                                <template x-for="file in upload_files_status" :key="file.name">
+                                    <div class="flex items-center justify-between bg-white rounded px-3 py-2 text-sm">
+                                        <div class="flex items-center space-x-2 flex-1 min-w-0">
+                                            <span x-text="file.status === 'success' ? '✓' : file.status === 'error' || file.status === 'invalid' ? '✗' : file.status === 'uploading' || file.status === 'processing' ? '⟳' : '⏳'"
+                                                  :class="file.status === 'success' ? 'text-green-600' : file.status === 'error' || file.status === 'invalid' ? 'text-red-600' : file.status === 'uploading' || file.status === 'processing' ? 'text-blue-600 animate-spin' : 'text-gray-400'"></span>
+                                            <span class="font-medium truncate" x-text="file.name"></span>
+                                        </div>
+                                        <span class="text-xs ml-2 whitespace-nowrap"
+                                              :class="file.status === 'success' ? 'text-green-600' : file.status === 'error' || file.status === 'invalid' ? 'text-red-600' : 'text-blue-600'"
+                                              x-text="file.message"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
                     </div>
                 </template>
 
@@ -439,7 +531,13 @@
                 analisando: false,
                 uploading: false,
                 upload_progress: 0,
+                upload_status: '',
+                upload_files_status: [],
                 dragover_kb: false,
+                duplicados_modal_aberto: false,
+                arquivos_duplicados: [],
+                arquivos_pendentes: null,
+                opcao_duplicados: 'ask',
                 percentual_processamento: 0,
                 aba_priorizacao: 'tabela',
                 chartMatriz: null,
@@ -758,6 +856,28 @@
                     }
                 },
 
+                fechar_duplicados_modal() {
+                    this.duplicados_modal_aberto = false;
+                    this.arquivos_duplicados = [];
+                    this.arquivos_pendentes = null;
+                    this.opcao_duplicados = 'ask';
+                },
+
+                async proceder_com_upload() {
+                    // Fechar modal
+                    this.duplicados_modal_aberto = false;
+
+                    // Prosseguir com upload usando a opção selecionada
+                    if (this.arquivos_pendentes) {
+                        await this.executar_upload(this.arquivos_pendentes, this.opcao_duplicados);
+                    }
+
+                    // Limpar estado
+                    this.arquivos_pendentes = null;
+                    this.arquivos_duplicados = [];
+                    this.opcao_duplicados = 'ask';
+                },
+
                 handleFileDrops(event) {
                     const files = event.dataTransfer.files;
                     if (!files || files.length === 0) return;
@@ -774,9 +894,45 @@
                     const files = event.target.files;
                     if (!files || files.length === 0) return;
 
+                    // Primeiro, verificar se há duplicados
+                    try {
+                        const checkFormData = new FormData();
+                        for (let file of files) {
+                            checkFormData.append('files', file);
+                        }
+
+                        const checkRes = await fetch('/api/knowledge-base/check-duplicates', {
+                            method: 'POST',
+                            body: checkFormData
+                        });
+
+                        if (checkRes.ok) {
+                            const checkData = await checkRes.json();
+
+                            if (checkData.has_duplicates) {
+                                // Mostrar modal de duplicados
+                                this.arquivos_duplicados = checkData.duplicates;
+                                this.arquivos_pendentes = files;
+                                this.duplicados_modal_aberto = true;
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Erro ao verificar duplicados:', e);
+                        // Continuar com upload mesmo em caso de erro na verificação
+                    }
+
+                    // Se não há duplicados, prosseguir com upload
+                    await this.executar_upload(files, 'overwrite');
+                },
+
+                async executar_upload(files, overwriteOption) {
                     this.uploading = true;
                     this.upload_progress = 0;
+                    this.upload_status = 'Preparando upload...';
+                    this.upload_files_status = [];
                     const formData = new FormData();
+                    let validFileCount = 0;
 
                     for (let file of files) {
                         // Validate file type by extension (more reliable)
@@ -785,17 +941,23 @@
 
                         if (!hasValidExtension) {
                             this.mostrar_notificacao(`Arquivo inválido: ${file.name}. Suportados: DOCX, PDF, CSV, Markdown.`, 'erro');
+                            this.upload_files_status.push({ name: file.name, status: 'invalid', message: 'Tipo inválido' });
                             continue;
                         }
 
                         // Validate file size (25MB max)
                         if (file.size > 25 * 1024 * 1024) {
                             this.mostrar_notificacao(`Arquivo muito grande: ${file.name}. Máximo 25MB.`, 'erro');
+                            this.upload_files_status.push({ name: file.name, status: 'invalid', message: 'Muito grande (>25MB)' });
                             continue;
                         }
 
                         formData.append('files', file);
+                        this.upload_files_status.push({ name: file.name, status: 'pending', message: 'Aguardando...' });
+                        validFileCount++;
                     }
+
+                    this.upload_status = `${validFileCount} arquivo(s) válido(s) encontrado(s)`;
 
                     // Verificar se há arquivos para enviar
                     const formDataIterator = formData.entries();
@@ -817,18 +979,38 @@
                         const xhr = new XMLHttpRequest();
                         let uploadCompleted = false;
 
-                        // Timeout de 30 segundos
+                        // Timeout de 5 minutos (para arquivos grandes + processamento de embeddings)
                         const uploadTimeout = setTimeout(() => {
                             if (!uploadCompleted) {
+                                console.error('Upload timeout after 5 minutes');
                                 xhr.abort();
-                                this.mostrar_notificacao('✗ Upload expirou (timeout)', 'erro');
+                                this.mostrar_notificacao('✗ Upload expirou (timeout) - Arquivo muito grande ou servidor ocupado', 'erro');
                                 this.uploading = false;
+                                this.upload_files_status = [];
+                                this.upload_status = '';
                             }
-                        }, 30000);
+                        }, 300000);
 
                         xhr.upload.addEventListener('progress', (e) => {
                             if (e.lengthComputable) {
-                                this.upload_progress = Math.round((e.loaded / e.total) * 100);
+                                const progress = Math.round((e.loaded / e.total) * 100);
+                                this.upload_progress = progress;
+
+                                if (progress < 100) {
+                                    this.upload_status = `Enviando arquivos... ${progress}%`;
+                                    // Atualizar status dos arquivos pendentes para "uploading"
+                                    this.upload_files_status = this.upload_files_status.map(f =>
+                                        f.status === 'pending' ? { ...f, status: 'uploading', message: 'Enviando...' } : f
+                                    );
+                                } else {
+                                    // Upload completo (100%), aguardando resposta do servidor
+                                    this.upload_status = 'Upload concluído, processando e indexando arquivos...';
+                                    this.upload_files_status = this.upload_files_status.map(f =>
+                                        (f.status === 'uploading' || f.status === 'pending')
+                                            ? { ...f, status: 'processing', message: 'Processando...' }
+                                            : f
+                                    );
+                                }
                             }
                         });
 
@@ -836,9 +1018,59 @@
                             clearTimeout(uploadTimeout);
                             uploadCompleted = true;
                             console.log('XHR load event triggered, status:', xhr.status);
+                            console.log('Response:', xhr.responseText);
 
                             if (xhr.status === 200) {
-                                this.mostrar_notificacao('✓ Arquivos enviados com sucesso!', 'sucesso');
+                                try {
+                                    const response = JSON.parse(xhr.responseText);
+                                    const count = response.total || 0;
+
+                                    // Atualizar status dos arquivos para processando/sucesso
+                                    if (response.dados && Array.isArray(response.dados)) {
+                                        const uploadedNames = response.dados.map(d => d.nome);
+                                        const skippedNames = response.ignorados || [];
+
+                                        this.upload_files_status = this.upload_files_status.map(f => {
+                                            if (uploadedNames.includes(f.name)) {
+                                                return { ...f, status: 'success', message: 'Indexado com sucesso!' };
+                                            } else if (skippedNames.includes(f.name)) {
+                                                return { ...f, status: 'error', message: 'Ignorado (duplicado)' };
+                                            } else if (f.status === 'uploading' || f.status === 'pending' || f.status === 'processing') {
+                                                return { ...f, status: 'error', message: 'Não processado pelo servidor' };
+                                            }
+                                            return f;
+                                        });
+                                    } else {
+                                        // Se não houver detalhes, marcar todos como sucesso
+                                        this.upload_files_status = this.upload_files_status.map(f =>
+                                            (f.status === 'uploading' || f.status === 'pending' || f.status === 'processing')
+                                                ? { ...f, status: 'success', message: 'Indexado!' }
+                                                : f
+                                        );
+                                    }
+
+                                    const skippedCount = response.ignorados ? response.ignorados.length : 0;
+                                    let statusMsg = `✓ ${count} arquivo(s) indexado(s) com sucesso!`;
+                                    if (skippedCount > 0) {
+                                        statusMsg += ` (${skippedCount} ignorado(s))`;
+                                    }
+                                    this.upload_status = statusMsg;
+                                    this.mostrar_notificacao(statusMsg, 'sucesso');
+
+                                    // Limpar status após 3 segundos
+                                    setTimeout(() => {
+                                        this.upload_files_status = [];
+                                        this.upload_status = '';
+                                    }, 3000);
+                                } catch (e) {
+                                    console.error('Failed to parse success response:', e);
+                                    this.upload_status = '✓ Arquivos enviados com sucesso!';
+                                    this.mostrar_notificacao('✓ Arquivos enviados com sucesso!', 'sucesso');
+                                    setTimeout(() => {
+                                        this.upload_files_status = [];
+                                        this.upload_status = '';
+                                    }, 3000);
+                                }
                                 this.carregar_documentos();
                             } else {
                                 let errorMsg = xhr.statusText;
@@ -846,22 +1078,28 @@
                                     const response = JSON.parse(xhr.responseText);
                                     if (response.detail) {
                                         errorMsg = response.detail;
+                                    } else if (response.mensagem) {
+                                        errorMsg = response.mensagem;
                                     }
                                 } catch (e) {
-                                    // Fallback se resposta não for JSON
+                                    console.error('Failed to parse error response:', e);
                                 }
+                                console.error('Upload failed with status:', xhr.status, 'Error:', errorMsg);
                                 this.mostrar_notificacao('✗ Erro ao enviar arquivos: ' + errorMsg, 'erro');
                             }
                             this.uploading = false;
                             this.upload_progress = 0;
                         });
 
-                        xhr.addEventListener('error', () => {
+                        xhr.addEventListener('error', (e) => {
                             clearTimeout(uploadTimeout);
                             uploadCompleted = true;
-                            console.error('XHR error event triggered');
+                            console.error('XHR error event triggered', e);
+                            console.error('XHR status:', xhr.status, 'readyState:', xhr.readyState);
                             this.mostrar_notificacao('✗ Erro de conexão ao enviar arquivos', 'erro');
                             this.uploading = false;
+                            this.upload_files_status = [];
+                            this.upload_status = '';
                         });
 
                         xhr.addEventListener('abort', () => {
@@ -870,11 +1108,17 @@
                                 console.log('XHR abort event triggered');
                                 this.mostrar_notificacao('✗ Upload cancelado', 'aviso');
                                 this.uploading = false;
+                                this.upload_files_status = [];
+                                this.upload_status = '';
                             }
                         });
 
-                        console.log('Starting upload with FormData');
-                        xhr.open('POST', '/api/knowledge-base/upload');
+                        // Debug: log number of files in FormData
+                        const fileCount = Array.from(formData.entries()).filter(([key]) => key === 'files').length;
+                        console.log(`Starting upload with ${fileCount} files in FormData, overwrite option: ${overwriteOption}`);
+                        console.log('FormData entries:', Array.from(formData.entries()).map(([k, v]) => ({ key: k, fileName: v.name, size: v.size })));
+
+                        xhr.open('POST', `/api/knowledge-base/upload?overwrite=${overwriteOption}`);
                         xhr.send(formData);
                     } catch (e) {
                         console.error('Upload error:', e);
@@ -958,16 +1202,24 @@
                 },
 
                 remover_documento(filename) {
+                    console.log('remover_documento chamado para:', filename);
                     this.mostrar_confirmacao(`Remover "${filename}"?`, `Esta ação não pode ser desfeita.`, () => {
+                        console.log('Confirmação aceita, removendo:', filename);
                         fetch(`/api/knowledge-base/documentos/${encodeURIComponent(filename)}`, {
                             method: 'DELETE'
                         })
                         .then(res => {
+                            console.log('Resposta da API DELETE:', res.status, res.statusText);
                             if (res.ok) {
                                 this.mostrar_notificacao(`✓ Documento "${filename}" removido com sucesso!`, 'sucesso');
                                 this.carregar_documentos();
                             } else {
-                                this.mostrar_notificacao(`✗ Erro ao remover documento: ${res.statusText}`, 'erro');
+                                return res.json().then(data => {
+                                    const errorMsg = data.detail || res.statusText;
+                                    this.mostrar_notificacao(`✗ Erro ao remover documento: ${errorMsg}`, 'erro');
+                                }).catch(() => {
+                                    this.mostrar_notificacao(`✗ Erro ao remover documento: ${res.statusText}`, 'erro');
+                                });
                             }
                         })
                         .catch(error => {
