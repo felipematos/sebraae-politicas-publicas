@@ -815,6 +815,16 @@
 
                     try {
                         const xhr = new XMLHttpRequest();
+                        let uploadCompleted = false;
+
+                        // Timeout de 30 segundos
+                        const uploadTimeout = setTimeout(() => {
+                            if (!uploadCompleted) {
+                                xhr.abort();
+                                this.mostrar_notificacao('✗ Upload expirou (timeout)', 'erro');
+                                this.uploading = false;
+                            }
+                        }, 30000);
 
                         xhr.upload.addEventListener('progress', (e) => {
                             if (e.lengthComputable) {
@@ -823,6 +833,10 @@
                         });
 
                         xhr.addEventListener('load', () => {
+                            clearTimeout(uploadTimeout);
+                            uploadCompleted = true;
+                            console.log('XHR load event triggered, status:', xhr.status);
+
                             if (xhr.status === 200) {
                                 this.mostrar_notificacao('✓ Arquivos enviados com sucesso!', 'sucesso');
                                 this.carregar_documentos();
@@ -843,13 +857,27 @@
                         });
 
                         xhr.addEventListener('error', () => {
+                            clearTimeout(uploadTimeout);
+                            uploadCompleted = true;
+                            console.error('XHR error event triggered');
                             this.mostrar_notificacao('✗ Erro de conexão ao enviar arquivos', 'erro');
                             this.uploading = false;
                         });
 
+                        xhr.addEventListener('abort', () => {
+                            clearTimeout(uploadTimeout);
+                            if (!uploadCompleted) {
+                                console.log('XHR abort event triggered');
+                                this.mostrar_notificacao('✗ Upload cancelado', 'aviso');
+                                this.uploading = false;
+                            }
+                        });
+
+                        console.log('Starting upload with FormData');
                         xhr.open('POST', '/api/knowledge-base/upload');
                         xhr.send(formData);
                     } catch (e) {
+                        console.error('Upload error:', e);
                         this.mostrar_notificacao('✗ Erro ao processar upload: ' + e.message, 'erro');
                         this.uploading = false;
                     }
