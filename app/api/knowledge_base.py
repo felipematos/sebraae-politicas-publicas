@@ -592,6 +592,7 @@ async def chat_knowledge_base(request: ChatRequest):
     """
     try:
         from app.llm.openai_client import OpenAIClient
+        import re
 
         debug_info = {
             "total_documentos_vector_store": 0,
@@ -601,7 +602,8 @@ async def chat_knowledge_base(request: ChatRequest):
             "modelo_llm": "gpt-4o",  # Modelo com maior janela de contexto (128k tokens)
             "temperatura": 0.3,
             "chunk_size": 1500,
-            "overlap": 300
+            "overlap": 300,
+            "estrategia_busca": "semantica"  # Pode ser "semantica" ou "hibrida_filtrada"
         }
 
         # Obter vector store global (singleton)
@@ -611,11 +613,52 @@ async def chat_knowledge_base(request: ChatRequest):
         stats = vector_store.get_stats()
         debug_info["total_documentos_vector_store"] = stats.get("documents_count", 0)
 
-        # Buscar mais documentos relevantes para melhor cobertura
-        resultados = await vector_store.similarity_search(
-            query=request.pergunta,
-            k=10  # Top 10 chunks mais relevantes (com chunks de 1500 chars, temos ~15k chars de contexto)
-        )
+        # Detectar menções a nomes de pessoas ou documentos na pergunta
+        # Padrão: Nome Sobrenome (letras maiúsculas seguidas de letras minúsculas)
+        # Ex: "Renata Horta", "João Silva", etc.
+        nome_pattern = r'\b([A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞŸ][a-zàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]+(?:\s+[A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞŸ][a-zàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]+)+)\b'
+        nomes_detectados = re.findall(nome_pattern, request.pergunta)
+
+        resultados = []
+
+        # Se detectou nomes, tentar busca híbrida (filtrada + semântica)
+        if nomes_detectados:
+            debug_info["estrategia_busca"] = "hibrida_filtrada"
+            debug_info["nomes_detectados"] = nomes_detectados
+
+            # Para cada nome detectado, buscar documentos com esse nome no filename
+            for nome in nomes_detectados:
+                # Normalizar nome para comparação (lowercase, sem acentos opcionais)
+                nome_normalizado = nome.lower()
+
+                # Buscar TODOS os chunks disponíveis (sem limite)
+                todos_chunks = await vector_store.similarity_search(
+                    query=request.pergunta,
+                    k=100  # Buscar muitos chunks para filtrar
+                )
+
+                # Filtrar chunks cujo source (filename) contém o nome
+                chunks_filtrados = [
+                    chunk for chunk in todos_chunks
+                    if 'metadata' in chunk and 'source' in chunk['metadata']
+                    and nome_normalizado in chunk['metadata']['source'].lower()
+                ]
+
+                if chunks_filtrados:
+                    # Ordenar por distância (menor = mais similar)
+                    chunks_filtrados.sort(key=lambda x: x.get('distance', 999))
+                    # Pegar os top 10 mais relevantes deste documento
+                    resultados.extend(chunks_filtrados[:10])
+                    debug_info["fontes_filtradas"] = [chunk['metadata']['source'] for chunk in chunks_filtrados[:10]]
+                    break  # Encontrou documentos para o primeiro nome, parar
+
+        # Se não encontrou resultados com filtragem OU não detectou nomes, usar busca semântica padrão
+        if not resultados:
+            debug_info["estrategia_busca"] = "semantica_padrao"
+            resultados = await vector_store.similarity_search(
+                query=request.pergunta,
+                k=10  # Top 10 chunks mais relevantes (com chunks de 1500 chars, temos ~15k chars de contexto)
+            )
 
         debug_info["documentos_encontrados"] = len(resultados)
 

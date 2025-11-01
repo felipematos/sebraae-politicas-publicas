@@ -451,7 +451,7 @@
                         <div class="space-y-4">
                             <template x-for="(msg, idx) in chat_kb_mensagens" :key="idx">
                                 <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
-                                    <div :class="msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-white text-gray-800 border border-gray-200'"
+                                    <div :class="msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-white text-gray-900 border border-gray-200'"
                                          class="max-w-3xl rounded-lg p-4 shadow-sm">
                                         <div class="flex items-start space-x-2">
                                             <span x-text="msg.role === 'user' ? '👤' : '🤖'" class="text-lg"></span>
@@ -527,7 +527,7 @@
 
                             <template x-if="chat_kb_carregando">
                                 <div class="flex justify-start">
-                                    <div class="bg-white text-gray-800 border border-gray-200 rounded-lg p-4 shadow-sm">
+                                    <div class="bg-white text-gray-900 border border-gray-200 rounded-lg p-4 shadow-sm">
                                         <div class="flex items-center space-x-2">
                                             <span class="text-lg">🤖</span>
                                             <span class="text-sm text-gray-600">Pesquisando na base...</span>
@@ -1372,6 +1372,26 @@
                                                 statusMsg += ` (${skippedCount} ignorado(s))`;
                                             }
                                             this.upload_status = statusMsg;
+
+                                            // Finalizar upload
+                                            this.uploading = false;
+                                            this.upload_progress = 0;
+
+                                            // Mostrar notificação apropriada
+                                            if (count > 0) {
+                                                this.mostrar_notificacao(statusMsg, 'sucesso');
+                                            } else if (skippedCount > 0) {
+                                                this.mostrar_notificacao(`Todos os ${skippedCount} arquivo(s) foram ignorados (duplicados)`, 'aviso');
+                                            }
+
+                                            // Recarregar documentos
+                                            this.carregar_documentos();
+
+                                            // Limpar status após 3 segundos
+                                            setTimeout(() => {
+                                                this.upload_files_status = [];
+                                                this.upload_status = '';
+                                            }, 3000);
                                         }
                                     } catch (e) {
                                         console.error('Erro ao processar evento SSE:', e, eventText);
