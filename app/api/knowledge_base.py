@@ -4,11 +4,13 @@ Endpoints para gerenciamento de Base de Conhecimento com RAG
 Gerencia upload de DOCX/PDF e armazenamento em vector database
 """
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from typing import List
 from pydantic import BaseModel
 import io
 import os
+import json
+import asyncio
 from pathlib import Path
 from datetime import datetime
 
@@ -166,13 +168,204 @@ async def check_duplicates(files: List[UploadFile] = File(...)):
         raise HTTPException(status_code=500, detail=f"Erro ao verificar duplicatas: {str(e)}")
 
 
+async def process_single_file(
+    file: UploadFile,
+    overwrite: str,
+    progress_callback=None
+) -> dict:
+    """
+    Processa um único arquivo e retorna resultado
+    progress_callback: função opcional para enviar atualizações de progresso
+    """
+    try:
+        # Validar tipo baseado na extensão do arquivo
+        if not (file.filename.endswith('.docx') or
+                file.filename.endswith('.pdf') or
+                file.filename.endswith('.csv') or
+                file.filename.endswith('.md') or
+                file.filename.endswith('.txt')):
+            return {"status": "error", "filename": file.filename, "error": "Extensão não suportada"}
+
+        # Validar content-type
+        if file.content_type not in [
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/pdf',
+            'text/csv',
+            'text/markdown',
+            'text/plain',
+            'application/octet-stream'
+        ]:
+            return {"status": "error", "filename": file.filename, "error": "Tipo de arquivo não suportado"}
+
+        if progress_callback:
+            await progress_callback({"phase": "reading", "filename": file.filename, "progress": 10})
+
+        # Verificar se arquivo já existe
+        file_path = DOCS_DIR / file.filename
+        file_exists = file_path.exists()
+        final_filename = file.filename
+
+        if file_exists:
+            if overwrite == "skip":
+                return {"status": "skipped", "filename": file.filename}
+            elif overwrite == "copy":
+                base_name = file.filename.rsplit('.', 1)[0]
+                extension = file.filename.rsplit('.', 1)[1] if '.' in file.filename else ''
+                counter = 1
+                while (DOCS_DIR / f"{base_name} ({counter}).{extension}").exists():
+                    counter += 1
+                final_filename = f"{base_name} ({counter}).{extension}"
+
+        if progress_callback:
+            await progress_callback({"phase": "extracting", "filename": file.filename, "progress": 30})
+
+        # Ler conteúdo
+        file_content = await file.read()
+
+        if len(file_content) > MAX_FILE_SIZE:
+            return {"status": "error", "filename": file.filename, "error": "Arquivo excede 25MB"}
+
+        # Extrair texto baseado no tipo
+        if file.filename.endswith('.docx'):
+            text = extract_text_from_docx(file_content)
+            file_type = 'docx'
+        elif file.filename.endswith('.pdf'):
+            text = extract_text_from_pdf(file_content)
+            file_type = 'pdf'
+        elif file.filename.endswith('.csv'):
+            text = extract_text_from_csv(file_content)
+            file_type = 'csv'
+        elif file.filename.endswith('.md'):
+            text = extract_text_from_markdown(file_content)
+            file_type = 'md'
+        elif file.filename.endswith('.txt'):
+            text = extract_text_from_markdown(file_content)
+            file_type = 'txt'
+        else:
+            return {"status": "error", "filename": file.filename, "error": "Extensão não reconhecida"}
+
+        if progress_callback:
+            await progress_callback({"phase": "indexing", "filename": file.filename, "progress": 60})
+
+        # Armazenar em vector DB
+        success = await store_document_in_vector_db(
+            file_name=final_filename,
+            text_content=text,
+            file_type=file_type
+        )
+
+        if not success:
+            return {"status": "error", "filename": file.filename, "error": "Falha ao indexar"}
+
+        if progress_callback:
+            await progress_callback({"phase": "saving", "filename": file.filename, "progress": 90})
+
+        # Salvar arquivo localmente
+        file_path = DOCS_DIR / final_filename
+        with open(file_path, 'wb') as f:
+            f.write(file_content)
+
+        if progress_callback:
+            await progress_callback({"phase": "complete", "filename": file.filename, "progress": 100})
+
+        return {
+            "status": "success",
+            "nome": final_filename,
+            "nome_original": file.filename if final_filename != file.filename else None,
+            "tamanho": len(file_content),
+            "tipo": file_type,
+            "upload_em": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        print(f"[KB] Erro ao processar {file.filename}: {str(e)}")
+        return {"status": "error", "filename": file.filename, "error": str(e)}
+
+
+@router.post("/upload-stream")
+async def upload_documents_stream(
+    files: List[UploadFile] = File(...),
+    overwrite: str = "ask"
+):
+    """
+    Upload de documentos com progresso em tempo real via SSE
+    """
+    async def event_generator():
+        try:
+            total_files = len(files)
+
+            # Enviar evento de início
+            yield f"data: {json.dumps({'type': 'start', 'total': total_files})}\n\n"
+            await asyncio.sleep(0)  # Força flush
+
+            uploaded_files = []
+            skipped_files = []
+
+            for index, file in enumerate(files):
+                # Lista para coletar eventos de progresso
+                progress_events = []
+
+                # Callback que coleta eventos ao invés de enviá-los
+                async def collect_progress(data):
+                    progress_events.append({
+                        'type': 'progress',
+                        'file_index': index,
+                        'file_name': file.filename,
+                        **data
+                    })
+
+                # Processar arquivo
+                result = await process_single_file(file, overwrite, collect_progress)
+
+                # Enviar todos os eventos de progresso coletados
+                for event in progress_events:
+                    yield f"data: {json.dumps(event)}\n\n"
+                    await asyncio.sleep(0)
+
+                if result["status"] == "success":
+                    uploaded_files.append(result)
+                elif result["status"] == "skipped":
+                    skipped_files.append(result["filename"])
+
+                # Enviar resultado do arquivo
+                yield f"data: {json.dumps({'type': 'file_complete', 'file_index': index, 'result': result})}\n\n"
+                await asyncio.sleep(0)
+
+            # Enviar evento de conclusão
+            final_result = {
+                'type': 'complete',
+                'total': len(uploaded_files),
+                'dados': uploaded_files,
+                'ignorados': skipped_files,
+                'mensagem': f"{len(uploaded_files)} arquivo(s) enviado(s) com sucesso" + (f", {len(skipped_files)} ignorado(s)" if skipped_files else "")
+            }
+            yield f"data: {json.dumps(final_result)}\n\n"
+
+        except Exception as e:
+            print(f"[KB Upload Stream] Erro: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            error_data = {'type': 'error', 'message': str(e)}
+            yield f"data: {json.dumps(error_data)}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
 @router.post("/upload")
 async def upload_documents(
     files: List[UploadFile] = File(...),
     overwrite: str = "ask"  # "ask", "overwrite", "copy", "skip"
 ):
     """
-    Upload de documentos DOCX ou PDF
+    Upload de documentos DOCX ou PDF (versão sem streaming - mantida para compatibilidade)
     Armazena em vector database para RAG
 
     Parâmetros:

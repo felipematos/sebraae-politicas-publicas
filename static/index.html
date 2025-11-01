@@ -1114,7 +1114,7 @@
                     for (let file of files) {
                         // Validate file type by extension (more reliable)
                         const validExtensions = ['.docx', '.pdf', '.csv', '.md', '.txt'];
-                        const hasValidExtension = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+                        const hasValidExtension = validExtensions.some(ext => file.name.toLowerCase().endswith(ext));
 
                         if (!hasValidExtension) {
                             this.mostrar_notificacao(`Arquivo inválido: ${file.name}. Suportados: DOCX, PDF, CSV, Markdown.`, 'erro');
@@ -1130,38 +1130,30 @@
                         }
 
                         formData.append('files', file);
-                        this.upload_files_status.push({ name: file.name, status: 'pending', message: 'Aguardando...' });
+                        this.upload_files_status.push({ name: file.name, status: 'pending', message: 'Aguardando...', progress: 0 });
                         validFileCount++;
                     }
 
                     this.upload_status = `${validFileCount} arquivo(s) válido(s) encontrado(s)`;
 
-                    // Verificar se há arquivos para enviar
-                    const formDataIterator = formData.entries();
-                    let hasFiles = false;
-                    for (let [key, value] of formDataIterator) {
-                        if (key === 'files') {
-                            hasFiles = true;
-                            break;
-                        }
-                    }
-
-                    if (!hasFiles) {
+                    if (validFileCount === 0) {
                         this.mostrar_notificacao('✗ Nenhum arquivo válido selecionado', 'erro');
                         this.uploading = false;
                         return;
                     }
 
                     try {
+                        // Usar SSE para progresso em tempo real
                         const xhr = new XMLHttpRequest();
                         let uploadCompleted = false;
+                        let processingStarted = false;
 
-                        // Timeout de 5 minutos (para arquivos grandes + processamento de embeddings)
+                        // Timeout de 5 minutos
                         const uploadTimeout = setTimeout(() => {
                             if (!uploadCompleted) {
                                 console.error('Upload timeout after 5 minutes');
                                 xhr.abort();
-                                this.mostrar_notificacao('✗ Upload expirou (timeout) - Arquivo muito grande ou servidor ocupado', 'erro');
+                                this.mostrar_notificacao('✗ Upload expirou (timeout)', 'erro');
                                 this.uploading = false;
                                 this.upload_files_status = [];
                                 this.upload_status = '';
@@ -1295,7 +1287,95 @@
                         console.log(`Starting upload with ${fileCount} files in FormData, overwrite option: ${overwriteOption}`);
                         console.log('FormData entries:', Array.from(formData.entries()).map(([k, v]) => ({ key: k, fileName: v.name, size: v.size })));
 
-                        xhr.open('POST', `/api/knowledge-base/upload?overwrite=${overwriteOption}`);
+                        // Usar endpoint com streaming de progresso
+                        xhr.open('POST', `/api/knowledge-base/upload-stream?overwrite=${overwriteOption}`);
+                        xhr.setRequestHeader('Accept', 'text/event-stream');
+
+                        // Processar eventos SSE na medida em que chegam
+                        let responseBuffer = '';
+                        xhr.addEventListener('readystatechange', () => {
+                            if (xhr.readyState === 3) {  // LOADING - dados parciais disponíveis
+                                processingStarted = true;
+                                const newData = xhr.responseText.substring(responseBuffer.length);
+                                responseBuffer = xhr.responseText;
+
+                                // Processar eventos SSE
+                                const events = newData.split('\n\n').filter(e => e.trim());
+                                events.forEach(eventText => {
+                                    if (!eventText.startsWith('data: ')) return;
+
+                                    try {
+                                        const jsonData = eventText.substring(6);  // Remove "data: "
+                                        const event = JSON.parse(jsonData);
+
+                                        if (event.type === 'start') {
+                                            this.upload_status = `Iniciando processamento de ${event.total} arquivo(s)...`;
+                                        } else if (event.type === 'progress') {
+                                            // Atualizar progresso do arquivo específico
+                                            const fileIndex = event.file_index;
+                                            const phase = event.phase;
+                                            const progress = event.progress || 0;
+
+                                            let message = 'Processando...';
+                                            if (phase === 'reading') message = 'Lendo arquivo...';
+                                            else if (phase === 'extracting') message = 'Extraindo texto...';
+                                            else if (phase === 'indexing') message = 'Indexando...';
+                                            else if (phase === 'saving') message = 'Salvando...';
+                                            else if (phase === 'complete') message = 'Concluído!';
+
+                                            if (this.upload_files_status[fileIndex]) {
+                                                this.upload_files_status[fileIndex] = {
+                                                    ...this.upload_files_status[fileIndex],
+                                                    status: phase === 'complete' ? 'success' : 'processing',
+                                                    message: `${message} ${progress}%`,
+                                                    progress: progress
+                                                };
+                                            }
+                                        } else if (event.type === 'file_complete') {
+                                            const result = event.result;
+                                            const fileIndex = event.file_index;
+
+                                            if (this.upload_files_status[fileIndex]) {
+                                                if (result.status === 'success') {
+                                                    this.upload_files_status[fileIndex] = {
+                                                        ...this.upload_files_status[fileIndex],
+                                                        status: 'success',
+                                                        message: 'Indexado com sucesso!',
+                                                        progress: 100
+                                                    };
+                                                } else if (result.status === 'error') {
+                                                    this.upload_files_status[fileIndex] = {
+                                                        ...this.upload_files_status[fileIndex],
+                                                        status: 'error',
+                                                        message: result.error || 'Erro',
+                                                        progress: 0
+                                                    };
+                                                } else if (result.status === 'skipped') {
+                                                    this.upload_files_status[fileIndex] = {
+                                                        ...this.upload_files_status[fileIndex],
+                                                        status: 'error',
+                                                        message: 'Ignorado (duplicado)',
+                                                        progress: 0
+                                                    };
+                                                }
+                                            }
+                                        } else if (event.type === 'complete') {
+                                            // Processamento completo
+                                            const count = event.total || 0;
+                                            const skippedCount = event.ignorados ? event.ignorados.length : 0;
+                                            let statusMsg = `✓ ${count} arquivo(s) indexado(s) com sucesso!`;
+                                            if (skippedCount > 0) {
+                                                statusMsg += ` (${skippedCount} ignorado(s))`;
+                                            }
+                                            this.upload_status = statusMsg;
+                                        }
+                                    } catch (e) {
+                                        console.error('Erro ao processar evento SSE:', e, eventText);
+                                    }
+                                });
+                            }
+                        });
+
                         xhr.send(formData);
                     } catch (e) {
                         console.error('Upload error:', e);
