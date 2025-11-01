@@ -409,6 +409,58 @@ class VectorStore:
             print(f"Erro encontrando queries similares: {e}")
             return []
 
+    async def similarity_search(
+        self,
+        query: str,
+        k: int = 5,
+        collection: str = "documents"
+    ) -> List[Dict[str, Any]]:
+        """
+        Busca documentos similares a uma query (para RAG)
+
+        Args:
+            query: Query para buscar
+            k: Número de resultados a retornar
+            collection: Nome da coleção a buscar (default: "documents")
+
+        Returns:
+            Lista de dicionários com 'text', 'metadata', 'distance'
+        """
+        try:
+            # Gerar embedding da query
+            embedding = await self.embedding_client.embed_text(query)
+
+            # Obter coleção apropriada
+            coll = self._get_collection(collection)
+
+            # Buscar na coleção
+            results = coll.query(
+                query_embeddings=[embedding],
+                n_results=k,
+                include=["metadatas", "documents", "distances"]
+            )
+
+            # Processar resultados
+            documentos = []
+            if results['documents'] and results['documents'][0]:
+                for i, doc in enumerate(results['documents'][0]):
+                    metadata = results['metadatas'][0][i] if results['metadatas'] and results['metadatas'][0] else {}
+                    distance = results['distances'][0][i] if results['distances'] and results['distances'][0] else 0.0
+
+                    documentos.append({
+                        'text': doc,
+                        'metadata': metadata,
+                        'distance': distance
+                    })
+
+            return documentos
+
+        except Exception as e:
+            print(f"Erro em similarity_search: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+
     async def get_by_falha_id(
         self,
         collection_name: str,

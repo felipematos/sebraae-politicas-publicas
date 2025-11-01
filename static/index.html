@@ -383,10 +383,31 @@
                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
 
+                    <!-- Bulk actions bar -->
+                    <div x-show="documentos_selecionados.length > 0" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-700">
+                            <span x-text="documentos_selecionados.length"></span> documento(s) selecionado(s)
+                        </span>
+                        <div class="space-x-2">
+                            <button @click="remover_selecionados()" class="px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700">
+                                🗑️ Remover Selecionados
+                            </button>
+                            <button @click="documentos_selecionados = []" class="px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="overflow-x-auto">
                         <table class="w-full">
                             <thead class="bg-gray-100 border-b">
                                 <tr>
+                                    <th class="px-3 py-3 text-center text-sm font-medium">
+                                        <input type="checkbox"
+                                               @change="alternar_todos_documentos($event.target.checked)"
+                                               :checked="documentos_filtrados.length > 0 && documentos_selecionados.length === documentos_filtrados.length"
+                                               class="w-4 h-4 cursor-pointer">
+                                    </th>
                                     <th @click="ordenar_documentos('nome')" class="px-6 py-3 text-left text-sm font-medium cursor-pointer hover:bg-gray-200 select-none">
                                         Nome <span x-show="ordem_campo === 'nome'" x-text="ordem_direcao === 'asc' ? '↑' : '↓'"></span>
                                     </th>
@@ -404,7 +425,7 @@
                             </thead>
                             <tbody id="tabela-documentos">
                                 <tr class="border-b hover:bg-gray-50">
-                                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">Carregando documentos...</td>
+                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">Carregando documentos...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -444,6 +465,56 @@
                                                                 <p class="text-xs" :class="msg.role === 'user' ? 'text-blue-100' : 'text-gray-600'">
                                                                     • <span x-text="fonte"></span>
                                                                 </p>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <!-- Debug Info (only for assistant messages) -->
+                                                <template x-if="msg.role === 'assistant' && msg.debug">
+                                                    <div class="mt-3 pt-3 border-t border-gray-200" x-data="{ debugExpanded: false }">
+                                                        <button @click="debugExpanded = !debugExpanded"
+                                                                class="flex items-center space-x-2 text-xs text-gray-500 hover:text-gray-700 focus:outline-none">
+                                                            <span x-text="debugExpanded ? '▼' : '▶'"></span>
+                                                            <span>🔍 Informações de Debug</span>
+                                                        </button>
+                                                        <div x-show="debugExpanded" class="mt-2 space-y-2 text-xs text-gray-600 bg-gray-50 p-3 rounded">
+                                                            <div class="grid grid-cols-2 gap-2">
+                                                                <div>
+                                                                    <strong>Total no Vector Store:</strong> <span x-text="msg.debug.total_documentos_vector_store"></span>
+                                                                </div>
+                                                                <div>
+                                                                    <strong>Documentos Encontrados:</strong> <span x-text="msg.debug.documentos_encontrados"></span>
+                                                                </div>
+                                                                <div>
+                                                                    <strong>Modelo LLM:</strong> <span x-text="msg.debug.modelo_llm"></span>
+                                                                </div>
+                                                                <div>
+                                                                    <strong>Temperatura:</strong> <span x-text="msg.debug.temperatura"></span>
+                                                                </div>
+                                                            </div>
+                                                            <template x-if="msg.debug.chunks_utilizados && msg.debug.chunks_utilizados.length > 0">
+                                                                <div class="mt-3">
+                                                                    <strong class="block mb-2">Chunks Utilizados:</strong>
+                                                                    <div class="space-y-2">
+                                                                        <template x-for="chunk in msg.debug.chunks_utilizados" :key="chunk.chunk_index">
+                                                                            <div class="bg-white p-2 rounded border border-gray-200">
+                                                                                <div class="flex justify-between mb-1">
+                                                                                    <span class="font-semibold">Chunk <span x-text="chunk.chunk_index"></span></span>
+                                                                                    <span class="text-gray-500">Distância: <span x-text="chunk.distancia.toFixed(4)"></span></span>
+                                                                                </div>
+                                                                                <div class="text-gray-600 mb-1">
+                                                                                    <strong>Fonte:</strong> <span x-text="chunk.fonte"></span>
+                                                                                </div>
+                                                                                <div class="text-gray-600 mb-1">
+                                                                                    <strong>Tamanho:</strong> <span x-text="chunk.tamanho_texto"></span> caracteres
+                                                                                </div>
+                                                                                <div class="text-gray-500 text-xs bg-gray-100 p-1 rounded mt-1">
+                                                                                    <strong>Preview:</strong> <span x-text="chunk.preview"></span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </template>
+                                                                    </div>
+                                                                </div>
                                                             </template>
                                                         </div>
                                                     </div>
@@ -634,6 +705,7 @@
                 opcao_duplicados: 'ask',
                 documentos: [],
                 documentos_filtrados: [],
+                documentos_selecionados: [],
                 busca_documentos: '',
                 ordem_campo: 'nome',
                 ordem_direcao: 'asc',
@@ -1258,12 +1330,20 @@
 
                     if (this.documentos_filtrados.length === 0) {
                         const mensagem = this.busca_documentos ? 'Nenhum documento encontrado com essa busca' : 'Nenhum documento enviado';
-                        tbody.innerHTML = `<tr class="border-b"><td colspan="5" class="px-6 py-4 text-center text-gray-500">${mensagem}</td></tr>`;
+                        tbody.innerHTML = `<tr class="border-b"><td colspan="6" class="px-6 py-4 text-center text-gray-500">${mensagem}</td></tr>`;
                         return;
                     }
 
-                    tbody.innerHTML = this.documentos_filtrados.map(doc => `
+                    tbody.innerHTML = this.documentos_filtrados.map(doc => {
+                        const isChecked = this.documentos_selecionados.includes(doc.nome);
+                        return `
                         <tr class="border-b hover:bg-blue-50">
+                            <td class="px-3 py-4 text-center">
+                                <input type="checkbox"
+                                       class="checkbox-doc w-4 h-4 cursor-pointer"
+                                       data-filename="${doc.nome}"
+                                       ${isChecked ? 'checked' : ''}>
+                            </td>
                             <td class="px-6 py-4 text-sm font-medium">${doc.nome}</td>
                             <td class="px-6 py-4 text-sm">${(doc.tamanho / 1024).toFixed(2)} KB</td>
                             <td class="px-6 py-4 text-sm"><span class="bg-gray-100 px-2 py-1 rounded text-xs">${doc.tipo}</span></td>
@@ -1274,7 +1354,17 @@
                                 <button class="btn-remover text-red-600 hover:underline text-xs" data-filename="${doc.nome}">Remover</button>
                             </td>
                         </tr>
-                    `).join('');
+                    `;
+                    }).join('');
+
+                    // Add event delegation for checkboxes
+                    tbody.querySelectorAll('.checkbox-doc').forEach(checkbox => {
+                        checkbox.addEventListener('change', (e) => {
+                            e.stopPropagation();
+                            const filename = checkbox.getAttribute('data-filename');
+                            this.alternar_selecao_documento(filename);
+                        });
+                    });
 
                     // Add event delegation for delete buttons
                     tbody.querySelectorAll('.btn-remover').forEach(btn => {
@@ -1383,7 +1473,8 @@
                         this.chat_kb_mensagens.push({
                             role: 'assistant',
                             content: data.resposta || 'Não consegui encontrar uma resposta.',
-                            fontes: data.fontes || []
+                            fontes: data.fontes || [],
+                            debug: data.debug || null
                         });
 
                         // Scroll para o fim
@@ -1465,6 +1556,65 @@
                             console.error('Erro ao remover documento:', error);
                             this.mostrar_notificacao(`✗ Erro ao remover documento: ${error.message}`, 'erro');
                         });
+                    });
+                },
+
+                alternar_selecao_documento(filename) {
+                    const index = this.documentos_selecionados.indexOf(filename);
+                    if (index > -1) {
+                        this.documentos_selecionados.splice(index, 1);
+                    } else {
+                        this.documentos_selecionados.push(filename);
+                    }
+                },
+
+                alternar_todos_documentos(checked) {
+                    if (checked) {
+                        this.documentos_selecionados = this.documentos_filtrados.map(doc => doc.nome);
+                    } else {
+                        this.documentos_selecionados = [];
+                    }
+                    this.renderizar_documentos();
+                },
+
+                async remover_selecionados() {
+                    if (this.documentos_selecionados.length === 0) return;
+
+                    const count = this.documentos_selecionados.length;
+                    const message = count === 1
+                        ? `Remover 1 documento selecionado?`
+                        : `Remover ${count} documentos selecionados?`;
+
+                    this.mostrar_confirmacao(message, `Esta ação não pode ser desfeita.`, async () => {
+                        let sucesso = 0;
+                        let falhas = 0;
+
+                        for (const filename of this.documentos_selecionados) {
+                            try {
+                                const res = await fetch(`/api/knowledge-base/documentos/${encodeURIComponent(filename)}`, {
+                                    method: 'DELETE'
+                                });
+                                if (res.ok) {
+                                    sucesso++;
+                                } else {
+                                    falhas++;
+                                    console.error(`Falha ao remover ${filename}`);
+                                }
+                            } catch (error) {
+                                falhas++;
+                                console.error(`Erro ao remover ${filename}:`, error);
+                            }
+                        }
+
+                        this.documentos_selecionados = [];
+
+                        if (falhas === 0) {
+                            this.mostrar_notificacao(`✓ ${sucesso} documento(s) removido(s) com sucesso!`, 'sucesso');
+                        } else {
+                            this.mostrar_notificacao(`⚠ ${sucesso} removido(s), ${falhas} falhou(aram)`, 'aviso');
+                        }
+
+                        await this.carregar_documentos();
                     });
                 }
             };

@@ -97,13 +97,8 @@ async def store_document_in_vector_db(
     Armazena documento em ChromaDB com embeddings
     """
     try:
-        # Obter vector store
-        embedding_client = EmbeddingClient(api_key=settings.OPENAI_API_KEY)
-        from app.config import get_chroma_path
-        vector_store = await get_vector_store(
-            persist_path=get_chroma_path(),
-            embedding_client=embedding_client
-        )
+        # Obter vector store global (singleton já inicializado no startup)
+        vector_store = await get_vector_store()
 
         # Dividir texto em chunks
         chunk_size = 1000
@@ -355,18 +350,10 @@ async def get_statistics():
         # Tentar obter estatísticas do vector store
         total_vetores = 0
         try:
-            embedding_client = EmbeddingClient(api_key=settings.OPENAI_API_KEY)
-            from app.config import get_chroma_path
-            vector_store = await get_vector_store(
-                persist_path=get_chroma_path(),
-                embedding_client=embedding_client
-            )
-            # Tentar contar documentos no ChromaDB
-            try:
-                collection = vector_store._client.get_or_create_collection("documents")
-                total_vetores = collection.count()
-            except:
-                total_vetores = 0
+            vector_store = await get_vector_store()
+            # Contar documentos no vector store
+            stats = vector_store.get_stats()
+            total_vetores = stats.get("documents_count", 0)
         except:
             total_vetores = 0
 
@@ -393,13 +380,21 @@ async def chat_knowledge_base(request: ChatRequest):
     try:
         from app.llm.openai_client import OpenAIClient
 
-        # Obter vector store
-        embedding_client = EmbeddingClient(api_key=settings.OPENAI_API_KEY)
-        from app.config import get_chroma_path
-        vector_store = await get_vector_store(
-            persist_path=get_chroma_path(),
-            embedding_client=embedding_client
-        )
+        debug_info = {
+            "total_documentos_vector_store": 0,
+            "documentos_encontrados": 0,
+            "fontes_consultadas": [],
+            "chunks_utilizados": [],
+            "modelo_llm": "gpt-4o-mini",
+            "temperatura": 0.3
+        }
+
+        # Obter vector store global (singleton)
+        vector_store = await get_vector_store()
+
+        # Obter estatísticas do vector store
+        stats = vector_store.get_stats()
+        debug_info["total_documentos_vector_store"] = stats.get("documents_count", 0)
 
         # Buscar documentos relevantes
         resultados = await vector_store.similarity_search(
@@ -407,10 +402,13 @@ async def chat_knowledge_base(request: ChatRequest):
             k=5  # Top 5 documentos mais relevantes
         )
 
+        debug_info["documentos_encontrados"] = len(resultados)
+
         if not resultados:
             return JSONResponse({
                 "resposta": "Não encontrei informações relevantes na base de conhecimento para responder sua pergunta.",
-                "fontes": []
+                "fontes": [],
+                "debug": debug_info
             })
 
         # Preparar contexto a partir dos documentos
@@ -420,7 +418,18 @@ async def chat_knowledge_base(request: ChatRequest):
         for i, doc in enumerate(resultados):
             contexto_partes.append(f"[Documento {i+1}]:\n{doc['text']}\n")
             if 'metadata' in doc and 'source' in doc['metadata']:
-                fontes.add(doc['metadata']['source'])
+                fonte = doc['metadata']['source']
+                fontes.add(fonte)
+                debug_info["fontes_consultadas"].append(fonte)
+
+            # Adicionar informações de debug sobre os chunks
+            debug_info["chunks_utilizados"].append({
+                "chunk_index": i + 1,
+                "fonte": doc['metadata'].get('source', 'Desconhecida') if 'metadata' in doc else 'Desconhecida',
+                "tamanho_texto": len(doc['text']),
+                "distancia": doc.get('distance', 0.0),
+                "preview": doc['text'][:200] + "..." if len(doc['text']) > 200 else doc['text']
+            })
 
         contexto = "\n".join(contexto_partes)
 
@@ -446,7 +455,8 @@ Responda de forma clara, objetiva e estruturada."""
 
         return JSONResponse({
             "resposta": resposta,
-            "fontes": list(fontes)
+            "fontes": list(fontes),
+            "debug": debug_info
         })
 
     except Exception as e:
