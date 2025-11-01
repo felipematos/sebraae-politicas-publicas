@@ -26,6 +26,7 @@ from app.config import settings, get_database_path
 from app.database import db
 from app.vector.vector_store import get_vector_store
 from app.vector.embeddings import EmbeddingClient
+from app.utils.text_chunker import create_smart_chunks, clean_text
 
 router = APIRouter(prefix="/api/knowledge-base", tags=["Knowledge Base"])
 
@@ -100,12 +101,17 @@ async def store_document_in_vector_db(
         # Obter vector store global (singleton já inicializado no startup)
         vector_store = await get_vector_store()
 
-        # Dividir texto em chunks
-        chunk_size = 1000
-        chunks = [
-            text_content[i:i + chunk_size]
-            for i in range(0, len(text_content), chunk_size)
-        ]
+        # Dividir texto em chunks inteligentes (otimizado para RAG de alta qualidade)
+        # - Limpa espaços extras entre letras (problema OCR)
+        # - Respeita limites de frases completas
+        # - Chunks maiores (1500 chars) para melhor contexto
+        # - Overlap de 300 chars para continuidade semântica
+        chunks = create_smart_chunks(
+            text=text_content,
+            chunk_size=1500,  # Chunks maiores para melhor qualidade
+            overlap=300,       # Overlap maior para não perder contexto
+            clean=True         # Limpa espaços extras e caracteres estranhos
+        )
 
         # Adicionar cada chunk ao vector store
         for i, chunk in enumerate(chunks):
@@ -385,8 +391,10 @@ async def chat_knowledge_base(request: ChatRequest):
             "documentos_encontrados": 0,
             "fontes_consultadas": [],
             "chunks_utilizados": [],
-            "modelo_llm": "gpt-4o-mini",
-            "temperatura": 0.3
+            "modelo_llm": "gpt-4o",  # Modelo com maior janela de contexto (128k tokens)
+            "temperatura": 0.3,
+            "chunk_size": 1500,
+            "overlap": 300
         }
 
         # Obter vector store global (singleton)
@@ -396,10 +404,10 @@ async def chat_knowledge_base(request: ChatRequest):
         stats = vector_store.get_stats()
         debug_info["total_documentos_vector_store"] = stats.get("documents_count", 0)
 
-        # Buscar documentos relevantes
+        # Buscar mais documentos relevantes para melhor cobertura
         resultados = await vector_store.similarity_search(
             query=request.pergunta,
-            k=5  # Top 5 documentos mais relevantes
+            k=10  # Top 10 chunks mais relevantes (com chunks de 1500 chars, temos ~15k chars de contexto)
         )
 
         debug_info["documentos_encontrados"] = len(resultados)
@@ -445,11 +453,12 @@ Por favor, responda a pergunta baseando-se EXCLUSIVAMENTE nas informações forn
 
 Responda de forma clara, objetiva e estruturada."""
 
-        # Chamar LLM
+        # Chamar LLM com modelo de alta performance
+        # GPT-4o: 128k tokens de contexto, melhor raciocínio e compreensão
         llm_client = OpenAIClient(api_key=settings.OPENAI_API_KEY)
         resposta = await llm_client.generate_completion(
             prompt=prompt,
-            model="gpt-4o-mini",
+            model="gpt-4o",  # Modelo premium com maior janela de contexto
             temperature=0.3
         )
 
