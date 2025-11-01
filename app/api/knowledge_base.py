@@ -94,10 +94,12 @@ def extract_text_from_markdown(file_content: bytes) -> str:
 async def store_document_in_vector_db(
     file_name: str,
     text_content: str,
-    file_type: str
+    file_type: str,
+    progress_callback=None
 ) -> bool:
     """
     Armazena documento em ChromaDB com embeddings
+    progress_callback: função opcional para reportar progresso de indexação
     """
     try:
         # Obter vector store global (singleton já inicializado no startup)
@@ -115,7 +117,9 @@ async def store_document_in_vector_db(
             clean=True         # Limpa espaços extras e caracteres estranhos
         )
 
-        # Adicionar cada chunk ao vector store
+        total_chunks = len(chunks)
+
+        # Adicionar cada chunk ao vector store com progresso incremental
         for i, chunk in enumerate(chunks):
             if chunk.strip():
                 doc_id = f"{file_name}_chunk_{i}"
@@ -125,6 +129,17 @@ async def store_document_in_vector_db(
                     "chunk": i,
                     "uploaded_at": datetime.now().isoformat()
                 }
+
+                # Reportar progresso durante indexação (60% a 90%)
+                # Cada chunk representa uma fração do progresso total
+                if progress_callback:
+                    # Progresso de 60% a 90% dividido pelos chunks
+                    chunk_progress = 60 + int(((i + 1) / total_chunks) * 30)
+                    await progress_callback({
+                        "phase": "indexing",
+                        "progress": chunk_progress,
+                        "detail": f"Indexando chunk {i+1}/{total_chunks}"
+                    })
 
                 # Add to vector store
                 await vector_store.add_texts(
@@ -244,21 +259,20 @@ async def process_single_file(
         else:
             return {"status": "error", "filename": file.filename, "error": "Extensão não reconhecida"}
 
-        if progress_callback:
-            await progress_callback({"phase": "indexing", "filename": file.filename, "progress": 60})
-
-        # Armazenar em vector DB
+        # Armazenar em vector DB com callback de progresso
+        # A indexação vai de 60% a 90% (dividido pelos chunks)
         success = await store_document_in_vector_db(
             file_name=final_filename,
             text_content=text,
-            file_type=file_type
+            file_type=file_type,
+            progress_callback=progress_callback
         )
 
         if not success:
             return {"status": "error", "filename": file.filename, "error": "Falha ao indexar"}
 
         if progress_callback:
-            await progress_callback({"phase": "saving", "filename": file.filename, "progress": 90})
+            await progress_callback({"phase": "saving", "filename": file.filename, "progress": 92})
 
         # Salvar arquivo localmente
         file_path = DOCS_DIR / final_filename

@@ -1315,11 +1315,15 @@
                                             const fileIndex = event.file_index;
                                             const phase = event.phase;
                                             const progress = event.progress || 0;
+                                            const detail = event.detail || '';
 
                                             let message = 'Processando...';
                                             if (phase === 'reading') message = 'Lendo arquivo...';
                                             else if (phase === 'extracting') message = 'Extraindo texto...';
-                                            else if (phase === 'indexing') message = 'Indexando...';
+                                            else if (phase === 'indexing') {
+                                                // Mostrar detalhe do chunk se disponível
+                                                message = detail || 'Indexando...';
+                                            }
                                             else if (phase === 'saving') message = 'Salvando...';
                                             else if (phase === 'complete') message = 'Concluído!';
 
