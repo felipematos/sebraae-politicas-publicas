@@ -102,14 +102,12 @@ class AgentePriorizador:
                     resposta_ia
                 )
 
-            # Extrair e salvar fontes utilizadas pela IA
-            fontes_utilizadas = self._extrair_fontes_resposta(resposta_ia, fontes)
-
-            if priorizacao_id:
+            # Salvar TODAS as fontes fornecidas como contexto
+            if priorizacao_id and fontes:
                 # Limpar fontes antigas
                 await limpar_fontes_priorizacao(priorizacao_id)
-                # Salvar novas fontes
-                for fonte in fontes_utilizadas:
+                # Salvar todas as fontes utilizadas no contexto
+                for fonte in fontes:
                     await inserir_fonte_priorizacao(
                         priorizacao_id=priorizacao_id,
                         falha_id=falha_id,
@@ -121,7 +119,7 @@ class AgentePriorizador:
                         fonte_conteudo=fonte.get('conteudo')
                     )
 
-            logger.info(f"✓ Falha {falha_id} analisada: Impacto={scores['impacto']}, Esforço={scores['esforco']}, Fontes={len(fontes_utilizadas)}")
+            logger.info(f"✓ Falha {falha_id} analisada: Impacto={scores['impacto']}, Esforço={scores['esforco']}, Fontes={len(fontes) if fontes else 0}")
 
             return {
                 'falha_id': falha_id,
