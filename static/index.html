@@ -821,7 +821,7 @@
                         <button @click="abrir_config_lote()" :disabled="analisando" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50">
                             ⚙️ Configurações
                         </button>
-                        <button @click="carregar_matriz()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium">
+                        <button @click="aba_priorizacao = 'matriz'; carregar_matriz()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium">
                             📊 Ver Matriz 2x2
                         </button>
                     </div>
@@ -864,7 +864,44 @@
                 <div x-show="aba_priorizacao === 'matriz'" class="space-y-6">
                     <!-- Gráfico da Matriz -->
                     <div class="bg-white rounded-lg shadow p-6">
-                        <canvas id="canvas-matriz" height="80"></canvas>
+                        <div class="aspect-square w-full max-w-3xl mx-auto">
+                            <canvas id="canvas-matriz"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Legenda dos Pilares -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="font-bold text-gray-800 mb-4">Legenda - Pilares do Ecossistema</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 rounded-full" style="background-color: #EF4444;"></div>
+                                <span class="text-sm">1. Talento</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 rounded-full" style="background-color: #F59E0B;"></div>
+                                <span class="text-sm">2. Densidade</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 rounded-full" style="background-color: #10B981;"></div>
+                                <span class="text-sm">3. Impacto/Diversidade</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 rounded-full" style="background-color: #3B82F6;"></div>
+                                <span class="text-sm">4. Acesso a Mercado</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 rounded-full" style="background-color: #8B5CF6;"></div>
+                                <span class="text-sm">5. Cultura</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 rounded-full" style="background-color: #EC4899;"></div>
+                                <span class="text-sm">6. Regulação</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 rounded-full" style="background-color: #06B6D4;"></div>
+                                <span class="text-sm">7. Capital</span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Quadrantes -->
@@ -1371,33 +1408,125 @@
                         if (!res.ok) return;
                         const matrizData = await res.json();
 
-                        const labels = matrizData.dados.map(d => d.titulo.substring(0, 10));
-                        const impactos = matrizData.dados.map(d => d.impacto);
-                        const esforcos = matrizData.dados.map(d => d.esforco);
+                        // Mapa de cores por pilar
+                        const coresPilares = {
+                            '1. Talento': '#EF4444',              // Vermelho
+                            '2. Densidade': '#F59E0B',            // Laranja
+                            '3. Impacto e Diversidade': '#10B981', // Verde
+                            '4. Acesso a Mercado': '#3B82F6',     // Azul
+                            '5. Cultura': '#8B5CF6',              // Roxo
+                            '6. Regulação': '#EC4899',            // Rosa
+                            '7. Capital': '#06B6D4'               // Ciano
+                        };
+
+                        // Agrupar dados por pilar
+                        const datasetsPorPilar = {};
+                        matrizData.dados.forEach(falha => {
+                            const pilar = falha.pilar;
+                            if (!datasetsPorPilar[pilar]) {
+                                datasetsPorPilar[pilar] = {
+                                    label: pilar,
+                                    data: [],
+                                    backgroundColor: coresPilares[pilar] || '#6B7280',
+                                    borderColor: coresPilares[pilar] || '#6B7280',
+                                    borderWidth: 2,
+                                    pointRadius: 8,
+                                    pointHoverRadius: 12,
+                                    falhasData: [] // Guardar dados completos das falhas
+                                };
+                            }
+
+                            datasetsPorPilar[pilar].data.push({
+                                x: falha.esforco,
+                                y: falha.impacto
+                            });
+                            datasetsPorPilar[pilar].falhasData.push(falha);
+                        });
+
+                        const datasets = Object.values(datasetsPorPilar);
 
                         if (this.chartMatriz) this.chartMatriz.destroy();
 
                         this.chartMatriz = new Chart(ctx, {
                             type: 'scatter',
-                            data: {
-                                datasets: [{
-                                    label: 'Falhas',
-                                    data: impactos.map((imp, idx) => ({ x: esforcos[idx], y: imp })),
-                                    borderColor: '#3B82F6',
-                                    backgroundColor: '#93C5FD',
-                                    borderWidth: 2,
-                                    pointRadius: 6
-                                }]
-                            },
+                            data: { datasets },
                             options: {
                                 responsive: true,
+                                maintainAspectRatio: true,
+                                aspectRatio: 1, // Forçar aspecto quadrado
+                                onClick: (event, elements) => {
+                                    if (elements.length > 0) {
+                                        const element = elements[0];
+                                        const datasetIndex = element.datasetIndex;
+                                        const dataIndex = element.index;
+                                        const dataset = this.chartMatriz.data.datasets[datasetIndex];
+                                        const falha = dataset.falhasData[dataIndex];
+
+                                        // Abrir modal de detalhes ao clicar
+                                        this.abrir_detalhes_priorizacao(falha.falha_id);
+                                    }
+                                },
                                 plugins: {
-                                    legend: { display: true },
-                                    title: { display: true, text: 'Matriz de Priorização (Impacto vs Esforço)' }
+                                    legend: {
+                                        display: true,
+                                        position: 'bottom',
+                                        labels: {
+                                            usePointStyle: true,
+                                            pointStyle: 'circle',
+                                            padding: 15,
+                                            font: { size: 11 }
+                                        }
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: 'Matriz de Priorização (Impacto vs Esforço)',
+                                        font: { size: 16, weight: 'bold' },
+                                        padding: { top: 10, bottom: 20 }
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            title: (context) => {
+                                                const datasetIndex = context[0].datasetIndex;
+                                                const dataIndex = context[0].dataIndex;
+                                                const dataset = context[0].chart.data.datasets[datasetIndex];
+                                                const falha = dataset.falhasData[dataIndex];
+                                                return falha.titulo;
+                                            },
+                                            label: (context) => {
+                                                const datasetIndex = context.datasetIndex;
+                                                const dataIndex = context.dataIndex;
+                                                const dataset = context.chart.data.datasets[datasetIndex];
+                                                const falha = dataset.falhasData[dataIndex];
+                                                return [
+                                                    `ID: ${falha.falha_id}`,
+                                                    `Impacto: ${falha.impacto}/10`,
+                                                    `Esforço: ${falha.esforco}/10`,
+                                                    `Pilar: ${falha.pilar}`
+                                                ];
+                                            }
+                                        },
+                                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                        titleFont: { size: 13, weight: 'bold' },
+                                        bodyFont: { size: 12 },
+                                        padding: 12,
+                                        displayColors: false
+                                    }
                                 },
                                 scales: {
-                                    x: { title: { display: true, text: 'Esforço (0-10)' }, min: 0, max: 10 },
-                                    y: { title: { display: true, text: 'Impacto (0-10)' }, min: 0, max: 10 }
+                                    x: {
+                                        title: { display: true, text: 'Esforço (0-10)', font: { size: 14, weight: 'bold' } },
+                                        min: 0,
+                                        max: 10,
+                                        ticks: { stepSize: 1 },
+                                        grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                                    },
+                                    y: {
+                                        title: { display: true, text: 'Impacto (0-10)', font: { size: 14, weight: 'bold' } },
+                                        min: 0,
+                                        max: 10,
+                                        ticks: { stepSize: 1 },
+                                        grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                                    }
                                 }
                             }
                         });
