@@ -228,31 +228,58 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
         """Consulta IA para análise com fallback inteligente e rastreamento de fontes"""
         from app.agente.criterios_calibragem import get_prompt_calibrado
         from app.config import settings
-        import openai
+        import aiohttp
 
         # Usar prompt calibrado com critérios objetivos
         prompt = get_prompt_calibrado(contexto)
 
         try:
-            # Usar OpenAI diretamente (mais confiável que OpenRouter)
-            client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+            # Usar Gemini 2.0 Flash via OpenRouter
+            # 1M tokens de contexto + raciocínio avançado
+            headers = {
+                "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                "HTTP-Referer": "https://sebrae-politicas.app",
+                "X-Title": "Sebrae Priorization Agent",
+                "Content-Type": "application/json",
+            }
 
-            response = await client.chat.completions.create(
-                model="gpt-4o-mini",  # Modelo rápido e barato
-                messages=[
-                    {"role": "system", "content": "Você é um especialista em políticas públicas e ecossistema de inovação brasileiro."},
-                    {"role": "user", "content": prompt}
+            data = {
+                "model": "google/gemini-2.0-flash-exp:free",  # 1M tokens de contexto
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "Você é um especialista em políticas públicas e ecossistema de inovação brasileiro."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
                 ],
-                temperature=0.3,
-                max_tokens=2000
-            )
+                "temperature": 0.3,
+                "max_tokens": 4000,  # Resposta pode ser mais longa
+            }
 
-            resposta = response.choices[0].message.content
-            logger.info(f"✓ Análise completada com GPT-4o-mini")
-            return resposta
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    json=data,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=120)  # 2 minutos timeout
+                ) as resp:
+                    if resp.status == 200:
+                        resultado = await resp.json()
+                        if resultado.get("choices") and len(resultado["choices"]) > 0:
+                            resposta = resultado["choices"][0]["message"]["content"]
+                            logger.info(f"✓ Análise completada com Gemini 2.0 Flash (1M tokens)")
+                            return resposta
+                        else:
+                            raise Exception("Resposta vazia do modelo")
+                    else:
+                        texto_erro = await resp.text()
+                        raise Exception(f"HTTP {resp.status}: {texto_erro[:200]}")
 
         except Exception as e:
-            logger.error(f"✗ Erro na análise: {str(e)[:100]}")
+            logger.error(f"✗ Erro na análise com Gemini 2.0 Flash: {str(e)[:100]}")
             # Retornar valores padrão em caso de erro
             return json.dumps({
                 "impacto": {
