@@ -616,29 +616,118 @@ async def chat_knowledge_base(request: ChatRequest):
         stats = vector_store.get_stats()
         debug_info["total_documentos_vector_store"] = stats.get("documents_count", 0)
 
-        # Detectar menções a nomes de pessoas ou documentos na pergunta
-        # Padrão: Nome Sobrenome (letras maiúsculas seguidas de letras minúsculas)
-        # Ex: "Renata Horta", "João Silva", etc.
+        # ========== DETECÇÃO DE PADRÕES NA PERGUNTA ==========
+
+        # 1. Detectar números de falhas: "Falha 45", "#45", "falha de mercado 45", "item 45"
+        numero_pattern = r'(?:falha|failure|#|número|numero|item|n°|n\.º)?\s*(?:de\s+mercado\s+)?#?\s*(\d+)'
+        numeros_detectados = re.findall(numero_pattern, request.pergunta, re.IGNORECASE)
+
+        # 2. Detectar categorias/pilares conhecidos
+        categorias_conhecidas = {
+            'talento': ['talento', 'talent'],
+            'densidade': ['densidade', 'density'],
+            'impacto': ['impacto', 'diversidade', 'impact', 'diversity'],
+            'mercado': ['mercado', 'market', 'acesso'],
+            'cultura': ['cultura', 'culture'],
+            'regulação': ['regulação', 'regulacao', 'regulation', 'burocracia'],
+            'capital': ['capital', 'financiamento', 'financing']
+        }
+
+        categorias_detectadas = []
+        pergunta_lower = request.pergunta.lower()
+        for categoria, variacoes in categorias_conhecidas.items():
+            if any(var in pergunta_lower for var in variacoes):
+                categorias_detectadas.append(categoria)
+
+        # 3. Detectar referências hierárquicas: "1.3", "item 1.3", "seção 2.1"
+        hierarquia_pattern = r'(?:item|seção|secao|section)?\s*(\d+\.\d+)'
+        hierarquias_detectadas = re.findall(hierarquia_pattern, request.pergunta, re.IGNORECASE)
+
+        # 4. Detectar menções a nomes de pessoas ou documentos na pergunta
         nome_pattern = r'\b([A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞŸ][a-zàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]+(?:\s+[A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞŸ][a-zàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]+)+)\b'
         nomes_detectados = re.findall(nome_pattern, request.pergunta)
 
-        resultados = []
-
-        # Se detectou nomes, tentar busca híbrida (filtrada + semântica)
+        # Armazenar padrões detectados no debug
+        if numeros_detectados:
+            debug_info["numeros_detectados"] = numeros_detectados
+        if categorias_detectadas:
+            debug_info["categorias_detectadas"] = categorias_detectadas
+        if hierarquias_detectadas:
+            debug_info["hierarquias_detectadas"] = hierarquias_detectadas
         if nomes_detectados:
-            debug_info["estrategia_busca"] = "hibrida_filtrada"
             debug_info["nomes_detectados"] = nomes_detectados
 
-            # Para cada nome detectado, buscar documentos com esse nome no filename
-            for nome in nomes_detectados:
-                # Normalizar nome para comparação (lowercase, sem acentos opcionais)
-                nome_normalizado = nome.lower()
+        resultados = []
 
-                # Buscar TODOS os chunks disponíveis (sem limite)
-                todos_chunks = await vector_store.similarity_search(
-                    query=request.pergunta,
-                    k=100  # Buscar muitos chunks para filtrar
-                )
+        # ========== ESTRATÉGIA DE BUSCA HÍBRIDA ==========
+
+        # Buscar TODOS os chunks disponíveis para filtragem (busca ampla)
+        todos_chunks = await vector_store.similarity_search(
+            query=request.pergunta,
+            k=100  # Buscar muitos chunks para depois filtrar
+        )
+
+        # Prioridade 1: Se detectou número específico, buscar chunks com "(#45)"
+        if numeros_detectados:
+            debug_info["estrategia_busca"] = "filtrada_por_numero"
+
+            for numero in numeros_detectados:
+                # Buscar chunks que contêm o padrão "(#45)" no texto
+                chunks_filtrados = [
+                    chunk for chunk in todos_chunks
+                    if f'(#{numero})' in chunk['text']
+                ]
+
+                if chunks_filtrados:
+                    # Ordenar por distância semântica (menor = mais similar)
+                    chunks_filtrados.sort(key=lambda x: x.get('distance', 999))
+                    resultados.extend(chunks_filtrados[:10])  # Top 10 chunks desse número
+                    debug_info["filtro_aplicado"] = f"Número #{numero}"
+                    break
+
+        # Prioridade 2: Se detectou categoria, buscar chunks dessa seção
+        if not resultados and categorias_detectadas:
+            debug_info["estrategia_busca"] = "filtrada_por_categoria"
+
+            for categoria in categorias_detectadas:
+                # Buscar chunks que contêm o nome da categoria (case-insensitive)
+                # Ex: "1. Talento", "### **1. Talento**"
+                categoria_title = categoria.title()
+                chunks_filtrados = [
+                    chunk for chunk in todos_chunks
+                    if categoria_title in chunk['text'] or categoria.lower() in chunk['text'].lower()
+                ]
+
+                if chunks_filtrados:
+                    # Ordenar por distância semântica
+                    chunks_filtrados.sort(key=lambda x: x.get('distance', 999))
+                    resultados.extend(chunks_filtrados[:10])
+                    debug_info["filtro_aplicado"] = f"Categoria: {categoria_title}"
+                    break
+
+        # Prioridade 3: Se detectou hierarquia, buscar chunks com padrão "1.3."
+        if not resultados and hierarquias_detectadas:
+            debug_info["estrategia_busca"] = "filtrada_por_hierarquia"
+
+            for hierarquia in hierarquias_detectadas:
+                # Buscar chunks que contêm "1.3. (#" (seção hierárquica)
+                chunks_filtrados = [
+                    chunk for chunk in todos_chunks
+                    if f'{hierarquia}.' in chunk['text']
+                ]
+
+                if chunks_filtrados:
+                    chunks_filtrados.sort(key=lambda x: x.get('distance', 999))
+                    resultados.extend(chunks_filtrados[:10])
+                    debug_info["filtro_aplicado"] = f"Hierarquia: {hierarquia}"
+                    break
+
+        # Prioridade 4: Se detectou nomes, buscar documentos com esse nome no filename
+        if not resultados and nomes_detectados:
+            debug_info["estrategia_busca"] = "filtrada_por_nome"
+
+            for nome in nomes_detectados:
+                nome_normalizado = nome.lower()
 
                 # Filtrar chunks cujo source (filename) contém o nome
                 chunks_filtrados = [
@@ -648,19 +737,17 @@ async def chat_knowledge_base(request: ChatRequest):
                 ]
 
                 if chunks_filtrados:
-                    # Ordenar por distância (menor = mais similar)
                     chunks_filtrados.sort(key=lambda x: x.get('distance', 999))
-                    # Pegar os top 10 mais relevantes deste documento
                     resultados.extend(chunks_filtrados[:10])
-                    debug_info["fontes_filtradas"] = [chunk['metadata']['source'] for chunk in chunks_filtrados[:10]]
-                    break  # Encontrou documentos para o primeiro nome, parar
+                    debug_info["filtro_aplicado"] = f"Nome: {nome}"
+                    break
 
-        # Se não encontrou resultados com filtragem OU não detectou nomes, usar busca semântica padrão
+        # Fallback: Se não encontrou com filtros, usar busca semântica padrão
         if not resultados:
             debug_info["estrategia_busca"] = "semantica_padrao"
             resultados = await vector_store.similarity_search(
                 query=request.pergunta,
-                k=10  # Top 10 chunks mais relevantes (com chunks de 1500 chars, temos ~15k chars de contexto)
+                k=10  # Top 10 chunks mais relevantes
             )
 
         debug_info["documentos_encontrados"] = len(resultados)
