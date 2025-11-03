@@ -908,6 +908,111 @@
                 </div>
             </section>
         </main>
+
+        <!-- Modal de Detalhes da Priorização -->
+        <div id="modal-detalhes" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" x-show="modal_aberto" @click.self="fechar_modal()" x-cloak>
+            <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
+                <!-- Header do Modal -->
+                <div class="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 border-b flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold" x-text="detalhes_modal?.titulo || ''"></h2>
+                        <p class="text-sm mt-1 opacity-90" x-text="`Falha ID: ${detalhes_modal?.falha_id || ''}`"></p>
+                    </div>
+                    <button @click="fechar_modal()" class="text-white hover:bg-blue-700 p-2 rounded-full">
+                        <span class="text-2xl">✕</span>
+                    </button>
+                </div>
+
+                <!-- Conteúdo do Modal -->
+                <div class="p-6 space-y-6">
+                    <!-- Scores de Impacto e Esforço -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+                            <p class="text-sm font-medium text-gray-600">Impacto</p>
+                            <p class="text-3xl font-bold text-green-600 mt-2" x-text="`${detalhes_modal?.impacto || 0}/10`"></p>
+                            <p class="text-xs text-gray-600 mt-2">Potencial de impacto positivo</p>
+                        </div>
+                        <div class="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                            <p class="text-sm font-medium text-gray-600">Esforço</p>
+                            <p class="text-3xl font-bold text-orange-600 mt-2" x-text="`${detalhes_modal?.esforco || 0}/10`"></p>
+                            <p class="text-xs text-gray-600 mt-2">Dificuldade de implementação</p>
+                        </div>
+                    </div>
+
+                    <!-- Análise da IA -->
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <h3 class="text-sm font-bold text-gray-800 mb-3">Análise da IA</h3>
+                        <p class="text-sm text-gray-700 whitespace-pre-wrap" x-text="detalhes_modal?.analise_ia || 'Sem análise disponível'"></p>
+                    </div>
+
+                    <!-- Fontes Utilizadas -->
+                    <div class="border-t pt-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <span class="mr-2">📚</span>
+                            Fontes Utilizadas
+                        </h3>
+
+                        <template x-if="detalhes_modal?.fontes && detalhes_modal.fontes.length > 0">
+                            <div class="space-y-3">
+                                <template x-for="(fonte, idx) in detalhes_modal.fontes" :key="idx">
+                                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+                                        <!-- Cabeçalho da Fonte -->
+                                        <div class="flex items-start justify-between mb-3">
+                                            <div class="flex-1">
+                                                <div class="flex items-center gap-2 mb-2">
+                                                    <span class="text-lg" x-text="obter_icone_fonte(fonte.fonte_tipo)"></span>
+                                                    <span class="font-bold text-gray-800 text-sm" x-text="fonte.fonte_titulo"></span>
+                                                </div>
+                                                <span :class="`${obter_cor_tipo(fonte.fonte_tipo)} px-2 py-1 rounded text-xs font-medium`"
+                                                      x-text="obter_label_tipo(fonte.fonte_tipo)"></span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Descrição da Fonte -->
+                                        <template x-if="fonte.fonte_descricao">
+                                            <p class="text-sm text-gray-600 mb-3" x-text="fonte.fonte_descricao"></p>
+                                        </template>
+
+                                        <!-- Conteúdo da Fonte (se disponível) -->
+                                        <template x-if="fonte.fonte_conteudo && fonte.fonte_conteudo.length > 100">
+                                            <details class="text-xs">
+                                                <summary class="cursor-pointer text-blue-600 hover:underline font-medium">Ver mais detalhes</summary>
+                                                <div class="mt-2 p-3 bg-white rounded border border-gray-300 max-h-40 overflow-y-auto">
+                                                    <p class="text-gray-700 whitespace-pre-wrap" x-text="fonte.fonte_conteudo"></p>
+                                                </div>
+                                            </details>
+                                        </template>
+
+                                        <!-- URL da Fonte -->
+                                        <template x-if="fonte.fonte_url">
+                                            <div class="mt-3">
+                                                <a :href="fonte.fonte_url" target="_blank" rel="noopener noreferrer"
+                                                   class="text-blue-600 hover:underline text-xs font-medium flex items-center gap-1">
+                                                    <span>🔗</span> Ver fonte original
+                                                </a>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template x-if="!detalhes_modal?.fontes || detalhes_modal.fontes.length === 0">
+                            <div class="text-center py-8 text-gray-500">
+                                <p class="text-sm">Nenhuma fonte registrada para esta priorização</p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Footer do Modal -->
+                <div class="sticky bottom-0 bg-gray-100 p-4 border-t flex justify-end gap-3">
+                    <button @click="fechar_modal()" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded font-medium text-sm">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -2241,110 +2346,5 @@
             };
         }
     </script>
-
-    <!-- Modal de Detalhes da Priorização -->
-    <div id="modal-detalhes" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" x-show="modal_aberto" @click.self="fechar_modal()" x-cloak>
-        <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
-            <!-- Header do Modal -->
-            <div class="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 border-b flex justify-between items-center">
-                <div>
-                    <h2 class="text-2xl font-bold" x-text="detalhes_modal?.titulo || ''"></h2>
-                    <p class="text-sm mt-1 opacity-90" x-text="`Falha ID: ${detalhes_modal?.falha_id || ''}`"></p>
-                </div>
-                <button @click="fechar_modal()" class="text-white hover:bg-blue-700 p-2 rounded-full">
-                    <span class="text-2xl">✕</span>
-                </button>
-            </div>
-
-            <!-- Conteúdo do Modal -->
-            <div class="p-6 space-y-6">
-                <!-- Scores de Impacto e Esforço -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-green-50 p-4 rounded-lg border border-green-200">
-                        <p class="text-sm font-medium text-gray-600">Impacto</p>
-                        <p class="text-3xl font-bold text-green-600 mt-2" x-text="`${detalhes_modal?.impacto || 0}/10`"></p>
-                        <p class="text-xs text-gray-600 mt-2">Potencial de impacto positivo</p>
-                    </div>
-                    <div class="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                        <p class="text-sm font-medium text-gray-600">Esforço</p>
-                        <p class="text-3xl font-bold text-orange-600 mt-2" x-text="`${detalhes_modal?.esforco || 0}/10`"></p>
-                        <p class="text-xs text-gray-600 mt-2">Dificuldade de implementação</p>
-                    </div>
-                </div>
-
-                <!-- Análise da IA -->
-                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <h3 class="text-sm font-bold text-gray-800 mb-3">Análise da IA</h3>
-                    <p class="text-sm text-gray-700 whitespace-pre-wrap" x-text="detalhes_modal?.analise || 'Sem análise disponível'"></p>
-                </div>
-
-                <!-- Fontes Utilizadas -->
-                <div class="border-t pt-6">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                        <span class="mr-2">📚</span>
-                        Fontes Utilizadas
-                    </h3>
-
-                    <template x-if="detalhes_modal?.fontes && detalhes_modal.fontes.length > 0">
-                        <div class="space-y-3">
-                            <template x-for="(fonte, idx) in detalhes_modal.fontes" :key="idx">
-                                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
-                                    <!-- Cabeçalho da Fonte -->
-                                    <div class="flex items-start justify-between mb-3">
-                                        <div class="flex-1">
-                                            <div class="flex items-center gap-2 mb-2">
-                                                <span class="text-lg" x-text="obter_icone_fonte(fonte.fonte_tipo)"></span>
-                                                <span class="font-bold text-gray-800 text-sm" x-text="fonte.fonte_titulo"></span>
-                                            </div>
-                                            <span :class="`${obter_cor_tipo(fonte.fonte_tipo)} px-2 py-1 rounded text-xs font-medium`"
-                                                  x-text="obter_label_tipo(fonte.fonte_tipo)"></span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Descrição da Fonte -->
-                                    <template x-if="fonte.fonte_descricao">
-                                        <p class="text-sm text-gray-600 mb-3" x-text="fonte.fonte_descricao"></p>
-                                    </template>
-
-                                    <!-- Conteúdo da Fonte (se disponível) -->
-                                    <template x-if="fonte.fonte_conteudo && fonte.fonte_conteudo.length > 100">
-                                        <details class="text-xs">
-                                            <summary class="cursor-pointer text-blue-600 hover:underline font-medium">Ver mais detalhes</summary>
-                                            <div class="mt-2 p-3 bg-white rounded border border-gray-300 max-h-40 overflow-y-auto">
-                                                <p class="text-gray-700 whitespace-pre-wrap" x-text="fonte.fonte_conteudo"></p>
-                                            </div>
-                                        </details>
-                                    </template>
-
-                                    <!-- URL da Fonte -->
-                                    <template x-if="fonte.fonte_url">
-                                        <div class="mt-3">
-                                            <a :href="fonte.fonte_url" target="_blank" rel="noopener noreferrer"
-                                               class="text-blue-600 hover:underline text-xs font-medium flex items-center gap-1">
-                                                <span>🔗</span> Ver fonte original
-                                            </a>
-                                        </div>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-
-                    <template x-if="!detalhes_modal?.fontes || detalhes_modal.fontes.length === 0">
-                        <div class="text-center py-8 text-gray-500">
-                            <p class="text-sm">Nenhuma fonte registrada para esta priorização</p>
-                        </div>
-                    </template>
-                </div>
-            </div>
-
-            <!-- Footer do Modal -->
-            <div class="sticky bottom-0 bg-gray-100 p-4 border-t flex justify-end gap-3">
-                <button @click="fechar_modal()" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded font-medium text-sm">
-                    Fechar
-                </button>
-            </div>
-        </div>
-    </div>
 </body>
 </html>
