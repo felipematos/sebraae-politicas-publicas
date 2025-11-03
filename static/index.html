@@ -2258,6 +2258,9 @@
                             analise = analise_json;
                         }
 
+                        console.log('[DEBUG] Análise parseada:', analise);
+                        console.log('[DEBUG] Tipo de justificativa:', typeof analise.justificativa, analise.justificativa);
+
                         let html = '';
 
                         // Função auxiliar para descrição de impacto
@@ -2376,7 +2379,7 @@
                             let justificativa = '';
 
                             // Se for objeto ou array, tentar extrair conteúdo
-                            if (typeof analise.justificativa === 'object') {
+                            if (typeof analise.justificativa === 'object' && analise.justificativa !== null) {
                                 if (Array.isArray(analise.justificativa)) {
                                     // Se for array, juntar elementos
                                     justificativa = analise.justificativa.join(' ');
@@ -2385,15 +2388,27 @@
                                     justificativa = analise.justificativa.texto ||
                                                    analise.justificativa.descricao ||
                                                    analise.justificativa.content ||
-                                                   JSON.stringify(analise.justificativa);
+                                                   analise.justificativa.message ||
+                                                   '';
+
+                                    // Se ainda estiver vazio, não mostrar JSON
+                                    if (!justificativa) {
+                                        console.warn('[WARN] Justificativa é objeto mas não tem propriedades conhecidas:', analise.justificativa);
+                                        // Não usar JSON.stringify - deixar vazio
+                                        justificativa = '';
+                                    }
                                 }
                             } else {
-                                justificativa = String(analise.justificativa);
+                                justificativa = String(analise.justificativa || '');
                             }
 
-                            if (justificativa && justificativa !== 'undefined' && justificativa !== 'null' && justificativa !== '[object Object]') {
+                            if (justificativa && justificativa !== 'undefined' && justificativa !== 'null' && justificativa !== '[object Object]' && !justificativa.startsWith('{')) {
                                 justificativa = justificativa.replace(/\[FONTE-(\d+)\]/g, '<a href="#fonte-$1" class="text-blue-600 hover:underline font-medium">[FONTE-$1]</a>');
                                 html += `<p class="ml-2 leading-relaxed">${justificativa}</p>`;
+                            } else if (justificativa.startsWith('{')) {
+                                // Se começar com {, é JSON - não mostrar
+                                console.warn('[WARN] Justificativa parece ser JSON, não exibindo');
+                                html += `<p class="ml-2 text-gray-500 italic">Justificativa não disponível em formato legível</p>`;
                             }
                             html += '</div>';
                         }
