@@ -134,6 +134,95 @@
             </div>
         </div>
 
+        <!-- Modal de Análise Individual -->
+        <div id="analise-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="fechar_modal_analise()" x-show="modal_analise_aberto" x-cloak>
+            <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" @click.stop>
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-xl font-bold text-blue-600">🔍 Analisar Falha</h3>
+                        <p class="text-sm text-gray-600 mt-1" x-show="falha_analise">
+                            <span class="font-medium">Falha #<span x-text="falha_analise?.id"></span>:</span>
+                            <span x-text="falha_analise?.titulo"></span>
+                        </p>
+                    </div>
+                    <button @click="fechar_modal_analise()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Configurações Avançadas -->
+                <div class="space-y-4 mb-6">
+                    <p class="text-sm text-gray-700 font-medium mb-3">⚙️ Configurações de Análise</p>
+
+                    <!-- Fontes de Dados -->
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                        <p class="text-sm font-medium text-gray-700 mb-2">📚 Fontes de Dados</p>
+
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" x-model="config_analise.usar_rag" class="form-checkbox h-5 w-5 text-blue-600">
+                            <div>
+                                <p class="text-sm font-medium">Base de Conhecimento (RAG)</p>
+                                <p class="text-xs text-gray-500">Usa documentos indexados para contexto adicional</p>
+                            </div>
+                        </label>
+
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" x-model="config_analise.usar_resultados_pesquisa" class="form-checkbox h-5 w-5 text-blue-600">
+                            <div>
+                                <p class="text-sm font-medium">Resultados de Pesquisa</p>
+                                <p class="text-xs text-gray-500">Usa resultados de pesquisa web relacionados à falha</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Parâmetros do Modelo -->
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                        <p class="text-sm font-medium text-gray-700 mb-2">🤖 Parâmetros do Modelo</p>
+
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 flex items-center justify-between">
+                                Temperatura
+                                <span class="text-blue-600 font-mono" x-text="config_analise.temperatura.toFixed(1)"></span>
+                            </label>
+                            <input type="range" x-model.number="config_analise.temperatura" min="0" max="1" step="0.1" class="w-full">
+                            <p class="text-xs text-gray-500 mt-1">Controla a criatividade da resposta (0.0 = determinístico, 1.0 = criativo)</p>
+                        </div>
+
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 flex items-center justify-between">
+                                Tokens Máximos
+                                <span class="text-blue-600 font-mono" x-text="config_analise.max_tokens"></span>
+                            </label>
+                            <input type="range" x-model.number="config_analise.max_tokens" min="1000" max="8000" step="500" class="w-full">
+                            <p class="text-xs text-gray-500 mt-1">Tamanho máximo da resposta (1000-8000 tokens)</p>
+                        </div>
+                    </div>
+
+                    <!-- Informações do Modelo -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p class="text-sm text-blue-800">
+                            <span class="font-medium">Modelo:</span> Gemini 2.0 Flash Experimental<br>
+                            <span class="font-medium">Contexto:</span> 1 milhão de tokens<br>
+                            <span class="font-medium">Critérios:</span> Sistema de calibragem objetivo (8 dimensões)
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="flex gap-3 justify-end">
+                    <button @click="fechar_modal_analise()" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded font-medium">
+                        Cancelar
+                    </button>
+                    <button @click="executar_analise_individual()" :disabled="analisando_individual" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span x-show="!analisando_individual">🚀 Iniciar Análise</span>
+                        <span x-show="analisando_individual">⟳ Analisando...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Header Principal -->
         <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
             <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
@@ -721,6 +810,15 @@
                 modal_aberto: false,
                 detalhes_modal: null,
                 confirmacao_aberta: false,
+                modal_analise_aberto: false,
+                falha_analise: null,
+                config_analise: {
+                    usar_rag: true,
+                    usar_resultados_pesquisa: true,
+                    temperatura: 0.3,
+                    max_tokens: 4000
+                },
+                analisando_individual: false,
                 confirmacao_titulo: '',
                 confirmacao_mensagem: '',
                 confirmacao_callback: null,
@@ -917,13 +1015,14 @@
                             tbody.innerHTML = data.dados.map(p => {
                                 const quadrante = this.obter_quadrante(p.impacto, p.esforco);
                                 return `
-                                    <tr class="border-b hover:bg-blue-50 cursor-pointer" onclick="console.log('Clicou na falha: ' + ${falha.id})">
+                                    <tr class="border-b hover:bg-blue-50">
                                         <td class="px-6 py-4 text-sm">${p.falha_id}</td>
                                         <td class="px-6 py-4 text-sm font-medium">${p.titulo}</td>
                                         <td class="px-6 py-4 text-sm"><span class="bg-green-100 text-green-800 px-3 py-1 rounded font-bold">${p.impacto}/10</span></td>
                                         <td class="px-6 py-4 text-sm"><span class="bg-orange-100 text-orange-800 px-3 py-1 rounded font-bold">${p.esforco}/10</span></td>
                                         <td class="px-6 py-4 text-sm"><span class="bg-purple-100 text-purple-800 px-3 py-1 rounded text-xs">${quadrante}</span></td>
-                                        <td class="px-6 py-4 text-sm">
+                                        <td class="px-6 py-4 text-sm space-x-2">
+                                            <button @click="abrir_modal_analise(${p.falha_id}, '${p.titulo.replace(/'/g, "\\'")}' )" class="text-green-600 hover:underline font-medium">🔍 Analisar</button>
                                             <button @click="abrir_detalhes_priorizacao(${p.falha_id})" class="text-blue-600 hover:underline font-medium">Ver Detalhes</button>
                                         </td>
                                     </tr>
@@ -1072,6 +1171,56 @@
                         this.mostrar_notificacao('✗ Erro: ' + e.message, 'erro');
                     } finally {
                         this.analisando = false;
+                    }
+                },
+
+                abrir_modal_analise(falha_id, titulo) {
+                    this.falha_analise = { id: falha_id, titulo: titulo };
+                    this.modal_analise_aberto = true;
+                    // Resetar configurações para padrão
+                    this.config_analise = {
+                        usar_rag: true,
+                        usar_resultados_pesquisa: true,
+                        temperatura: 0.3,
+                        max_tokens: 4000
+                    };
+                },
+
+                fechar_modal_analise() {
+                    this.modal_analise_aberto = false;
+                    this.falha_analise = null;
+                },
+
+                async executar_analise_individual() {
+                    if (!this.falha_analise) return;
+
+                    this.analisando_individual = true;
+                    try {
+                        const res = await fetch('/api/priorizacoes/analisar-individual', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                falha_id: this.falha_analise.id,
+                                usar_rag: this.config_analise.usar_rag,
+                                usar_resultados_pesquisa: this.config_analise.usar_resultados_pesquisa,
+                                temperatura: this.config_analise.temperatura,
+                                max_tokens: this.config_analise.max_tokens
+                            })
+                        });
+
+                        if (res.ok) {
+                            const data = await res.json();
+                            this.mostrar_notificacao(`✓ Análise da falha #${this.falha_analise.id} concluída! Impacto: ${data.impacto}/10, Esforço: ${data.esforco}/10`, 'sucesso');
+                            this.fechar_modal_analise();
+                            await this.carregar_priorizacoes();
+                        } else {
+                            const error = await res.json();
+                            this.mostrar_notificacao('✗ Erro na análise: ' + (error.detail || 'Erro desconhecido'), 'erro');
+                        }
+                    } catch (e) {
+                        this.mostrar_notificacao('✗ Erro: ' + e.message, 'erro');
+                    } finally {
+                        this.analisando_individual = false;
                     }
                 },
 

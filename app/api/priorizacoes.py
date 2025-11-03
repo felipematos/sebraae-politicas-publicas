@@ -44,6 +44,15 @@ class AnalisarTodasRequest(BaseModel):
     incluir_analisadas: bool = False  # Se False, analisa apenas as sem análise
 
 
+class AnalisarIndividualRequest(BaseModel):
+    """Model para análise individual com configurações"""
+    falha_id: int
+    usar_rag: bool = True  # Usar base de conhecimento RAG
+    usar_resultados_pesquisa: bool = True  # Usar resultados de pesquisa
+    temperatura: float = 0.3  # Temperatura do modelo (0.0-1.0)
+    max_tokens: int = 4000  # Máximo de tokens na resposta
+
+
 # Endpoints
 
 @router.get("/")
@@ -168,6 +177,37 @@ async def analisar_todas_falhas_endpoint(request: AnalisarTodasRequest = None) -
         }
     except Exception as e:
         logger.error(f"Erro ao analisar todas as falhas: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/analisar-individual")
+async def analisar_individual_endpoint(request: AnalisarIndividualRequest) -> Dict[str, Any]:
+    """
+    Analisa uma falha específica com configurações customizadas
+    """
+    try:
+        logger.info(f"Iniciando análise individual da falha {request.falha_id}")
+        logger.info(f"Configurações: RAG={request.usar_rag}, Pesquisa={request.usar_resultados_pesquisa}, "
+                   f"Temp={request.temperatura}, MaxTokens={request.max_tokens}")
+
+        resultado = await priorizador.analisar_falha(
+            falha_id=request.falha_id,
+            usar_rag=request.usar_rag,
+            usar_resultados_pesquisa=request.usar_resultados_pesquisa,
+            temperatura=request.temperatura,
+            max_tokens=request.max_tokens
+        )
+
+        return {
+            'sucesso': resultado['sucesso'],
+            'falha_id': request.falha_id,
+            'impacto': resultado.get('impacto'),
+            'esforco': resultado.get('esforco'),
+            'fontes': resultado.get('fontes', []),
+            'erro': resultado.get('erro')
+        }
+    except Exception as e:
+        logger.error(f"Erro ao analisar falha {request.falha_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

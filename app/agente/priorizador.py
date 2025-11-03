@@ -29,9 +29,23 @@ class AgentePriorizador:
         self.modelo_principal = "meta-llama/llama-2-70b-chat"  # Modelo gratuito principal
         self.modelo_fallback = "xai/grok-4-fast"  # Tier 1 com extended thinking
 
-    async def analisar_falha(self, falha_id: int) -> Dict[str, Any]:
+    async def analisar_falha(
+        self,
+        falha_id: int,
+        usar_rag: bool = True,
+        usar_resultados_pesquisa: bool = True,
+        temperatura: float = 0.3,
+        max_tokens: int = 4000
+    ) -> Dict[str, Any]:
         """
         Analisa uma falha e retorna scores de impacto, esforço e fontes utilizadas
+
+        Args:
+            falha_id: ID da falha a ser analisada
+            usar_rag: Se True, usa contexto da base de conhecimento RAG
+            usar_resultados_pesquisa: Se True, usa resultados de pesquisa
+            temperatura: Temperatura do modelo (0.0-1.0, padrão 0.3)
+            max_tokens: Máximo de tokens na resposta (padrão 4000)
 
         Retorna:
         {
@@ -53,17 +67,17 @@ class AgentePriorizador:
                     'erro': f'Falha {falha_id} não encontrada'
                 }
 
-            # Obter resultados de pesquisa da falha
-            resultados = await get_resultados_by_falha(falha_id)
+            # Obter resultados de pesquisa da falha (se configurado)
+            resultados = await get_resultados_by_falha(falha_id) if usar_resultados_pesquisa else []
 
-            # Obter contexto RAG da base de conhecimento
-            rag_contexto = await self._obter_contexto_rag(falha)
+            # Obter contexto RAG da base de conhecimento (se configurado)
+            rag_contexto = await self._obter_contexto_rag(falha) if usar_rag else ""
 
             # Construir contexto para análise (agora retorna contexto E fontes)
             contexto, fontes = self._construir_contexto(falha, resultados, rag_contexto)
 
-            # Chamar IA para análise
-            resposta_ia = await self._consultar_ia(contexto, falha, fontes)
+            # Chamar IA para análise com parâmetros configuráveis
+            resposta_ia = await self._consultar_ia(contexto, falha, fontes, temperatura, max_tokens)
 
             # Processar resposta
             scores = self._extrair_scores(resposta_ia)
@@ -224,7 +238,14 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
 
         return contexto, fontes
 
-    async def _consultar_ia(self, contexto: str, falha: Dict[str, Any], fontes: List[Dict[str, Any]] = None) -> str:
+    async def _consultar_ia(
+        self,
+        contexto: str,
+        falha: Dict[str, Any],
+        fontes: List[Dict[str, Any]] = None,
+        temperatura: float = 0.3,
+        max_tokens: int = 4000
+    ) -> str:
         """Consulta IA para análise com fallback inteligente e rastreamento de fontes"""
         from app.agente.criterios_calibragem import get_prompt_calibrado
         from app.config import settings
@@ -255,8 +276,8 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
                         "content": prompt
                     }
                 ],
-                "temperature": 0.3,
-                "max_tokens": 4000,  # Resposta pode ser mais longa
+                "temperature": temperatura,
+                "max_tokens": max_tokens,
             }
 
             async with aiohttp.ClientSession() as session:
