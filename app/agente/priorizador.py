@@ -161,19 +161,11 @@ class AgentePriorizador:
             # Query com o título e descrição da falha
             query_text = f"{falha['titulo']} {falha['descricao']}"
 
-            # Buscar documentos similares (await se for async)
-            if hasattr(vector_store.similarity_search, '__call__'):
-                # Método síncrono
-                resultados = vector_store.similarity_search(
-                    query_text,
-                    k=settings.RAG_TOP_K_RESULTS
-                )
-            else:
-                # Método assíncrono
-                resultados = await vector_store.similarity_search(
-                    query_text,
-                    k=settings.RAG_TOP_K_RESULTS
-                )
+            # Buscar documentos similares (método assíncrono)
+            resultados = await vector_store.similarity_search(
+                query_text,
+                k=settings.RAG_TOP_K_RESULTS
+            )
 
             if not resultados:
                 return ""

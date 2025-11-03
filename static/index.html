@@ -135,7 +135,7 @@
         </div>
 
         <!-- Modal de Análise Individual -->
-        <div id="analise-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="fechar_modal_analise()" x-show="modal_analise_aberto" x-cloak>
+        <div id="analise-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="fechar_modal_analise()" x-show="modal_analise_aberto" style="display: none;">
             <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" @click.stop>
                 <div class="flex justify-between items-start mb-4">
                     <div>
@@ -210,9 +210,28 @@
                     </div>
                 </div>
 
+                <!-- Indicador de Progresso -->
+                <div x-show="analisando_individual" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-center gap-3 mb-2">
+                        <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-blue-800" x-text="progresso_analise.mensagem || 'Processando...'"></p>
+                            <p class="text-xs text-blue-600 mt-1" x-text="`Etapa: ${progresso_analise.etapa || 'Iniciando'}`"></p>
+                        </div>
+                        <span class="text-lg font-bold text-blue-600" x-text="`${progresso_analise.progresso || 0}%`"></span>
+                    </div>
+                    <!-- Barra de progresso -->
+                    <div class="w-full bg-blue-100 rounded-full h-2.5">
+                        <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" :style="`width: ${progresso_analise.progresso || 0}%`"></div>
+                    </div>
+                </div>
+
                 <!-- Botões de Ação -->
                 <div class="flex gap-3 justify-end">
-                    <button @click="fechar_modal_analise()" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded font-medium">
+                    <button @click="fechar_modal_analise()" :disabled="analisando_individual" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded font-medium disabled:opacity-50 disabled:cursor-not-allowed">
                         Cancelar
                     </button>
                     <button @click="executar_analise_individual()" :disabled="analisando_individual" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium disabled:opacity-50 disabled:cursor-not-allowed">
@@ -819,6 +838,11 @@
                     max_tokens: 4000
                 },
                 analisando_individual: false,
+                progresso_analise: {
+                    etapa: '',
+                    progresso: 0,
+                    mensagem: ''
+                },
                 confirmacao_titulo: '',
                 confirmacao_mensagem: '',
                 confirmacao_callback: null,
@@ -1007,9 +1031,14 @@
 
                 async carregar_priorizacoes() {
                     try {
+                        console.log('[DEBUG] Carregando priorizações...');
                         const res = await fetch('/api/priorizacoes/');
-                        if (!res.ok) return;
+                        if (!res.ok) {
+                            console.log('[DEBUG] Erro ao carregar priorizações:', res.status);
+                            return;
+                        }
                         const data = await res.json();
+                        console.log('[DEBUG] Priorizações carregadas:', data.dados?.length || 0);
                         const tbody = document.getElementById('tabela-priorizacao');
                         if (data.dados && Array.isArray(data.dados)) {
                             tbody.innerHTML = data.dados.map(p => {
@@ -1022,15 +1051,35 @@
                                         <td class="px-6 py-4 text-sm"><span class="bg-orange-100 text-orange-800 px-3 py-1 rounded font-bold">${p.esforco}/10</span></td>
                                         <td class="px-6 py-4 text-sm"><span class="bg-purple-100 text-purple-800 px-3 py-1 rounded text-xs">${quadrante}</span></td>
                                         <td class="px-6 py-4 text-sm space-x-2">
-                                            <button @click="abrir_modal_analise(${p.falha_id}, '${p.titulo.replace(/'/g, "\\'")}' )" class="text-green-600 hover:underline font-medium">🔍 Analisar</button>
-                                            <button @click="abrir_detalhes_priorizacao(${p.falha_id})" class="text-blue-600 hover:underline font-medium">Ver Detalhes</button>
+                                            <button data-action="analisar" data-falha-id="${p.falha_id}" data-titulo="${p.titulo.replace(/"/g, '&quot;')}" class="text-green-600 hover:underline font-medium">🔍 Analisar</button>
+                                            <button data-action="detalhes" data-falha-id="${p.falha_id}" class="text-blue-600 hover:underline font-medium">Ver Detalhes</button>
                                         </td>
                                     </tr>
                                 `;
                             }).join('');
+
+                            // Adicionar event listeners aos botões
+                            tbody.querySelectorAll('button[data-action="analisar"]').forEach(btn => {
+                                btn.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    const falhaId = parseInt(btn.getAttribute('data-falha-id'));
+                                    const titulo = btn.getAttribute('data-titulo');
+                                    this.abrir_modal_analise(falhaId, titulo);
+                                });
+                            });
+
+                            tbody.querySelectorAll('button[data-action="detalhes"]').forEach(btn => {
+                                btn.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    const falhaId = parseInt(btn.getAttribute('data-falha-id'));
+                                    this.abrir_detalhes_priorizacao(falhaId);
+                                });
+                            });
+
+                            console.log('[DEBUG] Event listeners adicionados aos botões');
                         }
                     } catch (e) {
-                        console.error('Erro ao carregar priorizações', e);
+                        console.error('[DEBUG] Erro ao carregar priorizações', e);
                     }
                 },
 
@@ -1175,8 +1224,10 @@
                 },
 
                 abrir_modal_analise(falha_id, titulo) {
+                    console.log('[DEBUG] abrir_modal_analise chamado', { falha_id, titulo });
                     this.falha_analise = { id: falha_id, titulo: titulo };
                     this.modal_analise_aberto = true;
+                    console.log('[DEBUG] modal_analise_aberto definido como', this.modal_analise_aberto);
                     // Resetar configurações para padrão
                     this.config_analise = {
                         usar_rag: true,
@@ -1192,35 +1243,132 @@
                 },
 
                 async executar_analise_individual() {
-                    if (!this.falha_analise) return;
+                    console.log('[DEBUG] executar_analise_individual chamado');
+                    if (!this.falha_analise) {
+                        console.log('[DEBUG] Nenhuma falha selecionada');
+                        return;
+                    }
 
+                    console.log('[DEBUG] Iniciando análise para falha', this.falha_analise.id);
                     this.analisando_individual = true;
+
                     try {
+                        // Etapa 1: Preparando análise
+                        this.progresso_analise = {
+                            etapa: 'Preparando',
+                            progresso: 10,
+                            mensagem: 'Preparando contexto da análise...'
+                        };
+
+                        const payload = {
+                            falha_id: this.falha_analise.id,
+                            usar_rag: this.config_analise.usar_rag,
+                            usar_resultados_pesquisa: this.config_analise.usar_resultados_pesquisa,
+                            temperatura: this.config_analise.temperatura,
+                            max_tokens: this.config_analise.max_tokens
+                        };
+                        console.log('[DEBUG] Payload:', payload);
+
+                        // Etapa 2: Coletando dados
+                        this.progresso_analise = {
+                            etapa: 'Coletando',
+                            progresso: 30,
+                            mensagem: this.config_analise.usar_rag ? 'Buscando na base de conhecimento...' : 'Preparando dados...'
+                        };
+
+                        // Etapa 3: Analisando
+                        this.progresso_analise = {
+                            etapa: 'Analisando',
+                            progresso: 50,
+                            mensagem: 'Enviando para análise da IA (Gemini 2.0 Flash)...'
+                        };
+
                         const res = await fetch('/api/priorizacoes/analisar-individual', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                falha_id: this.falha_analise.id,
-                                usar_rag: this.config_analise.usar_rag,
-                                usar_resultados_pesquisa: this.config_analise.usar_resultados_pesquisa,
-                                temperatura: this.config_analise.temperatura,
-                                max_tokens: this.config_analise.max_tokens
-                            })
+                            body: JSON.stringify(payload)
                         });
+
+                        console.log('[DEBUG] Resposta HTTP:', res.status);
+
+                        // Etapa 4: Processando resposta
+                        this.progresso_analise = {
+                            etapa: 'Processando',
+                            progresso: 75,
+                            mensagem: 'Processando resultado da análise...'
+                        };
 
                         if (res.ok) {
                             const data = await res.json();
+                            console.log('[DEBUG] Resposta da API:', data);
+
+                            // Etapa 5: Salvando
+                            this.progresso_analise = {
+                                etapa: 'Salvando',
+                                progresso: 90,
+                                mensagem: 'Salvando resultado...'
+                            };
+
+                            // Pequeno delay para mostrar o progresso
+                            await new Promise(resolve => setTimeout(resolve, 500));
+
+                            // Etapa 6: Concluído
+                            this.progresso_analise = {
+                                etapa: 'Concluído',
+                                progresso: 100,
+                                mensagem: `Análise concluída! Impacto: ${data.impacto}/10, Esforço: ${data.esforco}/10`
+                            };
+
+                            // Aguardar um pouco antes de fechar
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+
                             this.mostrar_notificacao(`✓ Análise da falha #${this.falha_analise.id} concluída! Impacto: ${data.impacto}/10, Esforço: ${data.esforco}/10`, 'sucesso');
                             this.fechar_modal_analise();
                             await this.carregar_priorizacoes();
                         } else {
-                            const error = await res.json();
-                            this.mostrar_notificacao('✗ Erro na análise: ' + (error.detail || 'Erro desconhecido'), 'erro');
+                            let errorMessage = 'Erro desconhecido';
+                            try {
+                                const error = await res.json();
+                                console.log('[DEBUG] Erro da API:', error);
+                                errorMessage = error.detail || errorMessage;
+
+                                // Melhorar mensagens de erro específicas
+                                if (res.status === 429) {
+                                    errorMessage = 'Rate limit atingido. O modelo Gemini 2.0 Flash (gratuito) tem limite de requisições. Por favor, aguarde alguns segundos e tente novamente.';
+                                } else if (res.status === 500) {
+                                    errorMessage = 'Erro no servidor. Verifique os logs para mais detalhes.';
+                                } else if (res.status === 422) {
+                                    errorMessage = 'Dados inválidos na requisição. Verifique as configurações.';
+                                }
+                            } catch (e) {
+                                console.error('[DEBUG] Erro ao parsear resposta de erro:', e);
+                            }
+
+                            this.progresso_analise = {
+                                etapa: 'Erro',
+                                progresso: 0,
+                                mensagem: errorMessage
+                            };
+                            this.mostrar_notificacao('✗ ' + errorMessage, 'erro');
                         }
                     } catch (e) {
+                        console.error('[DEBUG] Exception:', e);
+                        this.progresso_analise = {
+                            etapa: 'Erro',
+                            progresso: 0,
+                            mensagem: 'Erro: ' + e.message
+                        };
                         this.mostrar_notificacao('✗ Erro: ' + e.message, 'erro');
                     } finally {
                         this.analisando_individual = false;
+                        // Resetar progresso após 2 segundos
+                        setTimeout(() => {
+                            this.progresso_analise = {
+                                etapa: '',
+                                progresso: 0,
+                                mensagem: ''
+                            };
+                        }, 2000);
                     }
                 },
 
@@ -1790,18 +1938,23 @@
                 },
 
                 abrir_detalhes_priorizacao(falha_id) {
+                    console.log('[DEBUG] abrir_detalhes_priorizacao chamado para falha', falha_id);
                     (async () => {
                         try {
                             const res = await fetch(`/api/priorizacoes/${falha_id}?incluir_fontes=true`);
+                            console.log('[DEBUG] Resposta HTTP:', res.status);
                             if (!res.ok) {
                                 this.mostrar_notificacao('✗ Erro ao carregar detalhes da priorização', 'erro');
                                 return;
                             }
                             const data = await res.json();
+                            console.log('[DEBUG] Dados recebidos:', data);
                             this.detalhes_modal = data.dados;
+                            console.log('[DEBUG] detalhes_modal definido como:', this.detalhes_modal);
                             this.modal_aberto = true;
+                            console.log('[DEBUG] modal_aberto definido como true');
                         } catch (e) {
-                            console.error('Erro ao abrir detalhes:', e);
+                            console.error('[DEBUG] Erro ao abrir detalhes:', e);
                             this.mostrar_notificacao('✗ Erro ao carregar detalhes da priorização', 'erro');
                         }
                     }).call(this);
