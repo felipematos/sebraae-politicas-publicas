@@ -2112,27 +2112,25 @@
                     }
                 },
 
-                abrir_detalhes_priorizacao(falha_id) {
+                async abrir_detalhes_priorizacao(falha_id) {
                     console.log('[DEBUG] abrir_detalhes_priorizacao chamado para falha', falha_id);
-                    (async () => {
-                        try {
-                            const res = await fetch(`/api/priorizacoes/${falha_id}?incluir_fontes=true`);
-                            console.log('[DEBUG] Resposta HTTP:', res.status);
-                            if (!res.ok) {
-                                this.mostrar_notificacao('✗ Erro ao carregar detalhes da priorização', 'erro');
-                                return;
-                            }
-                            const data = await res.json();
-                            console.log('[DEBUG] Dados recebidos:', data);
-                            this.detalhes_modal = data.dados;
-                            console.log('[DEBUG] detalhes_modal definido como:', this.detalhes_modal);
-                            this.modal_aberto = true;
-                            console.log('[DEBUG] modal_aberto definido como true');
-                        } catch (e) {
-                            console.error('[DEBUG] Erro ao abrir detalhes:', e);
+                    try {
+                        const res = await fetch(`/api/priorizacoes/${falha_id}?incluir_fontes=true`);
+                        console.log('[DEBUG] Resposta HTTP:', res.status);
+                        if (!res.ok) {
                             this.mostrar_notificacao('✗ Erro ao carregar detalhes da priorização', 'erro');
+                            return;
                         }
-                    }).call(this);
+                        const data = await res.json();
+                        console.log('[DEBUG] Dados recebidos:', data);
+                        this.detalhes_modal = data.dados;
+                        console.log('[DEBUG] detalhes_modal definido como:', this.detalhes_modal);
+                        this.modal_aberto = true;
+                        console.log('[DEBUG] modal_aberto definido como true');
+                    } catch (e) {
+                        console.error('[DEBUG] Erro ao abrir detalhes:', e);
+                        this.mostrar_notificacao('✗ Erro ao carregar detalhes da priorização', 'erro');
+                    }
                 },
 
                 fechar_modal() {
