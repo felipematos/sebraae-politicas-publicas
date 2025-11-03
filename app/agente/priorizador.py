@@ -147,11 +147,19 @@ class AgentePriorizador:
             # Query com o título e descrição da falha
             query_text = f"{falha['titulo']} {falha['descricao']}"
 
-            # Buscar documentos similares
-            resultados = vector_store.similarity_search(
-                query_text,
-                k=settings.RAG_TOP_K_RESULTS
-            )
+            # Buscar documentos similares (await se for async)
+            if hasattr(vector_store.similarity_search, '__call__'):
+                # Método síncrono
+                resultados = vector_store.similarity_search(
+                    query_text,
+                    k=settings.RAG_TOP_K_RESULTS
+                )
+            else:
+                # Método assíncrono
+                resultados = await vector_store.similarity_search(
+                    query_text,
+                    k=settings.RAG_TOP_K_RESULTS
+                )
 
             if not resultados:
                 return ""
@@ -219,31 +227,51 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
     async def _consultar_ia(self, contexto: str, falha: Dict[str, Any], fontes: List[Dict[str, Any]] = None) -> str:
         """Consulta IA para análise com fallback inteligente e rastreamento de fontes"""
         from app.agente.criterios_calibragem import get_prompt_calibrado
+        from app.config import settings
+        import openai
 
         # Usar prompt calibrado com critérios objetivos
         prompt = get_prompt_calibrado(contexto)
 
         try:
-            # Tentar com modelo gratuito principal primeiro
-            resposta = await consultar_openrouter(prompt, modelo=self.modelo_principal)
-            logger.info(f"✓ Análise completada com modelo principal: {self.modelo_principal}")
-            return resposta
-        except Exception as e:
-            logger.warning(f"⚠ Modelo principal falhou: {str(e)[:100]}, tentando Grok 4 Fast...")
+            # Usar OpenAI diretamente (mais confiável que OpenRouter)
+            client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
-            try:
-                # Fallback para Tier 1 modelo com extended thinking
-                resposta = await consultar_openrouter(prompt, modelo=self.modelo_fallback)
-                logger.info(f"✓ Análise completada com Grok 4 Fast (extended thinking)")
-                return resposta
-            except Exception as e2:
-                logger.error(f"✗ Ambos os modelos falharam: {str(e2)}")
-                # Retornar valores padrão em caso de erro
-                return json.dumps({
-                    "impacto": 5,
-                    "esforço": 5,
-                    "justificativa": f"Erro na análise com ambos os modelos"
-                })
+            response = await client.chat.completions.create(
+                model="gpt-4o-mini",  # Modelo rápido e barato
+                messages=[
+                    {"role": "system", "content": "Você é um especialista em políticas públicas e ecossistema de inovação brasileiro."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=2000
+            )
+
+            resposta = response.choices[0].message.content
+            logger.info(f"✓ Análise completada com GPT-4o-mini")
+            return resposta
+
+        except Exception as e:
+            logger.error(f"✗ Erro na análise: {str(e)[:100]}")
+            # Retornar valores padrão em caso de erro
+            return json.dumps({
+                "impacto": {
+                    "abrangencia": 1,
+                    "magnitude": 1,
+                    "maturidade": 1,
+                    "multiplicador": 1,
+                    "total": 4
+                },
+                "esforco": {
+                    "stakeholders": 1,
+                    "investimento": 1,
+                    "tempo": 1,
+                    "estrutural": 1,
+                    "total": 4
+                },
+                "justificativa": f"Erro na análise: {str(e)[:50]}",
+                "fontes_utilizadas": []
+            })
 
     def _extrair_scores(self, resposta_ia: str) -> Dict[str, int]:
         """Extrai scores de impacto e esforço da resposta da IA"""
