@@ -2324,9 +2324,12 @@
                             html += '<div class="mb-4">';
                             html += '<h4 class="font-bold text-gray-800 mb-2">💡 Justificativa</h4>';
                             // Converter citações [FONTE-X] em links
-                            let justificativa = analise.justificativa;
-                            justificativa = justificativa.replace(/\[FONTE-(\d+)\]/g, '<a href="#fonte-$1" class="text-blue-600 hover:underline font-medium">[FONTE-$1]</a>');
-                            html += `<p class="ml-2 leading-relaxed">${justificativa}</p>`;
+                            // Garantir que justificativa é string antes de chamar replace()
+                            let justificativa = String(analise.justificativa);
+                            if (justificativa && justificativa !== 'undefined' && justificativa !== 'null') {
+                                justificativa = justificativa.replace(/\[FONTE-(\d+)\]/g, '<a href="#fonte-$1" class="text-blue-600 hover:underline font-medium">[FONTE-$1]</a>');
+                                html += `<p class="ml-2 leading-relaxed">${justificativa}</p>`;
+                            }
                             html += '</div>';
                         }
 
