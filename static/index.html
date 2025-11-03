@@ -962,36 +962,35 @@
                                                 <div class="flex items-center gap-2 mb-2">
                                                     <span class="text-xs font-mono text-gray-500 mr-1" x-text="`[${idx + 1}]`"></span>
                                                     <span class="text-lg" x-text="obter_icone_fonte(fonte.fonte_tipo)"></span>
-                                                    <span class="font-bold text-gray-800 text-sm" x-text="fonte.fonte_titulo"></span>
+                                                    <span class="font-bold text-gray-800 text-sm" x-text="obter_titulo_fonte(fonte)"></span>
                                                 </div>
                                                 <span :class="`${obter_cor_tipo(fonte.fonte_tipo)} px-2 py-1 rounded text-xs font-medium`"
                                                       x-text="obter_label_tipo(fonte.fonte_tipo)"></span>
                                             </div>
                                         </div>
 
-                                        <!-- Descrição da Fonte -->
-                                        <template x-if="fonte.fonte_descricao">
-                                            <p class="text-sm text-gray-600 mb-3" x-text="fonte.fonte_descricao"></p>
+                                        <!-- Trecho da Fonte (sempre mostrar se disponível) -->
+                                        <template x-if="fonte.fonte_conteudo || fonte.fonte_descricao">
+                                            <div class="text-sm text-gray-700 mb-3 italic border-l-2 border-gray-300 pl-3">
+                                                <p x-text="obter_trecho_fonte(fonte)"></p>
+                                            </div>
                                         </template>
 
-                                        <!-- Conteúdo da Fonte (se disponível) -->
-                                        <template x-if="fonte.fonte_conteudo && fonte.fonte_conteudo.length > 100">
+                                        <!-- Conteúdo Completo (se disponível) -->
+                                        <template x-if="fonte.fonte_conteudo && fonte.fonte_conteudo.length > 200">
                                             <details class="text-xs">
                                                 <summary class="cursor-pointer text-blue-600 hover:underline font-medium">Ver mais detalhes</summary>
                                                 <div class="mt-2 p-3 bg-white rounded border border-gray-300 max-h-40 overflow-y-auto">
-                                                    <p class="text-gray-700 whitespace-pre-wrap" x-text="fonte.fonte_conteudo"></p>
+                                                    <p class="text-gray-700 whitespace-pre-wrap mb-3" x-text="fonte.fonte_conteudo"></p>
+                                                    <!-- Link para fonte original dentro do "Ver mais detalhes" -->
+                                                    <template x-if="fonte.fonte_url">
+                                                        <a :href="fonte.fonte_url" target="_blank" rel="noopener noreferrer"
+                                                           class="text-blue-600 hover:underline text-xs font-medium flex items-center gap-1 mt-2">
+                                                            <span>🔗</span> Acessar fonte original
+                                                        </a>
+                                                    </template>
                                                 </div>
                                             </details>
-                                        </template>
-
-                                        <!-- URL da Fonte -->
-                                        <template x-if="fonte.fonte_url">
-                                            <div class="mt-3">
-                                                <a :href="fonte.fonte_url" target="_blank" rel="noopener noreferrer"
-                                                   class="text-blue-600 hover:underline text-xs font-medium flex items-center gap-1">
-                                                    <span>🔗</span> Ver fonte original
-                                                </a>
-                                            </div>
                                         </template>
                                     </div>
                                 </template>
@@ -2415,8 +2414,9 @@
                             }
 
                             if (justificativa && justificativa !== 'undefined' && justificativa !== 'null' && justificativa !== '[object Object]' && !justificativa.startsWith('{')) {
-                                justificativa = justificativa.replace(/\[FONTE-(\d+)\]/g, '<a href="#fonte-$1" class="text-blue-600 hover:underline font-medium">[FONTE-$1]</a>');
-                                html += `<p class="ml-2 leading-relaxed">${justificativa}</p>`;
+                                // Processar markdown e formatar
+                                justificativa = this.processar_justificativa_markdown(justificativa);
+                                html += `<div class="ml-2 leading-relaxed prose prose-sm max-w-none">${justificativa}</div>`;
                             } else if (justificativa.startsWith('{')) {
                                 // Se começar com {, é JSON - não mostrar
                                 console.warn('[WARN] Justificativa parece ser JSON, não exibindo');
@@ -2464,6 +2464,50 @@
                         : 'bg-purple-100 text-purple-800';
                 },
 
+                processar_justificativa_markdown(texto) {
+                    if (!texto) return '';
+
+                    // Escapar HTML para segurança
+                    texto = texto.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                    // Processar quebras de linha duplas como parágrafos
+                    let paragrafos = texto.split('\n\n').filter(p => p.trim());
+
+                    // Processar cada parágrafo
+                    paragrafos = paragrafos.map(p => {
+                        // Negrito **texto**
+                        p = p.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+                        // Itálico *texto*
+                        p = p.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+                        // Processar citações aninhadas primeiro (ex: [PISA23 em 6])
+                        p = p.replace(/\[([A-Z0-9]+)\s+em\s+(\d+)\]/gi, '<span class="text-gray-600 italic">[$1 em <a href="#fonte-$2" class="text-blue-600 hover:underline font-medium">$2</a>]</span>');
+
+                        // Processar citações simples [FONTE-X] ou [X]
+                        p = p.replace(/\[FONTE[- ]?(\d+)\]/gi, '<a href="#fonte-$1" class="text-blue-600 hover:underline font-medium">[$1]</a>');
+                        p = p.replace(/\[(\d+)\]/g, '<a href="#fonte-$1" class="text-blue-600 hover:underline font-medium">[$1]</a>');
+
+                        // Processar listas (começam com - ou *)
+                        if (p.trim().match(/^[-*]\s/)) {
+                            const items = p.split('\n').map(line => {
+                                if (line.trim().match(/^[-*]\s/)) {
+                                    return '<li>' + line.replace(/^[-*]\s/, '') + '</li>';
+                                }
+                                return line;
+                            }).join('');
+                            return '<ul class="list-disc list-inside ml-4 space-y-1">' + items + '</ul>';
+                        }
+
+                        // Processar quebras de linha simples dentro do parágrafo
+                        p = p.replace(/\n/g, '<br>');
+
+                        return '<p class="mb-3">' + p + '</p>';
+                    });
+
+                    return paragrafos.join('');
+                },
+
                 obter_descricao_impacto(nota) {
                     const descricoes = {
                         0: 'Impacto nulo - Sem relevância prática',
@@ -2496,6 +2540,44 @@
                         10: 'Esforço máximo - Mudança constitucional/estrutural'
                     };
                     return descricoes[nota] || 'Esforço não avaliado';
+                },
+
+                obter_titulo_fonte(fonte) {
+                    // Para documentos (RAG), usar o nome do arquivo
+                    if (fonte.fonte_tipo === 'documento') {
+                        // Tentar extrair nome do arquivo da descrição ou título
+                        const descricao = fonte.fonte_descricao || '';
+                        const titulo = fonte.fonte_titulo || '';
+
+                        // Se a descrição parece ser um caminho de arquivo, extrair apenas o nome
+                        if (descricao.includes('/') || descricao.includes('\\')) {
+                            const partes = descricao.split(/[/\\]/);
+                            return partes[partes.length - 1];
+                        }
+
+                        // Se o título já é um nome de arquivo, usar ele
+                        if (titulo.match(/\.(pdf|txt|md|docx|html)$/i)) {
+                            return titulo;
+                        }
+
+                        // Senão, usar o que estiver disponível
+                        return titulo || descricao || 'Documento da Base de Conhecimento';
+                    }
+
+                    // Para resultados de pesquisa, usar o título normal
+                    return fonte.fonte_titulo || 'Fonte sem título';
+                },
+
+                obter_trecho_fonte(fonte) {
+                    // Priorizar conteúdo sobre descrição
+                    const texto = fonte.fonte_conteudo || fonte.fonte_descricao || '';
+
+                    // Limitar a 300 caracteres para o trecho
+                    if (texto.length > 300) {
+                        return texto.substring(0, 300) + '...';
+                    }
+
+                    return texto || 'Sem trecho disponível';
                 },
 
                 remover_documento(filename) {
