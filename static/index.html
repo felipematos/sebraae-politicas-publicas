@@ -942,7 +942,7 @@
                     <!-- Análise da IA -->
                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                         <h3 class="text-sm font-bold text-gray-800 mb-3">Análise da IA</h3>
-                        <p class="text-sm text-gray-700 whitespace-pre-wrap" x-text="detalhes_modal?.analise_ia || 'Sem análise disponível'"></p>
+                        <div class="text-sm text-gray-700" x-html="renderizar_analise_ia(detalhes_modal?.analise_ia)"></div>
                     </div>
 
                     <!-- Fontes Utilizadas -->
@@ -955,11 +955,12 @@
                         <template x-if="detalhes_modal?.fontes && detalhes_modal.fontes.length > 0">
                             <div class="space-y-3">
                                 <template x-for="(fonte, idx) in detalhes_modal.fontes" :key="idx">
-                                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+                                    <div :id="`fonte-${idx + 1}`" class="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow scroll-mt-4">
                                         <!-- Cabeçalho da Fonte -->
                                         <div class="flex items-start justify-between mb-3">
                                             <div class="flex-1">
                                                 <div class="flex items-center gap-2 mb-2">
+                                                    <span class="text-xs font-mono text-gray-500 mr-1" x-text="`[${idx + 1}]`"></span>
                                                     <span class="text-lg" x-text="obter_icone_fonte(fonte.fonte_tipo)"></span>
                                                     <span class="font-bold text-gray-800 text-sm" x-text="fonte.fonte_titulo"></span>
                                                 </div>
@@ -2241,6 +2242,117 @@
                 fechar_modal() {
                     this.modal_aberto = false;
                     this.detalhes_modal = null;
+                },
+
+                renderizar_analise_ia(analise_json) {
+                    if (!analise_json) {
+                        return '<p class="text-gray-500 italic">Sem análise disponível</p>';
+                    }
+
+                    try {
+                        // Tentar parsear como JSON
+                        let analise;
+                        if (typeof analise_json === 'string') {
+                            analise = JSON.parse(analise_json);
+                        } else {
+                            analise = analise_json;
+                        }
+
+                        let html = '';
+
+                        // Renderizar Impacto
+                        if (analise.impacto) {
+                            html += '<div class="mb-4">';
+                            html += '<h4 class="font-bold text-gray-800 mb-2">📊 Impacto</h4>';
+
+                            if (typeof analise.impacto === 'object') {
+                                html += '<ul class="list-disc list-inside space-y-1 ml-2">';
+                                if (analise.impacto.abrangencia !== undefined) {
+                                    html += `<li><strong>Abrangência:</strong> ${analise.impacto.abrangencia}/3</li>`;
+                                }
+                                if (analise.impacto.magnitude !== undefined) {
+                                    html += `<li><strong>Magnitude:</strong> ${analise.impacto.magnitude}/3</li>`;
+                                }
+                                if (analise.impacto.maturidade !== undefined) {
+                                    html += `<li><strong>Maturidade:</strong> ${analise.impacto.maturidade}/2</li>`;
+                                }
+                                if (analise.impacto.multiplicador !== undefined) {
+                                    html += `<li><strong>Multiplicador:</strong> ${analise.impacto.multiplicador}/2</li>`;
+                                }
+                                if (analise.impacto.total !== undefined) {
+                                    html += `<li class="font-bold text-green-700"><strong>Total:</strong> ${analise.impacto.total}/10</li>`;
+                                }
+                                html += '</ul>';
+                            } else {
+                                html += `<p class="ml-2"><strong>Score:</strong> ${analise.impacto}/10</p>`;
+                            }
+                            html += '</div>';
+                        }
+
+                        // Renderizar Esforço
+                        const esforco = analise.esforco || analise.esforço;
+                        if (esforco) {
+                            html += '<div class="mb-4">';
+                            html += '<h4 class="font-bold text-gray-800 mb-2">⚡ Esforço</h4>';
+
+                            if (typeof esforco === 'object') {
+                                html += '<ul class="list-disc list-inside space-y-1 ml-2">';
+                                if (esforco.stakeholders !== undefined) {
+                                    html += `<li><strong>Stakeholders:</strong> ${esforco.stakeholders}/3</li>`;
+                                }
+                                if (esforco.investimento !== undefined) {
+                                    html += `<li><strong>Investimento:</strong> ${esforco.investimento}/2</li>`;
+                                }
+                                if (esforco.tempo !== undefined) {
+                                    html += `<li><strong>Tempo:</strong> ${esforco.tempo}/2</li>`;
+                                }
+                                if (esforco.estrutural !== undefined) {
+                                    html += `<li><strong>Mudanças Estruturais:</strong> ${esforco.estrutural}/3</li>`;
+                                }
+                                if (esforco.total !== undefined) {
+                                    html += `<li class="font-bold text-orange-700"><strong>Total:</strong> ${esforco.total}/10</li>`;
+                                }
+                                html += '</ul>';
+                            } else {
+                                html += `<p class="ml-2"><strong>Score:</strong> ${esforco}/10</p>`;
+                            }
+                            html += '</div>';
+                        }
+
+                        // Renderizar Justificativa
+                        if (analise.justificativa) {
+                            html += '<div class="mb-4">';
+                            html += '<h4 class="font-bold text-gray-800 mb-2">💡 Justificativa</h4>';
+                            // Converter citações [FONTE-X] em links
+                            let justificativa = analise.justificativa;
+                            justificativa = justificativa.replace(/\[FONTE-(\d+)\]/g, '<a href="#fonte-$1" class="text-blue-600 hover:underline font-medium">[FONTE-$1]</a>');
+                            html += `<p class="ml-2 leading-relaxed">${justificativa}</p>`;
+                            html += '</div>';
+                        }
+
+                        // Renderizar Quadrante
+                        if (analise.quadrante) {
+                            const cores = {
+                                'GANHOS RÁPIDOS': 'bg-green-100 text-green-800 border-green-300',
+                                'INVESTIR COM CAUTELA': 'bg-blue-100 text-blue-800 border-blue-300',
+                                'CONSIDERAR': 'bg-yellow-100 text-yellow-800 border-yellow-300',
+                                'BAIXA PRIORIDADE': 'bg-gray-100 text-gray-800 border-gray-300'
+                            };
+                            const cor = cores[analise.quadrante] || 'bg-gray-100 text-gray-800 border-gray-300';
+                            html += `<div class="mt-4 p-3 rounded-lg border ${cor}">`;
+                            html += `<strong>Quadrante:</strong> ${analise.quadrante}`;
+                            html += '</div>';
+                        }
+
+                        return html;
+
+                    } catch (e) {
+                        console.warn('Erro ao parsear análise JSON:', e);
+                        // Fallback: mostrar como texto simples com citações transformadas em links
+                        let texto = String(analise_json);
+                        texto = texto.replace(/\[FONTE-(\d+)\]/g, '<a href="#fonte-$1" class="text-blue-600 hover:underline font-medium">[FONTE-$1]</a>');
+                        return `<div class="whitespace-pre-wrap">${texto}</div>`;
+                    }
                 },
 
                 obter_icone_fonte(tipo) {
