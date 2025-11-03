@@ -51,6 +51,7 @@ class AnalisarIndividualRequest(BaseModel):
     usar_resultados_pesquisa: bool = True  # Usar resultados de pesquisa
     temperatura: float = 0.3  # Temperatura do modelo (0.0-1.0)
     max_tokens: int = 4000  # Máximo de tokens na resposta
+    modelo: str = "google/gemini-2.5-pro"  # Modelo a ser usado
 
 
 # Endpoints
@@ -188,14 +189,15 @@ async def analisar_individual_endpoint(request: AnalisarIndividualRequest) -> Di
     try:
         logger.info(f"Iniciando análise individual da falha {request.falha_id}")
         logger.info(f"Configurações: RAG={request.usar_rag}, Pesquisa={request.usar_resultados_pesquisa}, "
-                   f"Temp={request.temperatura}, MaxTokens={request.max_tokens}")
+                   f"Temp={request.temperatura}, MaxTokens={request.max_tokens}, Modelo={request.modelo}")
 
         resultado = await priorizador.analisar_falha(
             falha_id=request.falha_id,
             usar_rag=request.usar_rag,
             usar_resultados_pesquisa=request.usar_resultados_pesquisa,
             temperatura=request.temperatura,
-            max_tokens=request.max_tokens
+            max_tokens=request.max_tokens,
+            modelo=request.modelo
         )
 
         return {

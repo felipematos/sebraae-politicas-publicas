@@ -35,7 +35,8 @@ class AgentePriorizador:
         usar_rag: bool = True,
         usar_resultados_pesquisa: bool = True,
         temperatura: float = 0.3,
-        max_tokens: int = 4000
+        max_tokens: int = 4000,
+        modelo: str = "google/gemini-2.5-pro"
     ) -> Dict[str, Any]:
         """
         Analisa uma falha e retorna scores de impacto, esforço e fontes utilizadas
@@ -77,7 +78,7 @@ class AgentePriorizador:
             contexto, fontes = self._construir_contexto(falha, resultados, rag_contexto)
 
             # Chamar IA para análise com parâmetros configuráveis
-            resposta_ia = await self._consultar_ia(contexto, falha, fontes, temperatura, max_tokens)
+            resposta_ia = await self._consultar_ia(contexto, falha, fontes, temperatura, max_tokens, modelo)
 
             # Processar resposta
             scores = self._extrair_scores(resposta_ia)
@@ -173,7 +174,9 @@ class AgentePriorizador:
             # Formatar resultados
             contexto_rag = "\nCONTEXTO DA BASE DE CONHECIMENTO:\n"
             for i, resultado in enumerate(resultados, 1):
-                contexto_rag += f"\n{i}. {resultado.page_content[:300]}...\n"
+                # VectorStore retorna dict com 'text', não objeto com 'page_content'
+                texto = resultado.get('text', '') if isinstance(resultado, dict) else str(resultado)
+                contexto_rag += f"\n{i}. {texto[:300]}...\n"
 
             return contexto_rag
 
@@ -236,7 +239,8 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
         falha: Dict[str, Any],
         fontes: List[Dict[str, Any]] = None,
         temperatura: float = 0.3,
-        max_tokens: int = 4000
+        max_tokens: int = 4000,
+        modelo: str = "google/gemini-2.5-pro"
     ) -> str:
         """Consulta IA para análise com fallback inteligente e rastreamento de fontes"""
         from app.agente.criterios_calibragem import get_prompt_calibrado
@@ -257,11 +261,11 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
             }
 
             data = {
-                "model": "google/gemini-2.0-flash-exp:free",  # 1M tokens de contexto
+                "model": modelo,
                 "messages": [
                     {
                         "role": "system",
-                        "content": "Você é um especialista em políticas públicas e ecossistema de inovação brasileiro."
+                        "content": "Você é um especialista em políticas públicas e ecossistema de inovação brasileiro. Responda SEMPRE em formato JSON válido, sem markdown ou texto adicional."
                     },
                     {
                         "role": "user",
@@ -270,6 +274,7 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
                 ],
                 "temperature": temperatura,
                 "max_tokens": max_tokens,
+                "response_format": {"type": "json_object"}
             }
 
             async with aiohttp.ClientSession() as session:
@@ -283,7 +288,7 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
                         resultado = await resp.json()
                         if resultado.get("choices") and len(resultado["choices"]) > 0:
                             resposta = resultado["choices"][0]["message"]["content"]
-                            logger.info(f"✓ Análise completada com Gemini 2.0 Flash (1M tokens)")
+                            logger.info(f"✓ Análise completada com modelo: {modelo}")
                             return resposta
                         else:
                             raise Exception("Resposta vazia do modelo")
@@ -292,7 +297,7 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
                         raise Exception(f"HTTP {resp.status}: {texto_erro[:200]}")
 
         except Exception as e:
-            logger.error(f"✗ Erro na análise com Gemini 2.0 Flash: {str(e)[:100]}")
+            logger.error(f"✗ Erro na análise com modelo {modelo}: {str(e)[:100]}")
             # Retornar valores padrão em caso de erro
             return json.dumps({
                 "impacto": {
@@ -316,8 +321,17 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
     def _extrair_scores(self, resposta_ia: str) -> Dict[str, int]:
         """Extrai scores de impacto e esforço da resposta da IA"""
         try:
+            # Limpar markdown (```json ... ```) se existir
+            resposta_limpa = resposta_ia.strip()
+            if resposta_limpa.startswith('```'):
+                # Remover markdown code blocks
+                resposta_limpa = resposta_limpa.split('```')[1]
+                if resposta_limpa.startswith('json'):
+                    resposta_limpa = resposta_limpa[4:]
+                resposta_limpa = resposta_limpa.strip()
+
             # Tentar parsear como JSON
-            dados = json.loads(resposta_ia)
+            dados = json.loads(resposta_limpa)
 
             # Novo formato com dimensões detalhadas
             if isinstance(dados.get('impacto'), dict):

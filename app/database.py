@@ -777,11 +777,17 @@ async def traduzir_todos_resultados() -> Dict[str, Any]:
 
 
 async def obter_priorizacao(falha_id: int) -> Optional[Dict[str, Any]]:
-    """Obtém a priorização de uma falha específica"""
-    return await db.fetch_one(
-        "SELECT * FROM priorizacoes_falhas WHERE falha_id = ?",
-        (falha_id,)
-    )
+    """Obtém a priorização de uma falha específica com dados da falha"""
+    query = """
+    SELECT
+        pf.id, pf.falha_id, pf.impacto, pf.esforco, pf.analise_ia, pf.priorizado_por,
+        pf.criado_em, pf.atualizado_em,
+        fm.titulo, fm.pilar, fm.descricao
+    FROM priorizacoes_falhas pf
+    JOIN falhas_mercado fm ON pf.falha_id = fm.id
+    WHERE pf.falha_id = ?
+    """
+    return await db.fetch_one(query, (falha_id,))
 
 
 async def criar_priorizacao(falha_id: int, impacto: int = 5, esforco: int = 5,
