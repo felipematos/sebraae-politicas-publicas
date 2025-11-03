@@ -930,12 +930,12 @@
                         <div class="bg-green-50 p-4 rounded-lg border border-green-200">
                             <p class="text-sm font-medium text-gray-600">Impacto</p>
                             <p class="text-3xl font-bold text-green-600 mt-2" x-text="`${detalhes_modal?.impacto || 0}/10`"></p>
-                            <p class="text-xs text-gray-600 mt-2">Potencial de impacto positivo</p>
+                            <p class="text-xs text-gray-600 mt-2 italic" x-text="obter_descricao_impacto(detalhes_modal?.impacto || 0)"></p>
                         </div>
                         <div class="bg-orange-50 p-4 rounded-lg border border-orange-200">
                             <p class="text-sm font-medium text-gray-600">Esforço</p>
                             <p class="text-3xl font-bold text-orange-600 mt-2" x-text="`${detalhes_modal?.esforco || 0}/10`"></p>
-                            <p class="text-xs text-gray-600 mt-2">Dificuldade de implementação</p>
+                            <p class="text-xs text-gray-600 mt-2 italic" x-text="obter_descricao_esforco(detalhes_modal?.esforco || 0)"></p>
                         </div>
                     </div>
 
@@ -2435,6 +2435,40 @@
                     return tipo === 'pesquisa'
                         ? 'bg-blue-100 text-blue-800'
                         : 'bg-purple-100 text-purple-800';
+                },
+
+                obter_descricao_impacto(nota) {
+                    const descricoes = {
+                        0: 'Impacto nulo - Sem relevância prática',
+                        1: 'Impacto mínimo - Afeta nicho muito específico',
+                        2: 'Impacto muito baixo - Benefício marginal',
+                        3: 'Impacto baixo - Relevância limitada',
+                        4: 'Impacto moderado-baixo - Efeito localizado',
+                        5: 'Impacto moderado - Relevância média',
+                        6: 'Impacto moderado-alto - Benefício significativo',
+                        7: 'Impacto alto - Grande potencial de transformação',
+                        8: 'Impacto muito alto - Efeito sistêmico importante',
+                        9: 'Impacto crítico - Potencial transformador massivo',
+                        10: 'Impacto máximo - Mudança estrutural fundamental'
+                    };
+                    return descricoes[nota] || 'Impacto não avaliado';
+                },
+
+                obter_descricao_esforco(nota) {
+                    const descricoes = {
+                        0: 'Esforço nulo - Implementação trivial',
+                        1: 'Esforço mínimo - Ajustes simples necessários',
+                        2: 'Esforço muito baixo - Poucos recursos necessários',
+                        3: 'Esforço baixo - Implementação direta',
+                        4: 'Esforço moderado-baixo - Coordenação básica',
+                        5: 'Esforço moderado - Mobilização média de recursos',
+                        6: 'Esforço moderado-alto - Coordenação complexa',
+                        7: 'Esforço alto - Mudanças estruturais significativas',
+                        8: 'Esforço muito alto - Reforma profunda necessária',
+                        9: 'Esforço crítico - Transformação sistêmica ampla',
+                        10: 'Esforço máximo - Mudança constitucional/estrutural'
+                    };
+                    return descricoes[nota] || 'Esforço não avaliado';
                 },
 
                 remover_documento(filename) {
