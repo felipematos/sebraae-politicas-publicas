@@ -2260,6 +2260,24 @@
 
                         let html = '';
 
+                        // Função auxiliar para descrição de impacto
+                        const getDescricaoImpacto = (nota) => {
+                            const descricoes = {
+                                0: 'Impacto nulo - Sem relevância prática',
+                                1: 'Impacto mínimo - Afeta nicho muito específico',
+                                2: 'Impacto muito baixo - Benefício marginal',
+                                3: 'Impacto baixo - Relevância limitada',
+                                4: 'Impacto moderado-baixo - Efeito localizado',
+                                5: 'Impacto moderado - Relevância média',
+                                6: 'Impacto moderado-alto - Benefício significativo',
+                                7: 'Impacto alto - Grande potencial de transformação',
+                                8: 'Impacto muito alto - Efeito sistêmico importante',
+                                9: 'Impacto crítico - Potencial transformador massivo',
+                                10: 'Impacto máximo - Mudança estrutural fundamental'
+                            };
+                            return descricoes[nota] || 'Impacto não avaliado';
+                        };
+
                         // Renderizar Impacto
                         if (analise.impacto) {
                             html += '<div class="mb-4">';
@@ -2283,11 +2301,35 @@
                                     html += `<li class="font-bold text-green-700"><strong>Total:</strong> ${analise.impacto.total}/10</li>`;
                                 }
                                 html += '</ul>';
+                                // Adicionar descrição do score total
+                                if (analise.impacto.total !== undefined) {
+                                    html += `<p class="ml-2 mt-2 text-sm italic text-gray-600">${getDescricaoImpacto(analise.impacto.total)}</p>`;
+                                }
                             } else {
-                                html += `<p class="ml-2"><strong>Score:</strong> ${analise.impacto}/10</p>`;
+                                const impactoScore = parseInt(analise.impacto);
+                                html += `<p class="ml-2"><strong>Score:</strong> ${impactoScore}/10</p>`;
+                                html += `<p class="ml-2 mt-1 text-sm italic text-gray-600">${getDescricaoImpacto(impactoScore)}</p>`;
                             }
                             html += '</div>';
                         }
+
+                        // Função auxiliar para descrição de esforço
+                        const getDescricaoEsforco = (nota) => {
+                            const descricoes = {
+                                0: 'Esforço nulo - Implementação trivial',
+                                1: 'Esforço mínimo - Ajustes simples necessários',
+                                2: 'Esforço muito baixo - Poucos recursos necessários',
+                                3: 'Esforço baixo - Implementação direta',
+                                4: 'Esforço moderado-baixo - Coordenação básica',
+                                5: 'Esforço moderado - Mobilização média de recursos',
+                                6: 'Esforço moderado-alto - Coordenação complexa',
+                                7: 'Esforço alto - Mudanças estruturais significativas',
+                                8: 'Esforço muito alto - Reforma profunda necessária',
+                                9: 'Esforço crítico - Transformação sistêmica ampla',
+                                10: 'Esforço máximo - Mudança constitucional/estrutural'
+                            };
+                            return descricoes[nota] || 'Esforço não avaliado';
+                        };
 
                         // Renderizar Esforço
                         const esforco = analise.esforco || analise.esforço;
@@ -2313,8 +2355,14 @@
                                     html += `<li class="font-bold text-orange-700"><strong>Total:</strong> ${esforco.total}/10</li>`;
                                 }
                                 html += '</ul>';
+                                // Adicionar descrição do score total
+                                if (esforco.total !== undefined) {
+                                    html += `<p class="ml-2 mt-2 text-sm italic text-gray-600">${getDescricaoEsforco(esforco.total)}</p>`;
+                                }
                             } else {
-                                html += `<p class="ml-2"><strong>Score:</strong> ${esforco}/10</p>`;
+                                const esforcoScore = parseInt(esforco);
+                                html += `<p class="ml-2"><strong>Score:</strong> ${esforcoScore}/10</p>`;
+                                html += `<p class="ml-2 mt-1 text-sm italic text-gray-600">${getDescricaoEsforco(esforcoScore)}</p>`;
                             }
                             html += '</div>';
                         }
@@ -2325,8 +2373,25 @@
                             html += '<h4 class="font-bold text-gray-800 mb-2">💡 Justificativa</h4>';
                             // Converter citações [FONTE-X] em links
                             // Garantir que justificativa é string antes de chamar replace()
-                            let justificativa = String(analise.justificativa);
-                            if (justificativa && justificativa !== 'undefined' && justificativa !== 'null') {
+                            let justificativa = '';
+
+                            // Se for objeto ou array, tentar extrair conteúdo
+                            if (typeof analise.justificativa === 'object') {
+                                if (Array.isArray(analise.justificativa)) {
+                                    // Se for array, juntar elementos
+                                    justificativa = analise.justificativa.join(' ');
+                                } else {
+                                    // Se for objeto, tentar pegar propriedades comuns
+                                    justificativa = analise.justificativa.texto ||
+                                                   analise.justificativa.descricao ||
+                                                   analise.justificativa.content ||
+                                                   JSON.stringify(analise.justificativa);
+                                }
+                            } else {
+                                justificativa = String(analise.justificativa);
+                            }
+
+                            if (justificativa && justificativa !== 'undefined' && justificativa !== 'null' && justificativa !== '[object Object]') {
                                 justificativa = justificativa.replace(/\[FONTE-(\d+)\]/g, '<a href="#fonte-$1" class="text-blue-600 hover:underline font-medium">[FONTE-$1]</a>');
                                 html += `<p class="ml-2 leading-relaxed">${justificativa}</p>`;
                             }
