@@ -72,10 +72,10 @@ class AgentePriorizador:
             resultados = await get_resultados_by_falha(falha_id) if usar_resultados_pesquisa else []
 
             # Obter contexto RAG da base de conhecimento (se configurado)
-            rag_contexto = await self._obter_contexto_rag(falha) if usar_rag else ""
+            rag_contexto, rag_documentos = await self._obter_contexto_rag(falha) if usar_rag else ("", [])
 
             # Construir contexto para análise (agora retorna contexto E fontes)
-            contexto, fontes = self._construir_contexto(falha, resultados, rag_contexto)
+            contexto, fontes = self._construir_contexto(falha, resultados, rag_contexto, rag_documentos)
 
             # Chamar IA para análise com parâmetros configuráveis
             resposta_ia = await self._consultar_ia(contexto, falha, fontes, temperatura, max_tokens, modelo)
@@ -140,9 +140,12 @@ class AgentePriorizador:
                 'erro': str(e)
             }
 
-    async def _obter_contexto_rag(self, falha: Dict[str, Any]) -> str:
+    async def _obter_contexto_rag(self, falha: Dict[str, Any]) -> Tuple[str, List[Dict[str, Any]]]:
         """
         Consulta a base de conhecimento (RAG) para obter contexto adicional
+
+        Returns:
+            Tuple[str, List[Dict]]: (contexto formatado, lista de documentos)
         """
         try:
             from app.config import settings, get_chroma_path
@@ -150,7 +153,7 @@ class AgentePriorizador:
             from app.vector.embeddings import EmbeddingClient
 
             if not settings.RAG_ENABLED or not settings.USAR_VECTOR_DB:
-                return ""
+                return "", []
 
             # Obter vector store
             embedding_client = EmbeddingClient(api_key=settings.OPENAI_API_KEY)
@@ -169,22 +172,34 @@ class AgentePriorizador:
             )
 
             if not resultados:
-                return ""
+                return "", []
 
-            # Formatar resultados
+            # Formatar resultados e criar lista de documentos
             contexto_rag = "\nCONTEXTO DA BASE DE CONHECIMENTO:\n"
+            documentos = []
+
             for i, resultado in enumerate(resultados, 1):
                 # VectorStore retorna dict com 'text', não objeto com 'page_content'
                 texto = resultado.get('text', '') if isinstance(resultado, dict) else str(resultado)
+                metadata = resultado.get('metadata', {}) if isinstance(resultado, dict) else {}
+
                 contexto_rag += f"\n{i}. {texto[:300]}...\n"
 
-            return contexto_rag
+                # Adicionar à lista de documentos
+                documentos.append({
+                    'texto': texto,
+                    'metadata': metadata,
+                    'fonte': metadata.get('source', 'Base de Conhecimento'),
+                    'titulo': metadata.get('title', f'Documento {i}')
+                })
+
+            return contexto_rag, documentos
 
         except Exception as e:
             logger.warning(f"Erro ao obter contexto RAG: {str(e)}")
-            return ""
+            return "", []
 
-    def _construir_contexto(self, falha: Dict[str, Any], resultados: List[Dict[str, Any]], rag_contexto: str = "") -> Tuple[str, List[Dict[str, Any]]]:
+    def _construir_contexto(self, falha: Dict[str, Any], resultados: List[Dict[str, Any]], rag_contexto: str = "", rag_documentos: List[Dict[str, Any]] = None) -> Tuple[str, List[Dict[str, Any]]]:
         """
         Constrói contexto para análise com rastreamento de fontes
 
@@ -230,6 +245,20 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
             contexto += "\nCONTEXTO DA BASE DE CONHECIMENTO (DOCUMENTOS):\n"
             # Parse RAG context que já tem numeração (vem de _obter_contexto_rag)
             contexto += rag_contexto
+
+            # Adicionar documentos RAG às fontes
+            if rag_documentos:
+                for i, doc in enumerate(rag_documentos, numero_fonte):
+                    fonte_info = {
+                        'numero': i,
+                        'tipo': 'documento',
+                        'id': None,
+                        'titulo': doc.get('titulo', f'Documento RAG {i}'),
+                        'descricao': doc.get('fonte', 'Base de Conhecimento'),
+                        'url': None,
+                        'conteudo': doc.get('texto', '')[:500]  # Primeiros 500 chars
+                    }
+                    fontes.append(fonte_info)
 
         return contexto, fontes
 
