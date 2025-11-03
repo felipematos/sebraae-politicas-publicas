@@ -126,7 +126,7 @@ class AgentePriorizador:
                 'impacto': scores['impacto'],
                 'esforco': scores['esforco'],
                 'analise': resposta_ia,
-                'fontes': fontes_utilizadas,
+                'fontes': fontes,
                 'sucesso': True
             }
 
