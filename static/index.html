@@ -1288,7 +1288,10 @@
                         console.log('[DEBUG] Priorizações carregadas:', data.dados?.length || 0);
                         const tbody = document.getElementById('tabela-priorizacao');
                         if (data.dados && Array.isArray(data.dados)) {
-                            tbody.innerHTML = data.dados.map(p => {
+                            // Ordenar por falha_id (mesma ordem da aba Pesquisa)
+                            const priorizacoesOrdenadas = data.dados.sort((a, b) => a.falha_id - b.falha_id);
+
+                            tbody.innerHTML = priorizacoesOrdenadas.map(p => {
                                 const quadrante = this.obter_quadrante(p.impacto, p.esforco);
                                 return `
                                     <tr class="border-b hover:bg-blue-50">

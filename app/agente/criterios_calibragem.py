@@ -7,50 +7,71 @@ Garante notas comparáveis e sem viés entre todas as falhas
 CRITERIOS_IMPACTO = """
 # CRITÉRIOS DE IMPACTO (0-10)
 
-Avalie o impacto potencial de resolver a falha no ecossistema de inovação brasileiro usando critérios objetivos:
+⚠️ **IMPORTANTE: Seja RIGOROSO e SELETIVO na avaliação de impacto. A maioria das falhas deve ficar entre 3-6 pontos. Apenas problemas VERDADEIRAMENTE sistêmicos e críticos merecem 8-10 pontos.**
 
-## DIMENSÃO 1: ABRANGÊNCIA (0-3 pontos)
-- **0 pontos**: Impacta apenas um nicho específico (< 1% do ecossistema)
-- **1 ponto**: Impacta um setor específico (1-5% do ecossistema)
-- **2 pontos**: Impacta múltiplos setores (5-20% do ecossistema)
-- **3 pontos**: Impacta todo o ecossistema (> 20% ou sistêmico)
+Avalie o impacto potencial de resolver a falha no ecossistema de inovação brasileiro usando critérios objetivos e estritos:
 
-**Indicadores objetivos:**
-- Número de empresas/startups afetadas
-- Número de setores impactados
-- Distribuição geográfica (local, regional, nacional)
+## DIMENSÃO 1: ABRANGÊNCIA (0-3 pontos) - SEJA CONSERVADOR
+- **0 pontos**: Impacta < 1.000 empresas OU um nicho muito específico (ex: apenas healthtechs de São Paulo)
+- **1 ponto**: Impacta 1.000-10.000 empresas OU um setor específico em uma região (ex: startups de fintech no Sul)
+- **2 pontos**: Impacta 10.000-100.000 empresas OU múltiplos setores em várias regiões (ex: todas startups tech do Brasil)
+- **3 pontos**: Impacta > 100.000 empresas OU todo o ecossistema nacional de forma sistêmica (ex: educação básica, sistema tributário)
 
-## DIMENSÃO 2: MAGNITUDE DO PROBLEMA (0-3 pontos)
-- **0 pontos**: Problema marginal sem evidências quantitativas
-- **1 ponto**: Problema documentado com algumas evidências (< 5 fontes)
-- **2 pontos**: Problema bem documentado com evidências sólidas (5-15 fontes)
-- **3 pontos**: Problema crítico amplamente documentado (> 15 fontes ou dados oficiais)
+**ATENÇÃO:** Dar nota 3 exige EVIDÊNCIAS QUANTITATIVAS de alcance nacional. A falta de dados deve reduzir a nota.
 
-**Indicadores objetivos:**
-- Número de resultados de pesquisa encontrados
-- Citações em documentos oficiais (MEC, MCTI, etc.)
-- Estudos acadêmicos ou relatórios técnicos
-- Menções em políticas públicas existentes
+**Perguntas críticas:**
+- Quantas empresas são DIRETAMENTE afetadas? (não apenas potencialmente)
+- O problema afeta apenas startups ou também PMEs tradicionais?
+- É um problema local/regional ou verdadeiramente nacional?
 
-## DIMENSÃO 3: MATURIDADE DE SOLUÇÕES (0-2 pontos)
-- **0 pontos**: Existem programas consolidados resolvendo o problema
-- **1 ponto**: Existem programas em implementação parcial
-- **2 pontos**: Não existem programas efetivos (gap crítico)
+## DIMENSÃO 2: MAGNITUDE DO PROBLEMA (0-3 pontos) - EXIJA EVIDÊNCIAS SÓLIDAS
+- **0 pontos**: < 10 resultados de pesquisa, problema anedótico ou hipotético
+- **1 ponto**: 10-100 resultados, menções esparsas sem dados quantitativos
+- **2 pontos**: 100-500 resultados, pelo menos 3 estudos técnicos OU dados de pesquisas setoriais
+- **3 pontos**: > 500 resultados E dados oficiais (IBGE, PISA, OCDE, Banco Mundial, CNI, etc.) E impacto econômico mensurável
 
-**Indicadores objetivos:**
-- Número de programas/iniciativas identificados na base de conhecimento
-- Orçamento investido (se > R$ 100 milhões = soluções maduras)
-- Legislação existente (Lei federal = programa consolidado)
+**ATENÇÃO:** Nota 3 só para problemas com COMPROVAÇÃO ESTATÍSTICA robusta de órgãos oficiais.
 
-## DIMENSÃO 4: EFEITO MULTIPLICADOR (0-2 pontos)
-- **0 pontos**: Impacto isolado em um pilar
-- **1 ponto**: Impacta 2 pilares do ecossistema
-- **2 pontos**: Impacta 3+ pilares (transversal)
+**Perguntas críticas:**
+- Existem DADOS QUANTITATIVOS ou apenas opiniões?
+- O problema é mencionado em relatórios oficiais de governo/OCDE?
+- Qual é o impacto econômico MENSURÁVEL (R$, empregos, PIB)?
 
-**Indicadores objetivos:**
-- Impacto direto em: Talento, Densidade, Cultura, Capital, Regulação, Mercado, Impacto
+## DIMENSÃO 3: MATURIDADE DE SOLUÇÕES (0-2 pontos) - CONSIDERE SOLUÇÕES PARCIAIS
+- **0 pontos**: Existem programas consolidados (> R$ 50 milhões/ano) OU Lei Federal regulamentando
+- **1 ponto**: Existem programas menores (R$ 5-50 milhões/ano) OU projetos-piloto OU regulamentação estadual/municipal
+- **2 pontos**: Não existem programas governamentais significativos (< R$ 5 milhões/ano) E não há legislação específica
+
+**ATENÇÃO:** Se o Sebrae JÁ tem programa na área, a nota máxima aqui é 1 (não 2).
+
+**Perguntas críticas:**
+- Já existe algum programa do Sebrae/BNDES/Finep na área?
+- Há legislação federal sobre o tema?
+- Quanto do orçamento público é destinado a isso atualmente?
+
+## DIMENSÃO 4: EFEITO MULTIPLICADOR (0-2 pontos) - SEJA REALISTA
+- **0 pontos**: Impacta diretamente apenas 1 pilar (ex: apenas "Capital")
+- **1 ponto**: Impacta diretamente 2 pilares (ex: "Talento" + "Cultura")
+- **2 pontos**: Impacta diretamente 3+ pilares de forma VERIFICÁVEL (não apenas teórica)
+
+**ATENÇÃO:** Considere apenas impactos DIRETOS e VERIFICÁVEIS, não impactos hipotéticos ou indiretos de longo prazo.
+
+**Perguntas críticas:**
+- Resolver isso afeta DIRETAMENTE múltiplos pilares ou apenas cascata indireta?
+- Os efeitos multiplicadores são COMPROVADOS ou apenas esperados?
+
+---
 
 **SCORE FINAL DE IMPACTO = Soma das 4 dimensões (máximo 10 pontos)**
+
+**DISTRIBUIÇÃO ESPERADA (para 50 falhas):**
+- 0-3 pontos: ~20% das falhas (problemas localizados)
+- 4-6 pontos: ~50% das falhas (problemas relevantes mas não críticos)
+- 7-8 pontos: ~25% das falhas (problemas importantes e bem documentados)
+- 9-10 pontos: ~5% das falhas (apenas problemas VERDADEIRAMENTE sistêmicos e críticos)
+
+**EXEMPLOS DE IMPACTO 9-10:** Reforma tributária, Educação STEM nacional, Sistema único de saúde
+**EXEMPLOS DE IMPACTO 4-6:** Acesso a crédito para startups, Mentoria regional, Burocracia de registro de PI
 """
 
 CRITERIOS_ESFORCO = """
@@ -167,9 +188,14 @@ EXEMPLOS_CALIBRACAO = """
 """
 
 PROMPT_TEMPLATE_CALIBRADO = """
-Você é um especialista em políticas públicas e ecossistema de inovação brasileiro.
+Você é um especialista CRÍTICO e RIGOROSO em políticas públicas e ecossistema de inovação brasileiro.
 
-IMPORTANTE: Use os critérios objetivos abaixo para garantir análises comparáveis e sem viés.
+⚠️ **INSTRUÇÕES CRÍTICAS:**
+- Seja CONSERVADOR na avaliação de impacto - a maioria das falhas deve receber entre 3-6 pontos
+- NÃO infle os scores - exija evidências QUANTITATIVAS sólidas para notas altas
+- Apenas problemas VERDADEIRAMENTE sistêmicos e críticos merecem 8-10 pontos de impacto
+- Se tiver dúvida entre duas notas, escolha a MENOR
+- Prefira subestimar do que superestimar o impacto
 
 {criterios_impacto}
 
@@ -185,11 +211,20 @@ FALHA PARA ANÁLISE:
 
 ---
 
-INSTRUÇÕES:
-1. Analise cada dimensão objetivamente usando os indicadores fornecidos
-2. Some os pontos de cada dimensão para obter o score final
-3. Cite as fontes usando [FONTE-X] na justificativa
-4. Seja rigoroso e comparativo: use os exemplos como referência de calibragem
+INSTRUÇÕES DETALHADAS:
+1. **Analise cada dimensão objetivamente** usando APENAS os indicadores quantitativos fornecidos
+2. **Exija evidências concretas:** Não assuma impactos sem dados
+3. **Some os pontos** de cada dimensão para obter o score final (não arredonde para cima)
+4. **Cite as fontes** usando [FONTE-X] para CADA afirmação factual na justificativa
+5. **Seja comparativo:** Use os exemplos como referência - se a falha não é tão crítica quanto "Educação STEM", não pode ter nota similar
+6. **Questione suas próprias suposições:** Antes de dar nota alta, pergunte "Tenho DADOS que comprovam isso?"
+
+⚠️ **CHECKLIST ANTES DE FINALIZAR:**
+- [ ] Usei APENAS dados quantitativos verificáveis, não impressões qualitativas?
+- [ ] Citei fontes específicas [FONTE-X] para cada claim?
+- [ ] A nota de impacto está entre 3-6 para problemas "normais" (não sistêmicos)?
+- [ ] Dei nota 8+ APENAS se houver dados oficiais (IBGE, OCDE, etc.)?
+- [ ] Considerei programas existentes que já abordam parcialmente o problema?
 
 Responda EXATAMENTE no seguinte formato JSON:
 {{
@@ -207,7 +242,7 @@ Responda EXATAMENTE no seguinte formato JSON:
         "estrutural": <0-3>,
         "total": <soma, 0-10>
     }},
-    "justificativa": "<explicação detalhada com citações [FONTE-X] para cada dimensão>",
+    "justificativa": "<explicação detalhada com citações [FONTE-X] para CADA dimensão, sendo crítico e baseado em dados>",
     "fontes_utilizadas": [<lista dos números de fontes citadas>]
 }}
 
