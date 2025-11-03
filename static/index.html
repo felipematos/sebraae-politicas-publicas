@@ -2391,11 +2391,20 @@
                                                    analise.justificativa.message ||
                                                    '';
 
-                                    // Se ainda estiver vazio, não mostrar JSON
+                                    // Se ainda estiver vazio, tentar extrair de outras formas
                                     if (!justificativa) {
-                                        console.warn('[WARN] Justificativa é objeto mas não tem propriedades conhecidas:', analise.justificativa);
-                                        // Não usar JSON.stringify - deixar vazio
-                                        justificativa = '';
+                                        console.warn('[WARN] Justificativa é objeto mas não tem propriedades conhecidas');
+                                        console.warn('[WARN] Propriedades do objeto:', Object.keys(analise.justificativa));
+                                        console.warn('[WARN] Conteúdo completo:', analise.justificativa);
+
+                                        // Tentar pegar a primeira propriedade do objeto
+                                        const keys = Object.keys(analise.justificativa);
+                                        if (keys.length > 0) {
+                                            justificativa = analise.justificativa[keys[0]];
+                                            console.log('[INFO] Usando propriedade:', keys[0], '=', justificativa);
+                                        } else {
+                                            justificativa = '';
+                                        }
                                     }
                                 }
                             } else {
