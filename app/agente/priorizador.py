@@ -414,9 +414,23 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
             logger.warning(f"Erro ao extrair números de fonte do texto: {str(e)}")
             return []
 
-    async def analisar_todas_falhas(self) -> Dict[str, Any]:
+    async def analisar_todas_falhas(
+        self,
+        usar_rag: bool = True,
+        usar_resultados_pesquisa: bool = True,
+        temperatura: float = 0.3,
+        max_tokens: int = 4000,
+        modelo: str = "google/gemini-2.5-pro"
+    ) -> Dict[str, Any]:
         """
-        Analisa todas as falhas sequencialmente
+        Analisa todas as falhas sequencialmente com configurações customizadas
+
+        Args:
+            usar_rag: Se True, usa contexto da base de conhecimento RAG
+            usar_resultados_pesquisa: Se True, usa resultados de pesquisa
+            temperatura: Temperatura do modelo (0.0-1.0)
+            max_tokens: Máximo de tokens na resposta
+            modelo: Modelo de IA a ser usado
 
         Retorna:
         {
@@ -435,10 +449,18 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
         falhadas = 0
         erros = []
 
-        logger.info(f"Iniciando análise de {total} falhas...")
+        logger.info(f"Iniciando análise de {total} falhas com configurações customizadas...")
+        logger.info(f"RAG={usar_rag}, Pesquisa={usar_resultados_pesquisa}, Modelo={modelo}")
 
         for idx, falha in enumerate(falhas, 1):
-            resultado = await self.analisar_falha(falha['id'])
+            resultado = await self.analisar_falha(
+                falha['id'],
+                usar_rag=usar_rag,
+                usar_resultados_pesquisa=usar_resultados_pesquisa,
+                temperatura=temperatura,
+                max_tokens=max_tokens,
+                modelo=modelo
+            )
 
             if resultado['sucesso']:
                 analisadas += 1

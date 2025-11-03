@@ -254,6 +254,113 @@
             </div>
         </div>
 
+        <!-- Modal de Configurações para Análise em Lote -->
+        <div id="config-lote-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="fechar_config_lote()" x-show="modal_config_lote_aberto" x-cloak>
+            <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" @click.stop>
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-700">⚙️ Configurações de Análise em Lote</h3>
+                        <p class="text-sm text-gray-600 mt-1">
+                            Estas configurações serão aplicadas ao analisar todas as falhas
+                        </p>
+                    </div>
+                    <button @click="fechar_config_lote()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Configurações -->
+                <div class="space-y-4 mb-6">
+                    <!-- Fontes de Dados -->
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                        <p class="text-sm font-medium text-gray-700 mb-2">📚 Fontes de Dados</p>
+
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" x-model="config_analise_lote.usar_rag" class="form-checkbox h-5 w-5 text-blue-600">
+                            <div>
+                                <p class="text-sm font-medium">Base de Conhecimento (RAG)</p>
+                                <p class="text-xs text-gray-500">Usa documentos indexados para contexto adicional</p>
+                            </div>
+                        </label>
+
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" x-model="config_analise_lote.usar_resultados_pesquisa" class="form-checkbox h-5 w-5 text-blue-600">
+                            <div>
+                                <p class="text-sm font-medium">Resultados de Pesquisa</p>
+                                <p class="text-xs text-gray-500">Usa resultados de pesquisa web relacionados à falha</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Parâmetros do Modelo -->
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                        <p class="text-sm font-medium text-gray-700 mb-2">🤖 Parâmetros do Modelo</p>
+
+                        <!-- Seletor de Modelo -->
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 block mb-2">Modelo de IA</label>
+                            <select x-model="config_analise_lote.modelo" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="google/gemini-2.5-pro">Gemini 2.5 Pro (Recomendado)</option>
+                                <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash Experimental (Gratuito)</option>
+                                <option value="xai/grok-4-fast">Grok 4 Fast (Rápido)</option>
+                                <option value="meta-llama/llama-3.1-70b-instruct">Llama 3.1 70B</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Escolha o modelo de IA para análise. Gemini 2.5 Pro oferece melhor qualidade.</p>
+                        </div>
+
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 flex items-center justify-between">
+                                Temperatura
+                                <span class="text-blue-600 font-mono" x-text="config_analise_lote.temperatura.toFixed(1)"></span>
+                            </label>
+                            <input type="range" x-model.number="config_analise_lote.temperatura" min="0" max="1" step="0.1" class="w-full">
+                            <p class="text-xs text-gray-500 mt-1">Controla a criatividade da resposta (0.0 = determinístico, 1.0 = criativo)</p>
+                        </div>
+
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 flex items-center justify-between">
+                                Tokens Máximos
+                                <span class="text-blue-600 font-mono" x-text="config_analise_lote.max_tokens"></span>
+                            </label>
+                            <input type="range" x-model.number="config_analise_lote.max_tokens" min="1000" max="8000" step="500" class="w-full">
+                            <p class="text-xs text-gray-500 mt-1">Tamanho máximo da resposta (1000-8000 tokens)</p>
+                        </div>
+                    </div>
+
+                    <!-- Resumo da Configuração -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <p class="text-sm font-medium text-blue-900 mb-2">📋 Resumo da Configuração</p>
+                        <div class="text-xs text-blue-800 space-y-1">
+                            <p><span class="font-medium">Modelo:</span> <span x-text="config_analise_lote.modelo"></span></p>
+                            <p><span class="font-medium">RAG:</span> <span x-text="config_analise_lote.usar_rag ? 'Ativado' : 'Desativado'"></span></p>
+                            <p><span class="font-medium">Pesquisa Web:</span> <span x-text="config_analise_lote.usar_resultados_pesquisa ? 'Ativado' : 'Desativado'"></span></p>
+                            <p><span class="font-medium">Temperatura:</span> <span x-text="config_analise_lote.temperatura.toFixed(1)"></span></p>
+                            <p><span class="font-medium">Max Tokens:</span> <span x-text="config_analise_lote.max_tokens"></span></p>
+                        </div>
+                    </div>
+
+                    <!-- Aviso -->
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p class="text-sm text-yellow-800">
+                            <span class="font-medium">⚠️ Importante:</span> Estas configurações serão aplicadas a todas as 50 falhas durante a análise em lote. A análise pode levar alguns minutos dependendo do modelo escolhido.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="flex gap-3 justify-end">
+                    <button @click="fechar_config_lote()" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded font-medium">
+                        Cancelar
+                    </button>
+                    <button @click="salvar_config_lote()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium">
+                        💾 Salvar Configurações
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Header Principal -->
         <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
             <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
@@ -711,6 +818,9 @@
                             <span x-show="!analisando">🤖 Analisar Todas as Falhas</span>
                             <span x-show="analisando">⟳ Analisando...</span>
                         </button>
+                        <button @click="abrir_config_lote()" :disabled="analisando" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50">
+                            ⚙️ Configurações
+                        </button>
                         <button @click="carregar_matriz()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium">
                             📊 Ver Matriz 2x2
                         </button>
@@ -856,6 +966,14 @@
                     progresso: 0,
                     mensagem: ''
                 },
+                modal_config_lote_aberto: false,
+                config_analise_lote: {
+                    usar_rag: true,
+                    usar_resultados_pesquisa: true,
+                    temperatura: 0.3,
+                    modelo: 'google/gemini-2.5-pro',
+                    max_tokens: 4000
+                },
                 confirmacao_titulo: '',
                 confirmacao_mensagem: '',
                 confirmacao_callback: null,
@@ -962,6 +1080,16 @@
 
                 async inicializar() {
                     try {
+                        // Carregar configurações de análise em lote do localStorage
+                        const configSalva = localStorage.getItem('config_analise_lote');
+                        if (configSalva) {
+                            try {
+                                this.config_analise_lote = JSON.parse(configSalva);
+                            } catch (e) {
+                                console.warn('Erro ao carregar configurações salvas:', e);
+                            }
+                        }
+
                         // Carregar página baseada na URL
                         this.fase_atual = this.get_fase_from_hash();
 
@@ -1221,13 +1349,27 @@
                 async analisar_todas_falhas() {
                     this.analisando = true;
                     try {
-                        await fetch('/api/priorizacoes/inicializar/padrao');
-                        const res = await fetch('/api/priorizacoes/analisar-todas', { method: 'POST' });
+                        // Enviar configurações salvas para o backend
+                        const res = await fetch('/api/priorizacoes/analisar-todas', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                usar_rag: this.config_analise_lote.usar_rag,
+                                usar_resultados_pesquisa: this.config_analise_lote.usar_resultados_pesquisa,
+                                temperatura: this.config_analise_lote.temperatura,
+                                max_tokens: this.config_analise_lote.max_tokens,
+                                modelo: this.config_analise_lote.modelo
+                            })
+                        });
+
                         if (res.ok) {
                             this.mostrar_notificacao('✓ Análise concluída com sucesso!', 'sucesso');
                             this.carregar_priorizacoes();
                         } else {
-                            this.mostrar_notificacao('✗ Erro na análise', 'erro');
+                            const error = await res.json();
+                            this.mostrar_notificacao(`✗ Erro na análise: ${error.detail || 'Erro desconhecido'}`, 'erro');
                         }
                     } catch (e) {
                         this.mostrar_notificacao('✗ Erro: ' + e.message, 'erro');
@@ -1254,6 +1396,21 @@
                 fechar_modal_analise() {
                     this.modal_analise_aberto = false;
                     this.falha_analise = null;
+                },
+
+                abrir_config_lote() {
+                    this.modal_config_lote_aberto = true;
+                },
+
+                fechar_config_lote() {
+                    this.modal_config_lote_aberto = false;
+                },
+
+                salvar_config_lote() {
+                    // Salvar no localStorage para persistir entre sessões
+                    localStorage.setItem('config_analise_lote', JSON.stringify(this.config_analise_lote));
+                    this.mostrar_notificacao('✓ Configurações salvas com sucesso!', 'sucesso');
+                    this.fechar_config_lote();
                 },
 
                 async executar_analise_individual() {

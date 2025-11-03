@@ -40,8 +40,13 @@ class AnalisarFalhaRequest(BaseModel):
 
 
 class AnalisarTodasRequest(BaseModel):
-    """Model para análise em lote"""
+    """Model para análise em lote com configurações"""
     incluir_analisadas: bool = False  # Se False, analisa apenas as sem análise
+    usar_rag: bool = True  # Usar base de conhecimento RAG
+    usar_resultados_pesquisa: bool = True  # Usar resultados de pesquisa
+    temperatura: float = 0.3  # Temperatura do modelo (0.0-1.0)
+    max_tokens: int = 4000  # Máximo de tokens na resposta
+    modelo: str = "google/gemini-2.5-pro"  # Modelo a ser usado
 
 
 class AnalisarIndividualRequest(BaseModel):
@@ -161,13 +166,23 @@ async def analisar_falha_endpoint(request: AnalisarFalhaRequest) -> Dict[str, An
 
 
 @router.post("/analisar-todas")
-async def analisar_todas_falhas_endpoint(request: AnalisarTodasRequest = None) -> Dict[str, Any]:
+async def analisar_todas_falhas_endpoint(request: AnalisarTodasRequest) -> Dict[str, Any]:
     """
-    Analisa todas as falhas usando IA
+    Analisa todas as falhas usando IA com configurações customizadas
     Por padrão analisa apenas as que ainda não têm análise
     """
     try:
-        resultado = await priorizador.analisar_todas_falhas()
+        logger.info(f"Iniciando análise em lote de todas as falhas")
+        logger.info(f"Configurações: RAG={request.usar_rag}, Pesquisa={request.usar_resultados_pesquisa}, "
+                   f"Temp={request.temperatura}, MaxTokens={request.max_tokens}, Modelo={request.modelo}")
+
+        resultado = await priorizador.analisar_todas_falhas(
+            usar_rag=request.usar_rag,
+            usar_resultados_pesquisa=request.usar_resultados_pesquisa,
+            temperatura=request.temperatura,
+            max_tokens=request.max_tokens,
+            modelo=request.modelo
+        )
 
         return {
             'sucesso': resultado['sucesso'],
