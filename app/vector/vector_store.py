@@ -97,7 +97,7 @@ class VectorStore:
         Inicializa VectorStore
 
         Args:
-            persist_path: Caminho para salvar dados (persistência futura)
+            persist_path: Caminho para salvar dados
             embedding_client: Cliente de embeddings
         """
         self.persist_path = persist_path
@@ -106,17 +106,29 @@ class VectorStore:
         # Criar diretório se não existir
         self.persist_path.mkdir(parents=True, exist_ok=True)
 
-        # Inicializar coleções em memória
-        self.resultados_collection = SimpleVectorCollection("resultados")
-        self.falhas_collection = SimpleVectorCollection("falhas")
-        self.queries_collection = SimpleVectorCollection("queries")
-        self.documents_collection = SimpleVectorCollection("documents")  # Para documentos RAG
+        # Tentar carregar coleções persistidas
+        loaded = self._load_collections()
+
+        if loaded:
+            print(f"[VectorStore] Coleções carregadas de {persist_path}")
+            print(f"  - documents: {self.documents_collection.count()} documentos")
+            print(f"  - resultados: {self.resultados_collection.count()} resultados")
+            print(f"  - falhas: {self.falhas_collection.count()} falhas")
+            print(f"  - queries: {self.queries_collection.count()} queries")
+        else:
+            # Inicializar coleções vazias
+            self.resultados_collection = SimpleVectorCollection("resultados")
+            self.falhas_collection = SimpleVectorCollection("falhas")
+            self.queries_collection = SimpleVectorCollection("queries")
+            self.documents_collection = SimpleVectorCollection("documents")  # Para documentos RAG
+            print(f"[VectorStore] Coleções inicializadas vazias em {persist_path}")
 
     async def add_texts(
         self,
         texts: List[str],
         metadatas: List[Dict[str, Any]],
-        ids: List[str]
+        ids: List[str],
+        save: bool = True
     ) -> bool:
         """
         Adiciona textos/documentos ao banco vetorial (para RAG)
@@ -125,6 +137,7 @@ class VectorStore:
             texts: Lista de textos a adicionar
             metadatas: Lista de dicionários com metadados
             ids: Lista de IDs únicos para os documentos
+            save: Se True, salva após adicionar (default). Use False para batch operations.
 
         Returns:
             True se todos foram adicionados com sucesso
@@ -143,6 +156,10 @@ class VectorStore:
                 metadatas=metadatas,
                 documents=texts
             )
+
+            # Persistir mudanças apenas se solicitado
+            if save:
+                self._save_collections()
 
             return True
 
@@ -529,6 +546,48 @@ class VectorStore:
     async def cleanup(self):
         """Limpa caches e recursos"""
         self.embedding_client.clear_cache()
+
+    def _save_collections(self):
+        """Salva coleções em disco usando pickle"""
+        try:
+            collections_file = self.persist_path / "collections.pkl"
+            data = {
+                "documents": self.documents_collection,
+                "resultados": self.resultados_collection,
+                "falhas": self.falhas_collection,
+                "queries": self.queries_collection
+            }
+            with open(collections_file, 'wb') as f:
+                pickle.dump(data, f)
+            print(f"[VectorStore] Coleções salvas em {collections_file}")
+            return True
+        except Exception as e:
+            print(f"[VectorStore] Erro ao salvar coleções: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def _load_collections(self) -> bool:
+        """Carrega coleções do disco usando pickle"""
+        try:
+            collections_file = self.persist_path / "collections.pkl"
+            if not collections_file.exists():
+                return False
+
+            with open(collections_file, 'rb') as f:
+                data = pickle.load(f)
+
+            self.documents_collection = data.get("documents", SimpleVectorCollection("documents"))
+            self.resultados_collection = data.get("resultados", SimpleVectorCollection("resultados"))
+            self.falhas_collection = data.get("falhas", SimpleVectorCollection("falhas"))
+            self.queries_collection = data.get("queries", SimpleVectorCollection("queries"))
+
+            return True
+        except Exception as e:
+            print(f"[VectorStore] Erro ao carregar coleções: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
 
 
 # Singleton global

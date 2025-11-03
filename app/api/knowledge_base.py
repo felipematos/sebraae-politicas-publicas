@@ -120,6 +120,7 @@ async def store_document_in_vector_db(
         total_chunks = len(chunks)
 
         # Adicionar cada chunk ao vector store com progresso incremental
+        # Otimização: salvar apenas no final do documento (batch save)
         for i, chunk in enumerate(chunks):
             if chunk.strip():
                 doc_id = f"{file_name}_chunk_{i}"
@@ -141,11 +142,13 @@ async def store_document_in_vector_db(
                         "detail": f"Indexando chunk {i+1}/{total_chunks}"
                     })
 
-                # Add to vector store
+                # Add to vector store (sem salvar a cada chunk - performance)
+                is_last_chunk = (i == total_chunks - 1)
                 await vector_store.add_texts(
                     texts=[chunk],
                     metadatas=[metadata],
-                    ids=[doc_id]
+                    ids=[doc_id],
+                    save=is_last_chunk  # Salvar apenas no último chunk do documento
                 )
 
         return True
