@@ -218,39 +218,10 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
 
     async def _consultar_ia(self, contexto: str, falha: Dict[str, Any], fontes: List[Dict[str, Any]] = None) -> str:
         """Consulta IA para análise com fallback inteligente e rastreamento de fontes"""
-        prompt = f"""
-Você é um especialista em políticas públicas e ecossistema de inovação brasileiro.
+        from app.agente.criterios_calibragem import get_prompt_calibrado
 
-Analise a seguinte falha de mercado e atribua:
-1. Um score de IMPACTO (0-10): Qual o tamanho do impacto positivo que resolver essa falha pode gerar para o ecossistema de inovação brasileiro?
-   - 0-2: Impacto muito pequeno
-   - 3-4: Impacto pequeno
-   - 5-6: Impacto moderado
-   - 7-8: Impacto grande
-   - 9-10: Impacto muito grande/crítico
-
-2. Um score de ESFORÇO (0-10): Qual o nível de dificuldade e complexidade de implementação de soluções para essa falha?
-   - 0-2: Muito fácil de implementar
-   - 3-4: Fácil de implementar
-   - 5-6: Moderadamente fácil
-   - 7-8: Difícil de implementar
-   - 9-10: Muito difícil/complexo
-
-{contexto}
-
-IMPORTANTE: Na sua justificativa, cite as fontes que você utilizou usando o formato [FONTE-X] onde X é o número da fonte.
-Exemplo: "De acordo com [FONTE-1] e [FONTE-3], o impacto seria significativo..."
-
-Responda EXATAMENTE no seguinte formato JSON:
-{{
-    "impacto": <número 0-10>,
-    "esforço": <número 0-10>,
-    "justificativa": "<explicação breve da análise em português com citações [FONTE-X]>",
-    "fontes_utilizadas": [<lista dos números de fontes citadas, ex: [1, 3, 5]>]
-}}
-
-IMPORTANTE: Responda APENAS com o JSON, sem texto adicional.
-"""
+        # Usar prompt calibrado com critérios objetivos
+        prompt = get_prompt_calibrado(contexto)
 
         try:
             # Tentar com modelo gratuito principal primeiro
@@ -279,12 +250,26 @@ IMPORTANTE: Responda APENAS com o JSON, sem texto adicional.
         try:
             # Tentar parsear como JSON
             dados = json.loads(resposta_ia)
-            impacto = int(dados.get('impacto', 5))
-            esforco = int(dados.get('esforço', 5)) or int(dados.get('esforco', 5))
+
+            # Novo formato com dimensões detalhadas
+            if isinstance(dados.get('impacto'), dict):
+                impacto = int(dados['impacto'].get('total', 5))
+            else:
+                # Formato antigo (retrocompatibilidade)
+                impacto = int(dados.get('impacto', 5))
+
+            if isinstance(dados.get('esforco'), dict) or isinstance(dados.get('esforço'), dict):
+                esforco_dict = dados.get('esforco') or dados.get('esforço')
+                esforco = int(esforco_dict.get('total', 5))
+            else:
+                # Formato antigo (retrocompatibilidade)
+                esforco = int(dados.get('esforço', 5)) or int(dados.get('esforco', 5))
 
             # Validar ranges
             impacto = max(0, min(10, impacto))
             esforco = max(0, min(10, esforco))
+
+            logger.info(f"Scores extraídos - Impacto: {impacto}, Esforço: {esforco}")
 
             return {
                 'impacto': impacto,
