@@ -1406,83 +1406,83 @@
                         } else {
                             tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">Nenhuma priorização encontrada</td></tr>';
                         }
-                    },
-                    renderizar_tabela_priorizacao() {
-                        const tbody = document.getElementById('tabela-priorizacao');
-                        if (!this.priorizacoes_dados || !Array.isArray(this.priorizacoes_dados)) return;
+                    } catch (e) {
+                        console.error('[DEBUG] Erro ao carregar priorizações', e);
+                    }
+                },
 
-                        tbody.innerHTML = this.priorizacoes_dados.map(p => {
-                            const quadrante = this.obter_quadrante(p.impacto, p.esforco);
-                            return `
-                                <tr class="border-b hover:bg-blue-50">
-                                    <td class="px-6 py-4 text-sm">${p.falha_id}</td>
-                                    <td class="px-6 py-4 text-sm"><span class="bg-blue-100 text-blue-800 px-3 py-1 rounded font-bold">${p.score || 0}</span></td>
-                                    <td class="px-6 py-4 text-sm font-medium">${p.titulo}</td>
-                                    <td class="px-6 py-4 text-sm"><span class="bg-green-100 text-green-800 px-3 py-1 rounded font-bold">${p.impacto}/10</span></td>
-                                    <td class="px-6 py-4 text-sm"><span class="bg-orange-100 text-orange-800 px-3 py-1 rounded font-bold">${p.esforco}/10</span></td>
-                                    <td class="px-6 py-4 text-sm"><span class="bg-purple-100 text-purple-800 px-3 py-1 rounded text-xs">${quadrante}</span></td>
-                                    <td class="px-6 py-4 text-sm space-x-2">
-                                        <button data-action="analisar" data-falha-id="${p.falha_id}" data-titulo="${p.titulo.replace(/"/g, '&quot;')}" class="text-green-600 hover:underline font-medium">🔍 Analisar</button>
-                                        <button data-action="detalhes" data-falha-id="${p.falha_id}" class="text-blue-600 hover:underline font-medium">Ver Detalhes</button>
-                                    </td>
-                                </tr>
-                            `;
-                        }).join('');
+                renderizar_tabela_priorizacao() {
+                    const tbody = document.getElementById('tabela-priorizacao');
+                    if (!this.priorizacoes_dados || !Array.isArray(this.priorizacoes_dados)) return;
 
-                        // Adicionar event listeners aos botões
-                        tbody.querySelectorAll('button[data-action="analisar"]').forEach(btn => {
-                            btn.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                const falhaId = parseInt(btn.getAttribute('data-falha-id'));
-                                const titulo = btn.getAttribute('data-titulo');
-                                this.abrir_modal_analise(falhaId, titulo);
-                            });
+                    tbody.innerHTML = this.priorizacoes_dados.map(p => {
+                        const quadrante = this.obter_quadrante(p.impacto, p.esforco);
+                        return `
+                            <tr class="border-b hover:bg-blue-50">
+                                <td class="px-6 py-4 text-sm">${p.falha_id}</td>
+                                <td class="px-6 py-4 text-sm"><span class="bg-blue-100 text-blue-800 px-3 py-1 rounded font-bold">${p.score || 0}</span></td>
+                                <td class="px-6 py-4 text-sm font-medium">${p.titulo}</td>
+                                <td class="px-6 py-4 text-sm"><span class="bg-green-100 text-green-800 px-3 py-1 rounded font-bold">${p.impacto}/10</span></td>
+                                <td class="px-6 py-4 text-sm"><span class="bg-orange-100 text-orange-800 px-3 py-1 rounded font-bold">${p.esforco}/10</span></td>
+                                <td class="px-6 py-4 text-sm"><span class="bg-purple-100 text-purple-800 px-3 py-1 rounded text-xs">${quadrante}</span></td>
+                                <td class="px-6 py-4 text-sm space-x-2">
+                                    <button data-action="analisar" data-falha-id="${p.falha_id}" data-titulo="${p.titulo.replace(/"/g, '&quot;')}" class="text-green-600 hover:underline font-medium">🔍 Analisar</button>
+                                    <button data-action="detalhes" data-falha-id="${p.falha_id}" class="text-blue-600 hover:underline font-medium">Ver Detalhes</button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                    // Adicionar event listeners aos botões
+                    tbody.querySelectorAll('button[data-action="analisar"]').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const falhaId = parseInt(btn.getAttribute('data-falha-id'));
+                            const titulo = btn.getAttribute('data-titulo');
+                            this.abrir_modal_analise(falhaId, titulo);
                         });
+                    });
 
-                        tbody.querySelectorAll('button[data-action="detalhes"]').forEach(btn => {
-                            btn.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                const falhaId = parseInt(btn.getAttribute('data-falha-id'));
-                                this.abrir_detalhes_priorizacao(falhaId);
-                            });
+                    tbody.querySelectorAll('button[data-action="detalhes"]').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const falhaId = parseInt(btn.getAttribute('data-falha-id'));
+                            this.abrir_detalhes_priorizacao(falhaId);
                         });
+                    });
 
-                        console.log('[DEBUG] Event listeners adicionados aos botões');
-                    },
+                    console.log('[DEBUG] Event listeners adicionados aos botões');
+                },
 
-                    ordenar_priorizacoes(campo) {
-                        // Toggle direção se clicar no mesmo campo
-                        if (this.ordem_campo === campo) {
-                            this.ordem_direcao = this.ordem_direcao === 'asc' ? 'desc' : 'asc';
-                        } else {
-                            this.ordem_campo = campo;
-                            this.ordem_direcao = campo === 'score' ? 'desc' : 'asc'; // Score padrão DESC
+                ordenar_priorizacoes(campo) {
+                    // Toggle direção se clicar no mesmo campo
+                    if (this.ordem_campo === campo) {
+                        this.ordem_direcao = this.ordem_direcao === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        this.ordem_campo = campo;
+                        this.ordem_direcao = campo === 'score' ? 'desc' : 'asc'; // Score padrão DESC
+                    }
+
+                    // Ordenar dados
+                    this.priorizacoes_dados.sort((a, b) => {
+                        let valA = a[campo];
+                        let valB = b[campo];
+
+                        // Tratar valores numéricos
+                        if (campo === 'id' || campo === 'falha_id' || campo === 'impacto' || campo === 'esforco' || campo === 'score') {
+                            valA = parseFloat(valA) || 0;
+                            valB = parseFloat(valB) || 0;
                         }
 
-                        // Ordenar dados
-                        this.priorizacoes_dados.sort((a, b) => {
-                            let valA = a[campo];
-                            let valB = b[campo];
+                        // Comparar
+                        if (valA < valB) return this.ordem_direcao === 'asc' ? -1 : 1;
+                        if (valA > valB) return this.ordem_direcao === 'asc' ? 1 : -1;
+                        return 0;
+                    });
 
-                            // Tratar valores numéricos
-                            if (campo === 'id' || campo === 'falha_id' || campo === 'impacto' || campo === 'esforco' || campo === 'score') {
-                                valA = parseFloat(valA) || 0;
-                                valB = parseFloat(valB) || 0;
-                            }
-
-                            // Comparar
-                            if (valA < valB) return this.ordem_direcao === 'asc' ? -1 : 1;
-                            if (valA > valB) return this.ordem_direcao === 'asc' ? 1 : -1;
-                            return 0;
-                        });
-
-                        // Re-renderizar tabela
-                        this.renderizar_tabela_priorizacao();
-                    }
-                } catch (e) {
-                    console.error('[DEBUG] Erro ao carregar priorizações', e);
-                }
-            },
+                    // Re-renderizar tabela
+                    this.renderizar_tabela_priorizacao();
+                },
 
             async carregar_matriz() {
                     console.log('[MATRIZ] Iniciando carregamento da matriz...');
