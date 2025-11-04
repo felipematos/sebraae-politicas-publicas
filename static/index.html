@@ -1047,6 +1047,38 @@
                         </div>
                     </div>
 
+                    <!-- Seção de Priorização -->
+                    <div class="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-sm font-bold text-gray-800 flex items-center">
+                                <span class="mr-2">⭐</span>
+                                Priorização
+                            </h3>
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox"
+                                       :checked="detalhes_modal?.destacada === 1 || detalhes_modal?.destacada === true"
+                                       @change="atualizar_destaque_modal($event.target.checked)"
+                                       class="sr-only peer">
+                                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                                <span class="ms-2 text-sm font-medium text-gray-700">Destacar</span>
+                            </label>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Justificativa (opcional)
+                            </label>
+                            <textarea
+                                x-model="justificativa_temp"
+                                :value="detalhes_modal?.justificativa_destaque || ''"
+                                @blur="salvar_justificativa()"
+                                rows="3"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm"
+                                placeholder="Adicione uma justificativa para priorizar esta falha..."></textarea>
+                            <p class="text-xs text-gray-500 mt-1">A justificativa será salva automaticamente</p>
+                        </div>
+                    </div>
+
                     <!-- Análise da IA -->
                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                         <h3 class="text-sm font-bold text-gray-800 mb-3">Análise da IA</h3>
@@ -1164,6 +1196,7 @@
                 chartMatriz: null,
                 modal_aberto: false,
                 detalhes_modal: null,
+                justificativa_temp: '',
                 confirmacao_aberta: false,
                 modal_analise_aberto: false,
                 falha_analise: null,
@@ -2830,6 +2863,68 @@
                 fechar_modal() {
                     this.modal_aberto = false;
                     this.detalhes_modal = null;
+                    this.justificativa_temp = '';
+                },
+
+                async atualizar_destaque_modal(destacada) {
+                    if (!this.detalhes_modal) return;
+
+                    const falhaId = this.detalhes_modal.falha_id;
+                    const justificativa = this.justificativa_temp || this.detalhes_modal.justificativa_destaque || '';
+
+                    try {
+                        const res = await fetch(`/api/priorizacoes/${falhaId}/destaque`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ destacada, justificativa })
+                        });
+
+                        if (!res.ok) throw new Error('Erro ao atualizar destaque');
+
+                        // Atualizar dados locais
+                        this.detalhes_modal.destacada = destacada ? 1 : 0;
+                        this.detalhes_modal.justificativa_destaque = justificativa;
+
+                        // Atualizar também nos dados da tabela
+                        const priorizacao = this.priorizacoes_dados.find(p => p.falha_id === falhaId);
+                        if (priorizacao) {
+                            priorizacao.destacada = destacada ? 1 : 0;
+                            priorizacao.justificativa_destaque = justificativa;
+                        }
+
+                        // Re-renderizar tabela e matriz
+                        this.renderizar_tabela_priorizacao();
+                        await this.carregar_matriz();
+
+                        console.log(`[DEBUG] Destaque ${destacada ? 'ativado' : 'desativado'} via modal para falha ${falhaId}`);
+                    } catch (error) {
+                        console.error('[ERROR] Erro ao atualizar destaque via modal:', error);
+                        alert('Erro ao atualizar priorização');
+                    }
+                },
+
+                async salvar_justificativa() {
+                    if (!this.detalhes_modal) return;
+
+                    const falhaId = this.detalhes_modal.falha_id;
+                    const destacada = this.detalhes_modal.destacada === 1 || this.detalhes_modal.destacada === true;
+                    const justificativa = this.justificativa_temp;
+
+                    try {
+                        const res = await fetch(`/api/priorizacoes/${falhaId}/destaque`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ destacada, justificativa })
+                        });
+
+                        if (!res.ok) throw new Error('Erro ao salvar justificativa');
+
+                        this.detalhes_modal.justificativa_destaque = justificativa;
+
+                        console.log(`[DEBUG] Justificativa salva para falha ${falhaId}`);
+                    } catch (error) {
+                        console.error('[ERROR] Erro ao salvar justificativa:', error);
+                    }
                 },
 
                 renderizar_analise_ia(analise_json) {
