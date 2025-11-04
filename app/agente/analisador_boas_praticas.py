@@ -4,7 +4,7 @@ Agente para análise e extração de boas práticas a partir de fontes
 """
 import json
 from typing import List, Dict, Any, Optional
-from app.llm.client import LLMClient
+from app.llm.openai_client import OpenAIClient
 from app.utils.logger import logger
 
 
@@ -15,7 +15,7 @@ class AnalisadorBoasPraticas:
     """
 
     def __init__(self):
-        self.llm_client = LLMClient()
+        self.llm_client = OpenAIClient()
 
     async def analisar_boas_praticas(
         self,
@@ -43,10 +43,11 @@ class AnalisadorBoasPraticas:
             prompt = self._construir_prompt(falha, contexto_fontes)
 
             # Chamar LLM
-            resposta = await self.llm_client.gerar(
+            resposta = await self.llm_client.generate_completion(
                 prompt=prompt,
-                temperatura=0.3,
-                max_tokens=3000
+                temperature=0.3,
+                max_tokens=3000,
+                model="gpt-4o-mini"
             )
 
             # Parsear resposta JSON
