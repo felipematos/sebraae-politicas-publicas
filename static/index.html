@@ -833,7 +833,7 @@
                         <button @click="aba_priorizacao = 'tabela'" :class="aba_priorizacao === 'tabela' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'" class="py-4 px-1 font-medium text-sm border-b-2 border-transparent">
                             Tabela de Priorização
                         </button>
-                        <button @click="aba_priorizacao = 'matriz'" :class="aba_priorizacao === 'matriz' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'" class="py-4 px-1 font-medium text-sm border-b-2 border-transparent">
+                        <button @click="aba_priorizacao = 'matriz'; carregar_matriz()" :class="aba_priorizacao === 'matriz' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'" class="py-4 px-1 font-medium text-sm border-b-2 border-transparent">
                             Matriz 2x2
                         </button>
                     </nav>
@@ -874,32 +874,32 @@
                         <h3 class="font-bold text-gray-800 mb-4">Legenda - Pilares do Ecossistema</h3>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                             <div class="flex items-center gap-2">
-                                <div class="w-4 h-4 rounded-full" style="background-color: #EF4444;"></div>
-                                <span class="text-sm">1. Talento</span>
+                                <div class="w-5 h-5 rounded-full border-2 border-gray-400" style="background-color: #EF4444;"></div>
+                                <span class="text-sm font-medium text-gray-800">1. Talento</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <div class="w-4 h-4 rounded-full" style="background-color: #F59E0B;"></div>
-                                <span class="text-sm">2. Densidade</span>
+                                <div class="w-5 h-5 rounded-full border-2 border-gray-400" style="background-color: #F59E0B;"></div>
+                                <span class="text-sm font-medium text-gray-800">2. Densidade</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <div class="w-4 h-4 rounded-full" style="background-color: #10B981;"></div>
-                                <span class="text-sm">3. Impacto/Diversidade</span>
+                                <div class="w-5 h-5 rounded-full border-2 border-gray-400" style="background-color: #10B981;"></div>
+                                <span class="text-sm font-medium text-gray-800">3. Impacto/Diversidade</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <div class="w-4 h-4 rounded-full" style="background-color: #3B82F6;"></div>
-                                <span class="text-sm">4. Acesso a Mercado</span>
+                                <div class="w-5 h-5 rounded-full border-2 border-gray-400" style="background-color: #3B82F6;"></div>
+                                <span class="text-sm font-medium text-gray-800">4. Acesso a Mercado</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <div class="w-4 h-4 rounded-full" style="background-color: #8B5CF6;"></div>
-                                <span class="text-sm">5. Cultura</span>
+                                <div class="w-5 h-5 rounded-full border-2 border-gray-400" style="background-color: #8B5CF6;"></div>
+                                <span class="text-sm font-medium text-gray-800">5. Cultura</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <div class="w-4 h-4 rounded-full" style="background-color: #EC4899;"></div>
-                                <span class="text-sm">6. Regulação</span>
+                                <div class="w-5 h-5 rounded-full border-2 border-gray-400" style="background-color: #EC4899;"></div>
+                                <span class="text-sm font-medium text-gray-800">6. Regulação</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <div class="w-4 h-4 rounded-full" style="background-color: #06B6D4;"></div>
-                                <span class="text-sm">7. Capital</span>
+                                <div class="w-5 h-5 rounded-full border-2 border-gray-400" style="background-color: #06B6D4;"></div>
+                                <span class="text-sm font-medium text-gray-800">7. Capital</span>
                             </div>
                         </div>
                     </div>
