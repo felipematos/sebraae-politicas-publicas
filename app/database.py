@@ -818,6 +818,7 @@ async def obter_priorizacao(falha_id: int) -> Optional[Dict[str, Any]]:
     query = """
     SELECT
         pf.id, pf.falha_id, pf.impacto, pf.esforco, pf.analise_ia, pf.priorizado_por,
+        pf.destacada, pf.justificativa_destaque,
         pf.criado_em, pf.atualizado_em,
         fm.titulo, fm.pilar, fm.descricao
     FROM priorizacoes_falhas pf
