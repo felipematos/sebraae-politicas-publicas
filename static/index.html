@@ -1445,9 +1445,38 @@
                             '7. Capital': '#06B6D4'               // Ciano
                         };
 
-                        // Agrupar dados por pilar
+                        // Detectar overlaps e aplicar jitter
+                        const posicaoMap = {}; // Mapeia "x,y" -> array de falhas
+                        matrizData.dados.forEach(falha => {
+                            const chave = `${falha.esforco},${falha.impacto}`;
+                            if (!posicaoMap[chave]) {
+                                posicaoMap[chave] = [];
+                            }
+                            posicaoMap[chave].push(falha);
+                        });
+
+                        console.log('[MATRIZ] Detectados', Object.keys(posicaoMap).length, 'posições únicas');
+
+                        // Aplicar jitter e agrupar por pilar
                         const datasetsPorPilar = {};
                         matrizData.dados.forEach(falha => {
+                            const chave = `${falha.esforco},${falha.impacto}`;
+                            const falhasNaPosicao = posicaoMap[chave];
+
+                            // Aplicar jitter se houver múltiplas falhas na mesma posição
+                            let x = falha.esforco;
+                            let y = falha.impacto;
+
+                            if (falhasNaPosicao.length > 1) {
+                                const indice = falhasNaPosicao.indexOf(falha);
+                                const jitterAmount = 0.12;
+
+                                // Distribuir em círculo ao redor da posição original
+                                const angulo = (indice / falhasNaPosicao.length) * 2 * Math.PI;
+                                x += Math.cos(angulo) * jitterAmount;
+                                y += Math.sin(angulo) * jitterAmount;
+                            }
+
                             const pilar = falha.pilar;
                             if (!datasetsPorPilar[pilar]) {
                                 datasetsPorPilar[pilar] = {
@@ -1458,16 +1487,21 @@
                                     borderWidth: 2,
                                     pointRadius: 8,
                                     pointHoverRadius: 12,
-                                    falhasData: [] // Guardar dados completos das falhas
+                                    falhasData: [], // Guardar dados completos das falhas
+                                    posicaoOriginal: [] // Guardar posição original sem jitter
                                 };
                             }
 
-                            datasetsPorPilar[pilar].data.push({
+                            datasetsPorPilar[pilar].data.push({ x, y });
+                            datasetsPorPilar[pilar].falhasData.push(falha);
+                            datasetsPorPilar[pilar].posicaoOriginal.push({
                                 x: falha.esforco,
                                 y: falha.impacto
                             });
-                            datasetsPorPilar[pilar].falhasData.push(falha);
                         });
+
+                        // Armazenar mapa de posições para uso no tooltip
+                        this.posicaoMapMatriz = posicaoMap;
 
                         const datasets = Object.values(datasetsPorPilar);
                         console.log('[MATRIZ] Datasets criados:', datasets.length, 'pilares');
@@ -1492,9 +1526,14 @@
                                         const dataIndex = element.index;
                                         const dataset = this.chartMatriz.data.datasets[datasetIndex];
                                         const falha = dataset.falhasData[dataIndex];
+                                        const posicaoOriginal = dataset.posicaoOriginal[dataIndex];
+                                        const chave = `${posicaoOriginal.x},${posicaoOriginal.y}`;
+                                        const falhasNaPosicao = this.posicaoMapMatriz[chave] || [falha];
 
-                                        // Abrir modal de detalhes ao clicar
-                                        this.abrir_detalhes_priorizacao(falha.falha_id);
+                                        // Se houver múltiplas falhas, mostrar a primeira
+                                        // (usuário pode ver todas no tooltip ao passar o mouse)
+                                        const falhaParaAbrir = falhasNaPosicao[0];
+                                        this.abrir_detalhes_priorizacao(falhaParaAbrir.falha_id);
                                     }
                                 },
                                 plugins: {
@@ -1520,27 +1559,51 @@
                                                 const datasetIndex = context[0].datasetIndex;
                                                 const dataIndex = context[0].dataIndex;
                                                 const dataset = context[0].chart.data.datasets[datasetIndex];
-                                                const falha = dataset.falhasData[dataIndex];
-                                                return falha.titulo;
+                                                const posicaoOriginal = dataset.posicaoOriginal[dataIndex];
+                                                const chave = `${posicaoOriginal.x},${posicaoOriginal.y}`;
+                                                const falhasNaPosicao = this.posicaoMapMatriz[chave] || [];
+
+                                                if (falhasNaPosicao.length > 1) {
+                                                    return `${falhasNaPosicao.length} falhas nesta posição (Impacto: ${posicaoOriginal.y}, Esforço: ${posicaoOriginal.x})`;
+                                                } else {
+                                                    const falha = dataset.falhasData[dataIndex];
+                                                    return falha.titulo;
+                                                }
                                             },
                                             label: (context) => {
                                                 const datasetIndex = context.datasetIndex;
                                                 const dataIndex = context.dataIndex;
                                                 const dataset = context.chart.data.datasets[datasetIndex];
-                                                const falha = dataset.falhasData[dataIndex];
-                                                return [
-                                                    `ID: ${falha.falha_id}`,
-                                                    `Impacto: ${falha.impacto}/10`,
-                                                    `Esforço: ${falha.esforco}/10`,
-                                                    `Pilar: ${falha.pilar}`
-                                                ];
+                                                const posicaoOriginal = dataset.posicaoOriginal[dataIndex];
+                                                const chave = `${posicaoOriginal.x},${posicaoOriginal.y}`;
+                                                const falhasNaPosicao = this.posicaoMapMatriz[chave] || [];
+
+                                                if (falhasNaPosicao.length > 1) {
+                                                    // Mostrar todas as falhas
+                                                    const labels = [];
+                                                    falhasNaPosicao.forEach((f, idx) => {
+                                                        labels.push(''); // Linha em branco para separação
+                                                        labels.push(`${idx + 1}. ${f.titulo}`);
+                                                        labels.push(`   ID: ${f.falha_id} | Pilar: ${f.pilar}`);
+                                                    });
+                                                    return labels;
+                                                } else {
+                                                    const falha = dataset.falhasData[dataIndex];
+                                                    return [
+                                                        `ID: ${falha.falha_id}`,
+                                                        `Impacto: ${falha.impacto}/10`,
+                                                        `Esforço: ${falha.esforco}/10`,
+                                                        `Pilar: ${falha.pilar}`
+                                                    ];
+                                                }
                                             }
                                         },
                                         backgroundColor: 'rgba(0, 0, 0, 0.8)',
                                         titleFont: { size: 13, weight: 'bold' },
-                                        bodyFont: { size: 12 },
+                                        bodyFont: { size: 11 },
                                         padding: 12,
-                                        displayColors: false
+                                        displayColors: false,
+                                        maxWidth: 400
                                     }
                                 },
                                 scales: {
