@@ -210,6 +210,43 @@ async def analisar_falha_fase2(falha_id: int, reprocessar: bool = False):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/fase1/fontes/{falha_id}")
+async def obter_fontes_falha_fase1(falha_id: int):
+    """
+    Obtém as fontes disponíveis para uma falha na Fase I
+
+    Retorna todas as fontes (resultados de pesquisa e documentos)
+    disponíveis para a falha especificada.
+    """
+    try:
+        logger.info(f"Fase I: Obtendo fontes para falha {falha_id}")
+
+        # Obter fontes
+        fontes = await obter_fontes_por_falha(falha_id)
+
+        # Formatar resposta
+        fontes_formatadas = []
+        for fonte in fontes:
+            fontes_formatadas.append({
+                "id": fonte.get('id'),
+                "tipo": fonte.get('fonte_tipo'),
+                "titulo": fonte.get('fonte_titulo'),
+                "descricao": fonte.get('fonte_descricao'),
+                "url": fonte.get('fonte_url'),
+                "criado_em": fonte.get('criado_em')
+            })
+
+        return {
+            "falha_id": falha_id,
+            "fontes": fontes_formatadas,
+            "total": len(fontes_formatadas)
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao obter fontes da falha {falha_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/falha/{falha_id}")
 async def obter_boas_praticas_falha(falha_id: int):
     """
