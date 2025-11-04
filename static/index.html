@@ -376,7 +376,7 @@
                 </div>
 
                 <!-- Navegação de Fases -->
-                <div class="flex gap-2">
+                <div class="flex gap-2 flex-wrap">
                     <template x-for="(fase, idx) in fases" :key="idx">
                         <button @click="mudar_fase(idx)"
                                 :class="idx === fase_atual ? 'phase-nav-active' : 'phase-nav-inactive'"
@@ -387,6 +387,13 @@
                             </template>
                         </button>
                     </template>
+                    <!-- Botão de Biblioteca de Relatórios -->
+                    <button @click="mudar_fase(7)"
+                            :class="fase_atual === 7 ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'"
+                            class="px-4 py-2 rounded-lg font-medium transition-colors border-2"
+                            :class="fase_atual === 7 ? 'border-amber-800' : 'border-amber-300'">
+                        📚 Biblioteca de Relatórios
+                    </button>
                 </div>
             </div>
         </header>
@@ -443,6 +450,18 @@
                         </button>
                         <button @click="mudar_fase(3)" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition">
                             ▶ Fase 3: Priorização de Falhas
+                        </button>
+                        <button @click="mudar_fase(4)" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-lg transition">
+                            ▶ Fase 4: Boas Práticas & Sugestões
+                        </button>
+                        <button @click="mudar_fase(5)" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-lg transition">
+                            ▶ Fase 5: Propostas de Políticas Públicas
+                        </button>
+                        <button @click="mudar_fase(6)" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-4 rounded-lg transition">
+                            ▶ Fase 6: Plano de Implantação
+                        </button>
+                        <button @click="mudar_fase(7)" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-lg transition border-2 border-amber-800">
+                            📚 Biblioteca de Relatórios
                         </button>
                     </div>
                 </div>
@@ -1077,6 +1096,82 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Fase 4: Boas Práticas -->
+            <section x-show="fase_atual === 4" class="space-y-6">
+                <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-8 border border-purple-200">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="text-4xl">💡</div>
+                        <div>
+                            <h2 class="text-3xl font-bold">4. Mapeamento de Boas Práticas & Sugestões</h2>
+                            <p class="text-gray-600 mt-2">Identificação de soluções e casos de sucesso</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-8">
+                    <p class="text-gray-600 text-center">
+                        Em desenvolvimento...
+                    </p>
+                </div>
+            </section>
+
+            <!-- Fase 5: Propostas -->
+            <section x-show="fase_atual === 5" class="space-y-6">
+                <div class="bg-gradient-to-r from-green-50 to-teal-50 rounded-lg p-8 border border-green-200">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="text-4xl">📝</div>
+                        <div>
+                            <h2 class="text-3xl font-bold">5. Formulação de Propostas de Políticas Públicas</h2>
+                            <p class="text-gray-600 mt-2">Desenvolvimento de propostas estruturadas</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-8">
+                    <p class="text-gray-600 text-center">
+                        Em desenvolvimento...
+                    </p>
+                </div>
+            </section>
+
+            <!-- Fase 6: Plano de Implantação -->
+            <section x-show="fase_atual === 6" class="space-y-6">
+                <div class="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg p-8 border border-orange-200">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="text-4xl">🚀</div>
+                        <div>
+                            <h2 class="text-3xl font-bold">6. Plano de Implantação</h2>
+                            <p class="text-gray-600 mt-2">Estratégia e roadmap de implementação</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-8">
+                    <p class="text-gray-600 text-center">
+                        Em desenvolvimento...
+                    </p>
+                </div>
+            </section>
+
+            <!-- Biblioteca de Relatórios -->
+            <section x-show="fase_atual === 7" class="space-y-6">
+                <div class="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg p-8 border border-amber-300">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="text-4xl">📚</div>
+                        <div>
+                            <h2 class="text-3xl font-bold">Biblioteca de Relatórios</h2>
+                            <p class="text-gray-600 mt-2">Documentos, análises e relatórios gerados</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-8">
+                    <p class="text-gray-600 text-center">
+                        Em desenvolvimento...
+                    </p>
+                </div>
+            </section>
         </main>
 
         <!-- Modal de Detalhes da Priorização -->
@@ -1224,7 +1319,11 @@
                     { nome: 'Home', descricao: 'Visão geral do projeto' },
                     { nome: 'Pesquisa', descricao: 'Busca por políticas públicas' },
                     { nome: 'Base de Conhecimento', descricao: 'Gerenciamento de documentos e RAG' },
-                    { nome: 'Priorização', descricao: 'Análise de impacto e esforço' }
+                    { nome: 'Priorização', descricao: 'Análise de impacto e esforço' },
+                    { nome: 'Boas Práticas', descricao: 'Mapeamento de boas práticas e sugestões' },
+                    { nome: 'Propostas', descricao: 'Formulação de propostas de políticas públicas' },
+                    { nome: 'Plano de Implantação', descricao: 'Estratégia de implementação' },
+                    { nome: 'Biblioteca', descricao: 'Documentos e relatórios' }
                 ],
                 stats: { total_falhas: 0, total_priorizadas: 0, total_resultados: 0, total_pendentes: 0, total_processando: 0, total_concluidas: 0, total_documentos: 0, total_indexados: 0, total_vetores: 0 },
                 ativo: false,
@@ -1301,13 +1400,22 @@
                 },
 
                 get_hash_from_fase(idx) {
-                    const hashes = ['home', 'pesquisa', 'conhecimento', 'priorizacao'];
+                    const hashes = ['home', 'pesquisa', 'conhecimento', 'priorizacao', 'boas-praticas', 'propostas', 'plano-implantacao', 'biblioteca'];
                     return `#${hashes[idx] || 'home'}`;
                 },
 
                 get_fase_from_hash() {
                     const hash = window.location.hash.slice(1) || 'home';
-                    const hashes = { 'home': 0, 'pesquisa': 1, 'conhecimento': 2, 'priorizacao': 3 };
+                    const hashes = {
+                        'home': 0,
+                        'pesquisa': 1,
+                        'conhecimento': 2,
+                        'priorizacao': 3,
+                        'boas-praticas': 4,
+                        'propostas': 5,
+                        'plano-implantacao': 6,
+                        'biblioteca': 7
+                    };
                     return hashes[hash] || 0;
                 },
 
