@@ -1814,9 +1814,10 @@
                 },
 
                 obter_quadrante(impacto, esforco) {
-                    if (impacto >= 6 && esforco <= 4) return '🎯 Quick Wins';
-                    if (impacto >= 6 && esforco > 4) return '⭐ Strategic';
-                    if (impacto < 6 && esforco <= 4) return '✓ Fill-in';
+                    // Usar limiar de 5.0 (ponto médio) para consistência com a matriz visual
+                    if (impacto > 5 && esforco <= 5) return '🎯 Quick Wins';
+                    if (impacto > 5 && esforco > 5) return '⭐ Strategic';
+                    if (impacto <= 5 && esforco <= 5) return '✓ Fill-in';
                     return '⏱ Low Priority';
                 },
 

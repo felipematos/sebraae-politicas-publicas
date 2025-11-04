@@ -865,10 +865,12 @@ async def gerar_matriz_2x2() -> List[Dict[str, Any]]:
 async def obter_quadrantes_matriz() -> Dict[str, List[Dict[str, Any]]]:
     """
     Agrupa as falhas nos 4 quadrantes da matriz:
-    - Quick Wins: Alto impacto, Baixo esforço (impacto >= 6, esforço <= 4)
-    - Strategic: Alto impacto, Alto esforço (impacto >= 6, esforço > 4)
-    - Fill-in: Baixo impacto, Baixo esforço (impacto < 6, esforço <= 4)
-    - Low Priority: Baixo impacto, Alto esforço (impacto < 6, esforço > 4)
+    - Quick Wins (Ganhos Rápidos): Alto impacto, Baixo esforço (impacto > 5, esforço <= 5)
+    - Strategic (Investir com Cautela): Alto impacto, Alto esforço (impacto > 5, esforço > 5)
+    - Fill-in (Considerar): Baixo impacto, Baixo esforço (impacto <= 5, esforço <= 5)
+    - Low Priority (Baixa Prioridade): Baixo impacto, Alto esforço (impacto <= 5, esforço > 5)
+
+    Usa limiar de 5 (ponto médio da escala 0-10) para consistência com a visualização da matriz
     """
     dados = await gerar_matriz_2x2()
 
@@ -880,11 +882,12 @@ async def obter_quadrantes_matriz() -> Dict[str, List[Dict[str, Any]]]:
     }
 
     for falha in dados:
-        if falha['impacto'] >= 6 and falha['esforco'] <= 4:
+        # Usar limiar de 5.0 para consistência com a visualização (linha divisória no meio)
+        if falha['impacto'] > 5 and falha['esforco'] <= 5:
             quadrantes['quick_wins'].append(falha)
-        elif falha['impacto'] >= 6 and falha['esforco'] > 4:
+        elif falha['impacto'] > 5 and falha['esforco'] > 5:
             quadrantes['strategic'].append(falha)
-        elif falha['impacto'] < 6 and falha['esforco'] <= 4:
+        elif falha['impacto'] <= 5 and falha['esforco'] <= 5:
             quadrantes['fill_in'].append(falha)
         else:
             quadrantes['low_priority'].append(falha)

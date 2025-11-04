@@ -363,10 +363,12 @@ async def obter_dados_matriz() -> Dict[str, Any]:
 async def obter_quadrantes() -> Dict[str, Any]:
     """
     Retorna falhas agrupadas por quadrante da matriz 2x2:
-    - quick_wins: Alto impacto, Baixo esforço (impacto >= 6, esforço <= 4)
-    - strategic: Alto impacto, Alto esforço (impacto >= 6, esforço > 4)
-    - fill_in: Baixo impacto, Baixo esforço (impacto < 6, esforço <= 4)
-    - low_priority: Baixo impacto, Alto esforço (impacto < 6, esforço > 4)
+    - quick_wins: Alto impacto, Baixo esforço (impacto > 5, esforço <= 5)
+    - strategic: Alto impacto, Alto esforço (impacto > 5, esforço > 5)
+    - fill_in: Baixo impacto, Baixo esforço (impacto <= 5, esforço <= 5)
+    - low_priority: Baixo impacto, Alto esforço (impacto <= 5, esforço > 5)
+
+    Usa limiar de 5 (ponto médio da escala 0-10) para consistência com visualização
     """
     try:
         quadrantes = await obter_quadrantes_matriz()
