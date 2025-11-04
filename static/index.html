@@ -890,13 +890,20 @@
 
                 <!-- Abas de Conteúdo -->
                 <div class="border-b border-gray-200">
-                    <nav class="flex space-x-8">
-                        <button @click="aba_priorizacao = 'tabela'" :class="aba_priorizacao === 'tabela' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'" class="py-4 px-1 font-medium text-sm border-b-2 border-transparent">
-                            Tabela de Priorização
-                        </button>
-                        <button @click="aba_priorizacao = 'matriz'; carregar_matriz()" :class="aba_priorizacao === 'matriz' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'" class="py-4 px-1 font-medium text-sm border-b-2 border-transparent">
-                            Matriz 2x2
-                        </button>
+                    <nav class="flex justify-between items-center">
+                        <div class="flex space-x-8">
+                            <button @click="aba_priorizacao = 'tabela'" :class="aba_priorizacao === 'tabela' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'" class="py-4 px-1 font-medium text-sm border-b-2 border-transparent">
+                                Tabela de Priorização
+                            </button>
+                            <button @click="aba_priorizacao = 'matriz'; carregar_matriz()" :class="aba_priorizacao === 'matriz' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'" class="py-4 px-1 font-medium text-sm border-b-2 border-transparent">
+                                Matriz 2x2
+                            </button>
+                        </div>
+                        <div class="flex items-center space-x-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                            <span class="text-amber-600 font-bold text-lg">⭐</span>
+                            <span class="text-sm font-medium text-gray-700">Priorizadas:</span>
+                            <span class="text-lg font-bold text-amber-600" x-text="contar_priorizadas()"></span>
+                        </div>
                     </nav>
                 </div>
 
@@ -1616,6 +1623,13 @@
                         const checkbox = document.querySelector(`input[data-falha-id="${falhaId}"][data-action="toggle-destaque"]`);
                         if (checkbox) checkbox.checked = !destacada;
                     }
+                },
+
+                contar_priorizadas() {
+                    if (!this.priorizacoes_dados || !Array.isArray(this.priorizacoes_dados)) {
+                        return 0;
+                    }
+                    return this.priorizacoes_dados.filter(p => p.destacada === 1 || p.destacada === true).length;
                 },
 
             async carregar_matriz() {
