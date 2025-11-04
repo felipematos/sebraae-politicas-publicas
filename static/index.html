@@ -1118,8 +1118,8 @@
                             </h3>
                             <label class="inline-flex items-center cursor-pointer">
                                 <input type="checkbox"
-                                       :checked="detalhes_modal?.destacada === 1 || detalhes_modal?.destacada === true"
-                                       @change="atualizar_destaque_modal($event.target.checked)"
+                                       x-model="destacada_temp"
+                                       @change="atualizar_destaque_modal(destacada_temp)"
                                        class="sr-only peer">
                                 <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
                                 <span class="ms-2 text-sm font-medium text-gray-700">Destacar</span>
@@ -1132,7 +1132,6 @@
                             </label>
                             <textarea
                                 x-model="justificativa_temp"
-                                :value="detalhes_modal?.justificativa_destaque || ''"
                                 @blur="salvar_justificativa()"
                                 rows="3"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm"
@@ -1263,6 +1262,7 @@
                 chartMatriz: null,
                 modal_aberto: false,
                 detalhes_modal: null,
+                destacada_temp: false,
                 justificativa_temp: '',
                 confirmacao_aberta: false,
                 modal_analise_aberto: false,
@@ -3056,7 +3056,13 @@
                         const data = await res.json();
                         console.log('[DEBUG] Dados recebidos:', data);
                         this.detalhes_modal = data.dados;
+
+                        // Inicializar estados temporários do modal
+                        this.destacada_temp = this.detalhes_modal.destacada === 1 || this.detalhes_modal.destacada === true;
+                        this.justificativa_temp = this.detalhes_modal.justificativa_destaque || '';
+
                         console.log('[DEBUG] detalhes_modal definido como:', this.detalhes_modal);
+                        console.log('[DEBUG] destacada_temp:', this.destacada_temp);
                         this.modal_aberto = true;
                         console.log('[DEBUG] modal_aberto definido como true');
                     } catch (e) {
@@ -3068,6 +3074,7 @@
                 fechar_modal() {
                     this.modal_aberto = false;
                     this.detalhes_modal = null;
+                    this.destacada_temp = false;
                     this.justificativa_temp = '';
                 },
 
@@ -3112,7 +3119,7 @@
                     if (!this.detalhes_modal) return;
 
                     const falhaId = this.detalhes_modal.falha_id;
-                    const destacada = this.detalhes_modal.destacada === 1 || this.detalhes_modal.destacada === true;
+                    const destacada = this.destacada_temp; // Usar estado temporário
                     const justificativa = this.justificativa_temp;
 
                     try {
@@ -3124,11 +3131,17 @@
 
                         if (!res.ok) throw new Error('Erro ao salvar justificativa');
 
+                        // Atualizar dados do modal
                         this.detalhes_modal.justificativa_destaque = justificativa;
+                        this.detalhes_modal.destacada = destacada ? 1 : 0;
+
+                        // Recarregar tabela para refletir mudanças
+                        await this.carregar_priorizacoes();
 
                         console.log(`[DEBUG] Justificativa salva para falha ${falhaId}`);
                     } catch (error) {
                         console.error('[ERROR] Erro ao salvar justificativa:', error);
+                        this.mostrar_notificacao('✗ Erro ao salvar justificativa', 'erro');
                     }
                 },
 
