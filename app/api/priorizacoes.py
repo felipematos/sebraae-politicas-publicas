@@ -17,7 +17,8 @@ from app.database import (
     atualizar_priorizacao,
     criar_priorizacao,
     get_falhas_mercado,
-    obter_fontes_por_falha
+    obter_fontes_por_falha,
+    atualizar_destaque_priorizacao
 )
 from app.agente.priorizador import AgentePriorizador
 from app.utils.logger import logger
@@ -60,6 +61,12 @@ class AnalisarIndividualRequest(BaseModel):
     temperatura: float = 0.3  # Temperatura do modelo (0.0-1.0)
     max_tokens: int = 4000  # Máximo de tokens na resposta
     modelo: str = "google/gemini-2.5-pro"  # Modelo a ser usado
+
+
+class DestaqueUpdate(BaseModel):
+    """Model para atualização de destaque de priorização"""
+    destacada: bool
+    justificativa: Optional[str] = None
 
 
 # Endpoints
@@ -319,6 +326,27 @@ async def atualizar_priorizacao_endpoint(falha_id: int, request: PriorizacaoUpda
         raise
     except Exception as e:
         logger.error(f"Erro ao atualizar priorização: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/{falha_id}/destaque")
+async def atualizar_destaque_endpoint(falha_id: int, request: DestaqueUpdate) -> Dict[str, Any]:
+    """
+    Atualiza o status de destaque de uma priorização
+    Permite marcar/desmarcar como prioritária e adicionar justificativa
+    """
+    try:
+        await atualizar_destaque_priorizacao(falha_id, request.destacada, request.justificativa)
+
+        resultado = await obter_priorizacao(falha_id)
+
+        return {
+            'sucesso': True,
+            'mensagem': f'Destaque da falha {falha_id} {"ativado" if request.destacada else "desativado"} com sucesso',
+            'dados': resultado
+        }
+    except Exception as e:
+        logger.error(f"Erro ao atualizar destaque: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -875,12 +875,13 @@
                                     Esforço <span x-show="ordem_campo === 'esforco'" x-text="ordem_direcao === 'asc' ? '▲' : '▼'"></span>
                                 </th>
                                 <th class="px-6 py-3 text-left text-sm font-medium">Quadrante</th>
+                                <th class="px-6 py-3 text-sm font-medium">Priorizar</th>
                                 <th class="px-6 py-3 text-sm font-medium">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="tabela-priorizacao">
                             <tr class="border-b hover:bg-gray-50">
-                                <td colspan="7" class="px-6 py-4 text-center text-gray-500">Carregando priorizações...</td>
+                                <td colspan="8" class="px-6 py-4 text-center text-gray-500">Carregando priorizações...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -1417,14 +1418,24 @@
 
                     tbody.innerHTML = this.priorizacoes_dados.map(p => {
                         const quadrante = this.obter_quadrante(p.impacto, p.esforco);
+                        const destacada = p.destacada === 1 || p.destacada === true;
+                        const rowClass = destacada ? 'border-b hover:bg-amber-50 bg-amber-50' : 'border-b hover:bg-blue-50';
+                        const titleClass = destacada ? 'font-bold text-gray-900' : 'font-medium';
                         return `
-                            <tr class="border-b hover:bg-blue-50">
+                            <tr class="${rowClass}">
                                 <td class="px-6 py-4 text-sm">${p.falha_id}</td>
                                 <td class="px-6 py-4 text-sm"><span class="bg-blue-100 text-blue-800 px-3 py-1 rounded font-bold">${p.score || 0}</span></td>
-                                <td class="px-6 py-4 text-sm font-medium">${p.titulo}</td>
+                                <td class="px-6 py-4 text-sm ${titleClass}">${p.titulo}</td>
                                 <td class="px-6 py-4 text-sm"><span class="bg-green-100 text-green-800 px-3 py-1 rounded font-bold">${p.impacto}/10</span></td>
                                 <td class="px-6 py-4 text-sm"><span class="bg-orange-100 text-orange-800 px-3 py-1 rounded font-bold">${p.esforco}/10</span></td>
                                 <td class="px-6 py-4 text-sm"><span class="bg-purple-100 text-purple-800 px-3 py-1 rounded text-xs">${quadrante}</span></td>
+                                <td class="px-6 py-4 text-sm">
+                                    <label class="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" data-action="toggle-destaque" data-falha-id="${p.falha_id}" ${destacada ? 'checked' : ''} class="sr-only peer">
+                                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                                        <span class="ms-2 text-xs font-medium text-gray-700">Priorizar</span>
+                                    </label>
+                                </td>
                                 <td class="px-6 py-4 text-sm space-x-2">
                                     <button data-action="analisar" data-falha-id="${p.falha_id}" data-titulo="${p.titulo.replace(/"/g, '&quot;')}" class="text-green-600 hover:underline font-medium">🔍 Analisar</button>
                                     <button data-action="detalhes" data-falha-id="${p.falha_id}" class="text-blue-600 hover:underline font-medium">Ver Detalhes</button>
@@ -1448,6 +1459,15 @@
                             e.stopPropagation();
                             const falhaId = parseInt(btn.getAttribute('data-falha-id'));
                             this.abrir_detalhes_priorizacao(falhaId);
+                        });
+                    });
+
+                    // Event listeners para o toggle de destaque
+                    tbody.querySelectorAll('input[data-action="toggle-destaque"]').forEach(checkbox => {
+                        checkbox.addEventListener('change', async (e) => {
+                            const falhaId = parseInt(checkbox.getAttribute('data-falha-id'));
+                            const destacada = checkbox.checked;
+                            await this.toggle_destaque(falhaId, destacada);
                         });
                     });
 
@@ -1482,6 +1502,38 @@
 
                     // Re-renderizar tabela
                     this.renderizar_tabela_priorizacao();
+                },
+
+                async toggle_destaque(falhaId, destacada) {
+                    try {
+                        const res = await fetch(`/api/priorizacoes/${falhaId}/destaque`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ destacada })
+                        });
+
+                        if (!res.ok) {
+                            throw new Error('Erro ao atualizar destaque');
+                        }
+
+                        // Atualizar dados locais
+                        const priorizacao = this.priorizacoes_dados.find(p => p.falha_id === falhaId);
+                        if (priorizacao) {
+                            priorizacao.destacada = destacada ? 1 : 0;
+                        }
+
+                        // Re-renderizar tabela e matriz
+                        this.renderizar_tabela_priorizacao();
+                        await this.carregar_matriz();
+
+                        console.log(`[DEBUG] Destaque ${destacada ? 'ativado' : 'desativado'} para falha ${falhaId}`);
+                    } catch (error) {
+                        console.error('[ERROR] Erro ao alternar destaque:', error);
+                        alert('Erro ao atualizar priorização');
+                        // Reverter o checkbox em caso de erro
+                        const checkbox = document.querySelector(`input[data-falha-id="${falhaId}"][data-action="toggle-destaque"]`);
+                        if (checkbox) checkbox.checked = !destacada;
+                    }
                 },
 
             async carregar_matriz() {
@@ -1616,13 +1668,15 @@
                             }
 
                             const pilar = falha.pilar;
+                            const destacada = falha.destacada === 1 || falha.destacada === true;
+
                             if (!datasetsPorPilar[pilar]) {
                                 datasetsPorPilar[pilar] = {
                                     label: pilar,
                                     data: [],
                                     backgroundColor: coresPilares[pilar] || '#6B7280',
-                                    borderColor: coresPilares[pilar] || '#6B7280',
-                                    borderWidth: 2,
+                                    borderColor: [], // Array para permitir cores diferentes por ponto
+                                    borderWidth: [], // Array para permitir larguras diferentes por ponto
                                     pointRadius: 8,
                                     pointHoverRadius: 12,
                                     falhasData: [], // Guardar dados completos das falhas
@@ -1636,6 +1690,9 @@
                                 x: falha.esforco,
                                 y: falha.impacto
                             });
+                            // Adicionar borda destacada para falhas priorizadas
+                            datasetsPorPilar[pilar].borderColor.push(destacada ? '#F59E0B' : (coresPilares[pilar] || '#6B7280'));
+                            datasetsPorPilar[pilar].borderWidth.push(destacada ? 4 : 2);
                         });
 
                         // Armazenar mapa de posições para uso no tooltip

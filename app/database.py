@@ -819,12 +819,12 @@ async def listar_priorizacoes() -> List[Dict[str, Any]]:
     query = """
     SELECT
         pf.id, pf.falha_id, pf.impacto, pf.esforco, pf.analise_ia, pf.priorizado_por,
-        pf.criado_em, pf.atualizado_em,
+        pf.criado_em, pf.atualizado_em, pf.destacada, pf.justificativa_destaque,
         fm.titulo, fm.pilar, fm.descricao,
         ROUND((pf.impacto * pf.impacto) / (pf.esforco + 0.1), 2) as score
     FROM priorizacoes_falhas pf
     JOIN falhas_mercado fm ON pf.falha_id = fm.id
-    ORDER BY score DESC
+    ORDER BY pf.destacada DESC, score DESC
     """
     return await db.fetch_all(query)
 
@@ -859,7 +859,7 @@ async def gerar_matriz_2x2() -> List[Dict[str, Any]]:
     """
     query = """
     SELECT
-        pf.id, pf.falha_id, pf.impacto, pf.esforco,
+        pf.id, pf.falha_id, pf.impacto, pf.esforco, pf.destacada,
         fm.titulo, fm.pilar,
         COUNT(rp.id) as total_resultados,
         ROUND((pf.impacto * pf.impacto) / (pf.esforco + 0.1), 2) as score
@@ -967,6 +967,23 @@ async def limpar_fontes_priorizacao(priorizacao_id: int) -> None:
         "DELETE FROM priorizacoes_fontes WHERE priorizacao_id = ?",
         (priorizacao_id,)
     )
+
+
+async def atualizar_destaque_priorizacao(falha_id: int, destacada: bool, justificativa: str = None):
+    """
+    Atualiza o status de destaque de uma priorização
+
+    Args:
+        falha_id: ID da falha
+        destacada: Se a falha deve ser destacada (True) ou não (False)
+        justificativa: Texto de justificativa opcional para o destaque
+    """
+    query = """
+    UPDATE priorizacoes_falhas
+    SET destacada = ?, justificativa_destaque = ?, atualizado_em = CURRENT_TIMESTAMP
+    WHERE falha_id = ?
+    """
+    await db.execute(query, (1 if destacada else 0, justificativa, falha_id))
 
 
 # Script para inicializar o banco
