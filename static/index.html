@@ -3916,6 +3916,13 @@
                     }
                 },
 
+                calcular_total_praticas_fase2() {
+                    return this.falhas_fase2.reduce((total, falha) => {
+                        const praticas = falha.praticas || [];
+                        return total + praticas.length;
+                    }, 0);
+                },
+
                 async analisar_falha_fase2(falha_id, reprocessar = false) {
                     const falhaIdx = this.falhas_fase2.findIndex(f => f.falha_id === falha_id);
                     if (falhaIdx === -1) return;
