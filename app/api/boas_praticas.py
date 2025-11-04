@@ -13,7 +13,8 @@ from app.database import (
     obter_fontes_por_falha,
     listar_boas_praticas_por_falha,
     salvar_boa_pratica,
-    limpar_boas_praticas_fase
+    limpar_boas_praticas_fase,
+    get_resultados_by_falha
 )
 from app.agente.analisador_boas_praticas import AnalisadorBoasPraticas
 from app.utils.content_fetcher import enrich_sources_with_full_content
@@ -211,35 +212,65 @@ async def analisar_falha_fase2(falha_id: int, reprocessar: bool = False):
 
 
 @router.get("/fase1/fontes/{falha_id}")
-async def obter_fontes_falha_fase1(falha_id: int):
+async def obter_fontes_falha_fase1(falha_id: int, limit: int = 20):
     """
     Obtém as fontes disponíveis para uma falha na Fase I
 
-    Retorna todas as fontes (resultados de pesquisa e documentos)
+    Retorna todas as fontes (resultados de pesquisa e documentos RAG)
     disponíveis para a falha especificada.
+
+    Args:
+        falha_id: ID da falha
+        limit: Número máximo de fontes a retornar (padrão: 20)
     """
     try:
-        logger.info(f"Fase I: Obtendo fontes para falha {falha_id}")
+        logger.info(f"Fase I: Obtendo fontes para falha {falha_id} (limit={limit})")
 
-        # Obter fontes
-        fontes = await obter_fontes_por_falha(falha_id)
+        # Buscar TODAS as fontes disponíveis diretamente das tabelas originais
+        # 1. Resultados de pesquisa
+        resultados_pesquisa = await get_resultados_by_falha(falha_id)
 
-        # Formatar resposta
+        # 2. Fontes salvas (documentos RAG que foram usados na priorização)
+        fontes_salvas = await obter_fontes_por_falha(falha_id)
+
+        # Formatar resultados de pesquisa
         fontes_formatadas = []
-        for fonte in fontes:
+
+        # Adicionar resultados de pesquisa (limitando)
+        for resultado in resultados_pesquisa[:limit]:
             fontes_formatadas.append({
-                "id": fonte.get('id'),
-                "tipo": fonte.get('fonte_tipo'),
-                "titulo": fonte.get('fonte_titulo'),
-                "descricao": fonte.get('fonte_descricao'),
-                "url": fonte.get('fonte_url'),
-                "criado_em": fonte.get('criado_em')
+                "id": resultado.get('id'),
+                "tipo": "resultado_pesquisa",
+                "titulo": resultado.get('titulo'),
+                "descricao": resultado.get('descricao'),
+                "url": resultado.get('fonte_url'),
+                "idioma": resultado.get('idioma'),
+                "pais_origem": resultado.get('pais_origem'),
+                "criado_em": resultado.get('criado_em')
             })
+
+        # Adicionar documentos RAG salvos
+        for fonte in fontes_salvas:
+            if fonte.get('fonte_tipo') == 'documento':
+                fontes_formatadas.append({
+                    "id": fonte.get('id'),
+                    "tipo": "documento",
+                    "titulo": fonte.get('fonte_titulo'),
+                    "descricao": fonte.get('fonte_descricao'),
+                    "url": fonte.get('fonte_url'),
+                    "idioma": None,
+                    "pais_origem": None,
+                    "criado_em": fonte.get('criado_em')
+                })
+
+        logger.info(f"Fontes encontradas: {len(fontes_formatadas)} ({len(resultados_pesquisa)} pesquisas, {len([f for f in fontes_salvas if f.get('fonte_tipo') == 'documento'])} documentos)")
 
         return {
             "falha_id": falha_id,
             "fontes": fontes_formatadas,
-            "total": len(fontes_formatadas)
+            "total": len(fontes_formatadas),
+            "total_pesquisas": len(resultados_pesquisa),
+            "total_documentos": len([f for f in fontes_salvas if f.get('fonte_tipo') == 'documento'])
         }
 
     except Exception as e:

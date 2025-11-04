@@ -228,7 +228,7 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
                 'id': resultado.get('id'),
                 'titulo': resultado['titulo'],
                 'descricao': resultado.get('descricao', ''),
-                'url': resultado.get('url'),
+                'url': resultado.get('fonte_url'),  # Correto: campo é 'fonte_url' na tabela
                 'conteudo': resultado.get('conteudo', resultado.get('descricao', ''))
             }
             fontes.append(fonte_info)

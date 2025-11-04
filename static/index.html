@@ -3973,14 +3973,33 @@
                                     const tipoIcon = fonte.tipo === 'resultado_pesquisa' ? '🔍' : '📄';
                                     const tipoLabel = fonte.tipo === 'resultado_pesquisa' ? 'Resultado de Pesquisa' : 'Documento';
 
+                                    // Flags e nomes de idiomas
+                                    const idiomaInfo = {
+                                        'pt': { flag: '🇧🇷', nome: 'Português' },
+                                        'en': { flag: '🇺🇸', nome: 'Inglês' },
+                                        'es': { flag: '🇪🇸', nome: 'Espanhol' },
+                                        'fr': { flag: '🇫🇷', nome: 'Francês' },
+                                        'de': { flag: '🇩🇪', nome: 'Alemão' }
+                                    };
+
+                                    const idioma = fonte.idioma && idiomaInfo[fonte.idioma]
+                                        ? `${idiomaInfo[fonte.idioma].flag} ${idiomaInfo[fonte.idioma].nome}`
+                                        : null;
+
                                     html += `
                                         <div class="border border-gray-200 rounded-lg p-3 hover:border-purple-300 transition-colors">
                                             <div class="flex items-start gap-3">
                                                 <div class="text-xl flex-shrink-0">${tipoIcon}</div>
                                                 <div class="flex-1 min-w-0">
-                                                    <div class="flex items-center gap-2 mb-1">
+                                                    <div class="flex items-center gap-2 mb-1 flex-wrap">
                                                         <span class="text-xs font-medium text-gray-500">${tipoLabel}</span>
-                                                        ${fonte.url ? `<span class="text-xs text-gray-400">•</span>` : ''}
+                                                        ${idioma ? `
+                                                            <span class="text-xs text-gray-400">•</span>
+                                                            <span class="text-xs text-gray-600">${idioma}</span>
+                                                        ` : ''}
+                                                        ${fonte.pais_origem && fonte.pais_origem !== 'BR' ? `
+                                                            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">${fonte.pais_origem}</span>
+                                                        ` : ''}
                                                     </div>
                                                     <h5 class="text-sm font-medium text-gray-900 mb-1 line-clamp-2">
                                                         ${fonte.titulo || 'Sem título'}
