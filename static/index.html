@@ -862,20 +862,20 @@
                         <thead class="bg-gray-100 border-b">
                             <tr>
                                 <th class="px-6 py-3 text-left text-sm font-medium cursor-pointer hover:bg-gray-200" @click="ordenar_priorizacoes('id')">
-                                    ID <span x-show="ordem_campo === 'id'">{{ ordem_direcao === 'asc' ? '▲' : '▼' }}</span>
+                                    ID <span x-show="ordem_campo === 'id'" x-text="ordem_direcao === 'asc' ? '▲' : '▼'"></span>
                                 </th>
                                 <th class="px-6 py-3 text-left text-sm font-medium cursor-pointer hover:bg-gray-200" @click="ordenar_priorizacoes('score')">
-                                    Score <span x-show="ordem_campo === 'score'">{{ ordem_direcao === 'asc' ? '▲' : '▼' }}</span>
+                                    Score <span x-show="ordem_campo === 'score'" x-text="ordem_direcao === 'asc' ? '▲' : '▼'"></span>
                                 </th>
                                 <th class="px-6 py-3 text-left text-sm font-medium">Falha</th>
                                 <th class="px-6 py-3 text-left text-sm font-medium cursor-pointer hover:bg-gray-200" @click="ordenar_priorizacoes('impacto')">
-                                    Impacto <span x-show="ordem_campo === 'impacto'">{{ ordem_direcao === 'asc' ? '▲' : '▼' }}</span>
+                                    Impacto <span x-show="ordem_campo === 'impacto'" x-text="ordem_direcao === 'asc' ? '▲' : '▼'"></span>
                                 </th>
                                 <th class="px-6 py-3 text-left text-sm font-medium cursor-pointer hover:bg-gray-200" @click="ordenar_priorizacoes('esforco')">
-                                    Esforço <span x-show="ordem_campo === 'esforco'">{{ ordem_direcao === 'asc' ? '▲' : '▼' }}</span>
+                                    Esforço <span x-show="ordem_campo === 'esforco'" x-text="ordem_direcao === 'asc' ? '▲' : '▼'"></span>
                                 </th>
                                 <th class="px-6 py-3 text-left text-sm font-medium">Quadrante</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium">Ações</th>
+                                <th class="px-6 py-3 text-sm font-medium">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="tabela-priorizacao">

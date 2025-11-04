@@ -815,15 +815,16 @@ async def atualizar_priorizacao(falha_id: int, impacto: int, esforco: int,
 
 
 async def listar_priorizacoes() -> List[Dict[str, Any]]:
-    """Lista todas as priorizações com dados das falhas"""
+    """Lista todas as priorizações com dados das falhas e score calculado"""
     query = """
     SELECT
         pf.id, pf.falha_id, pf.impacto, pf.esforco, pf.analise_ia, pf.priorizado_por,
         pf.criado_em, pf.atualizado_em,
-        fm.titulo, fm.pilar, fm.descricao
+        fm.titulo, fm.pilar, fm.descricao,
+        ROUND((pf.impacto * pf.impacto) / (pf.esforco + 0.1), 2) as score
     FROM priorizacoes_falhas pf
     JOIN falhas_mercado fm ON pf.falha_id = fm.id
-    ORDER BY pf.impacto DESC, pf.esforco ASC
+    ORDER BY score DESC
     """
     return await db.fetch_all(query)
 
