@@ -925,8 +925,12 @@
                                 <th class="px-6 py-3 text-left text-sm font-medium cursor-pointer hover:bg-gray-200" @click="ordenar_priorizacoes('esforco')">
                                     Esforço <span x-show="ordem_campo === 'esforco'" x-text="ordem_direcao === 'asc' ? '▲' : '▼'"></span>
                                 </th>
-                                <th class="px-6 py-3 text-left text-sm font-medium">Quadrante</th>
-                                <th class="px-6 py-3 text-sm font-medium">Priorizar</th>
+                                <th class="px-6 py-3 text-left text-sm font-medium cursor-pointer hover:bg-gray-200" @click="ordenar_priorizacoes('quadrante')">
+                                    Quadrante <span x-show="ordem_campo === 'quadrante'" x-text="ordem_direcao === 'asc' ? '▲' : '▼'"></span>
+                                </th>
+                                <th class="px-6 py-3 text-sm font-medium cursor-pointer hover:bg-gray-200" @click="ordenar_priorizacoes('destacada')">
+                                    Priorizar <span x-show="ordem_campo === 'destacada'" x-text="ordem_direcao === 'asc' ? '▲' : '▼'"></span>
+                                </th>
                                 <th class="px-6 py-3 text-sm font-medium">Ações</th>
                             </tr>
                         </thead>
@@ -1576,18 +1580,33 @@
                         this.ordem_direcao = this.ordem_direcao === 'asc' ? 'desc' : 'asc';
                     } else {
                         this.ordem_campo = campo;
-                        this.ordem_direcao = campo === 'score' ? 'desc' : 'asc'; // Score padrão DESC
+                        // Score e destacada padrão DESC (mostrar maiores/priorizadas primeiro)
+                        this.ordem_direcao = (campo === 'score' || campo === 'destacada') ? 'desc' : 'asc';
                     }
 
                     // Ordenar dados
                     this.priorizacoes_dados.sort((a, b) => {
-                        let valA = a[campo];
-                        let valB = b[campo];
+                        let valA, valB;
 
-                        // Tratar valores numéricos
-                        if (campo === 'id' || campo === 'falha_id' || campo === 'impacto' || campo === 'esforco' || campo === 'score') {
-                            valA = parseFloat(valA) || 0;
-                            valB = parseFloat(valB) || 0;
+                        // Tratamento especial para quadrante (calculado dinamicamente)
+                        if (campo === 'quadrante') {
+                            valA = this.obter_quadrante(a.impacto, a.esforco);
+                            valB = this.obter_quadrante(b.impacto, b.esforco);
+                        }
+                        // Tratamento especial para destacada (booleano)
+                        else if (campo === 'destacada') {
+                            valA = (a.destacada === 1 || a.destacada === true) ? 1 : 0;
+                            valB = (b.destacada === 1 || b.destacada === true) ? 1 : 0;
+                        }
+                        // Valores numéricos
+                        else if (campo === 'id' || campo === 'falha_id' || campo === 'impacto' || campo === 'esforco' || campo === 'score') {
+                            valA = parseFloat(a[campo]) || 0;
+                            valB = parseFloat(b[campo]) || 0;
+                        }
+                        // Valores de texto
+                        else {
+                            valA = a[campo];
+                            valB = b[campo];
                         }
 
                         // Comparar
