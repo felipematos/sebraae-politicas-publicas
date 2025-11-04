@@ -1026,6 +1026,13 @@
                         </div>
                     </div>
 
+                    <!-- Legenda de Priorização -->
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                        <p class="text-sm text-amber-800">
+                            <span class="font-bold">*</span> Falhas priorizadas aparecem em <span class="font-bold">negrito</span> nas listas abaixo
+                        </p>
+                    </div>
+
                     <!-- Quadrantes -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Quick Wins -->
@@ -1669,9 +1676,11 @@
                     } else {
                         // Ordenar por score (maior primeiro)
                         const falhasOrdenadas = [...falhas].sort((a, b) => (b.score || 0) - (a.score || 0));
-                        el.innerHTML = falhasOrdenadas.map(f =>
-                            `<li class="text-sm">• #${f.falha_id} (${f.score || 0}) ${f.titulo}</li>`
-                        ).join('');
+                        el.innerHTML = falhasOrdenadas.map(f => {
+                            const destacada = f.destacada === 1 || f.destacada === true;
+                            const fontWeight = destacada ? 'font-bold' : '';
+                            return `<li class="text-sm ${fontWeight} cursor-pointer hover:text-blue-600" onclick="window.app.abrir_detalhes_priorizacao(${f.falha_id})">• #${f.falha_id} (${f.score || 0}) ${f.titulo}</li>`;
+                        }).join('');
                     }
                 },
 
@@ -1786,8 +1795,8 @@
                                 x: falha.esforco,
                                 y: falha.impacto
                             });
-                            // Adicionar borda destacada para falhas priorizadas
-                            datasetsPorPilar[pilar].borderColor.push(destacada ? '#F59E0B' : (coresPilares[pilar] || '#6B7280'));
+                            // Adicionar borda destacada para falhas priorizadas (PRETA para destacadas)
+                            datasetsPorPilar[pilar].borderColor.push(destacada ? '#000000' : (coresPilares[pilar] || '#6B7280'));
                             datasetsPorPilar[pilar].borderWidth.push(destacada ? 4 : 2);
                         });
 
