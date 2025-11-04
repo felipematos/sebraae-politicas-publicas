@@ -1153,10 +1153,10 @@
                     <!-- Tabela de Falhas -->
                     <div class="bg-white rounded-lg shadow overflow-hidden">
                         <!-- Contador no Topo -->
-                        <div x-show="fase1_falhas.length > 0" class="bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4 border-b border-purple-200">
+                        <div x-show="falhas_fase1.length > 0" class="bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4 border-b border-purple-200">
                             <div class="flex items-center gap-2 text-sm">
                                 <span class="font-semibold text-purple-900">📋 Total de Falhas Priorizadas:</span>
-                                <span class="bg-purple-600 text-white px-3 py-1 rounded-full font-bold" x-text="fase1_falhas.length"></span>
+                                <span class="bg-purple-600 text-white px-3 py-1 rounded-full font-bold" x-text="falhas_fase1.length"></span>
                             </div>
                         </div>
 
@@ -1196,11 +1196,11 @@
                     <!-- Tabela de Análises -->
                     <div class="bg-white rounded-lg shadow overflow-hidden">
                         <!-- Contadores no Topo -->
-                        <div x-show="fase2_falhas.length > 0" class="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-purple-200">
+                        <div x-show="falhas_fase2.length > 0" class="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-purple-200">
                             <div class="flex gap-6 text-sm">
                                 <div class="flex items-center gap-2">
                                     <span class="font-semibold text-purple-900">📋 Total de Falhas:</span>
-                                    <span class="bg-purple-600 text-white px-3 py-1 rounded-full font-bold" x-text="fase2_falhas.length"></span>
+                                    <span class="bg-purple-600 text-white px-3 py-1 rounded-full font-bold" x-text="falhas_fase2.length"></span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="font-semibold text-purple-900">✨ Total de Boas Práticas:</span>
