@@ -862,10 +862,54 @@
 
                 <!-- Aba: Matriz -->
                 <div x-show="aba_priorizacao === 'matriz'" class="space-y-6">
-                    <!-- Gráfico da Matriz -->
+                    <!-- Gráfico da Matriz + Legenda de Quadrantes -->
                     <div class="bg-white rounded-lg shadow p-6">
-                        <div class="w-full mx-auto" style="height: 800px; max-width: 100%;">
-                            <canvas id="canvas-matriz"></canvas>
+                        <div class="flex gap-6">
+                            <!-- Matriz -->
+                            <div class="flex-1" style="height: 800px;">
+                                <canvas id="canvas-matriz"></canvas>
+                            </div>
+
+                            <!-- Legenda de Quadrantes -->
+                            <div class="w-72 flex flex-col justify-center space-y-4">
+                                <h3 class="font-bold text-gray-800 text-lg mb-2">Quadrantes de Priorização</h3>
+
+                                <!-- Ganhos Rápidos -->
+                                <div class="border-2 border-green-200 rounded-lg p-4" style="background-color: rgba(16, 185, 129, 0.08);">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <div class="w-4 h-4 rounded" style="background-color: rgba(16, 185, 129, 0.3);"></div>
+                                        <h4 class="font-bold text-green-700">Ganhos Rápidos</h4>
+                                    </div>
+                                    <p class="text-sm text-gray-600">Alto impacto com baixo esforço. Prioridade máxima para implementação imediata.</p>
+                                </div>
+
+                                <!-- Investir com Cautela -->
+                                <div class="border-2 border-yellow-200 rounded-lg p-4" style="background-color: rgba(245, 158, 11, 0.08);">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <div class="w-4 h-4 rounded" style="background-color: rgba(245, 158, 11, 0.3);"></div>
+                                        <h4 class="font-bold text-yellow-700">Investir com Cautela</h4>
+                                    </div>
+                                    <p class="text-sm text-gray-600">Alto impacto mas alto esforço. Projetos estruturantes que exigem planejamento cuidadoso.</p>
+                                </div>
+
+                                <!-- Considerar -->
+                                <div class="border-2 border-gray-200 rounded-lg p-4" style="background-color: rgba(156, 163, 175, 0.08);">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <div class="w-4 h-4 rounded" style="background-color: rgba(156, 163, 175, 0.3);"></div>
+                                        <h4 class="font-bold text-gray-700">Considerar</h4>
+                                    </div>
+                                    <p class="text-sm text-gray-600">Baixo impacto e baixo esforço. Implementar se houver recursos disponíveis.</p>
+                                </div>
+
+                                <!-- Baixa Prioridade -->
+                                <div class="border-2 border-red-200 rounded-lg p-4" style="background-color: rgba(239, 68, 68, 0.08);">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <div class="w-4 h-4 rounded" style="background-color: rgba(239, 68, 68, 0.3);"></div>
+                                        <h4 class="font-bold text-red-700">Baixa Prioridade</h4>
+                                    </div>
+                                    <p class="text-sm text-gray-600">Baixo impacto com alto esforço. Adiar ou reavaliar viabilidade.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1599,8 +1643,15 @@
                                     duration: 0 // Desabilitar animação inicial para renderização mais rápida
                                 },
                                 layout: {
-                                    padding: 10
+                                    padding: {
+                                        top: 20,
+                                        right: 20,
+                                        bottom: 20,
+                                        left: 20
+                                    }
                                 },
+                                // Permitir que pontos vazem para fora do gráfico
+                                clip: false,
                                 onClick: (event, elements) => {
                                     if (elements.length > 0) {
                                         const element = elements[0];
