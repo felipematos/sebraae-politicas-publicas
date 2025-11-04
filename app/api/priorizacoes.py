@@ -3,8 +3,11 @@
 Router FastAPI para endpoints de priorização de falhas de mercado
 """
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
+import asyncio
+import json
 from app.database import (
     obter_priorizacao,
     listar_priorizacoes,
@@ -164,6 +167,67 @@ async def analisar_falha_endpoint(request: AnalisarFalhaRequest) -> Dict[str, An
         logger.error(f"Erro ao analisar falha: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.post("/analisar-todas-stream")
+async def analisar_todas_falhas_stream(request: AnalisarTodasRequest):
+    """
+    Analisa todas as falhas usando IA com Server-Sent Events (SSE) para progresso em tempo real
+    """
+    async def event_generator():
+        try:
+            falhas = await get_falhas_mercado()
+            total = len(falhas)
+
+            # Enviar evento de início
+            yield f"data: {json.dumps({'tipo': 'inicio', 'total': total})}\n\n"
+
+            analisadas = 0
+            falhadas = 0
+            erros = []
+
+            for idx, falha in enumerate(falhas, 1):
+                # Enviar progresso antes de analisar
+                yield f"data: {json.dumps({'tipo': 'progresso', 'atual': idx, 'total': total, 'falha_atual': falha['titulo']})}\n\n"
+
+                # Analisar falha
+                resultado = await priorizador.analisar_falha(
+                    falha['id'],
+                    usar_rag=request.usar_rag,
+                    usar_resultados_pesquisa=request.usar_resultados_pesquisa,
+                    temperatura=request.temperatura,
+                    max_tokens=request.max_tokens,
+                    modelo=request.modelo
+                )
+
+                if resultado['sucesso']:
+                    analisadas += 1
+                else:
+                    falhadas += 1
+                    erros.append({
+                        'falha_id': falha['id'],
+                        'titulo': falha['titulo'],
+                        'erro': resultado.get('erro')
+                    })
+
+                # Pequeno delay entre requisições
+                await asyncio.sleep(1)
+
+            # Enviar evento de conclusão
+            yield f"data: {json.dumps({'tipo': 'completo', 'analisadas': analisadas, 'falhadas': falhadas, 'erros': erros})}\n\n"
+
+        except Exception as e:
+            logger.error(f"Erro no stream de análise: {str(e)}")
+            yield f"data: {json.dumps({'tipo': 'erro', 'mensagem': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
 
 @router.post("/analisar-todas")
 async def analisar_todas_falhas_endpoint(request: AnalisarTodasRequest) -> Dict[str, Any]:

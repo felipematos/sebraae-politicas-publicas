@@ -825,6 +825,23 @@
                             📊 Ver Matriz 2x2
                         </button>
                     </div>
+
+                    <!-- Indicador de Progresso -->
+                    <div x-show="analisando" class="mt-6">
+                        <div class="mb-2 flex justify-between items-center">
+                            <span class="text-sm font-medium text-gray-700">
+                                Analisando falha <span x-text="progresso_analise.atual"></span> de <span x-text="progresso_analise.total"></span>
+                            </span>
+                            <span class="text-sm font-medium text-blue-600" x-text="Math.round((progresso_analise.atual / progresso_analise.total) * 100) + '%'"></span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                                 :style="'width: ' + ((progresso_analise.atual / progresso_analise.total) * 100) + '%'"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2" x-show="progresso_analise.falha_atual">
+                            Atual: <span x-text="progresso_analise.falha_atual"></span>
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Abas de Conteúdo -->
@@ -1841,9 +1858,26 @@
 
                 async analisar_todas_falhas() {
                     this.analisando = true;
+
+                    // Inicializar progresso
+                    this.progresso_analise = {
+                        atual: 0,
+                        total: 0,
+                        falha_atual: ''
+                    };
+
                     try {
-                        // Enviar configurações salvas para o backend
-                        const res = await fetch('/api/priorizacoes/analisar-todas', {
+                        // Construir URL com parâmetros do corpo como query string (EventSource não suporta POST)
+                        const params = new URLSearchParams({
+                            usar_rag: this.config_analise_lote.usar_rag,
+                            usar_resultados_pesquisa: this.config_analise_lote.usar_resultados_pesquisa,
+                            temperatura: this.config_analise_lote.temperatura,
+                            max_tokens: this.config_analise_lote.max_tokens,
+                            modelo: this.config_analise_lote.modelo
+                        });
+
+                        // Usar fetch com streaming para receber eventos SSE
+                        const response = await fetch('/api/priorizacoes/analisar-todas-stream', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'
@@ -1857,17 +1891,62 @@
                             })
                         });
 
-                        if (res.ok) {
-                            this.mostrar_notificacao('✓ Análise concluída com sucesso!', 'sucesso');
-                            this.carregar_priorizacoes();
-                        } else {
-                            const error = await res.json();
-                            this.mostrar_notificacao(`✗ Erro na análise: ${error.detail || 'Erro desconhecido'}`, 'erro');
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                         }
+
+                        // Ler stream de eventos
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
+                        let buffer = '';
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+
+                            if (done) break;
+
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split('\n\n');
+                            buffer = lines.pop(); // Manter última linha incompleta no buffer
+
+                            for (const line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    const eventData = JSON.parse(line.substring(6));
+
+                                    if (eventData.tipo === 'inicio') {
+                                        this.progresso_analise.total = eventData.total;
+                                        console.log(`[SSE] Iniciando análise de ${eventData.total} falhas`);
+                                    }
+                                    else if (eventData.tipo === 'progresso') {
+                                        this.progresso_analise.atual = eventData.atual;
+                                        this.progresso_analise.falha_atual = eventData.falha_atual;
+                                        console.log(`[SSE] Progresso: ${eventData.atual}/${this.progresso_analise.total}`);
+                                    }
+                                    else if (eventData.tipo === 'completo') {
+                                        console.log('[SSE] Análise concluída');
+                                        this.mostrar_notificacao(
+                                            `✓ Análise concluída! ${eventData.analisadas} analisadas, ${eventData.falhadas} falhadas`,
+                                            eventData.falhadas > 0 ? 'aviso' : 'sucesso'
+                                        );
+                                        await this.carregar_priorizacoes();
+                                    }
+                                    else if (eventData.tipo === 'erro') {
+                                        console.error('[SSE] Erro:', eventData.mensagem);
+                                        this.mostrar_notificacao(`✗ Erro: ${eventData.mensagem}`, 'erro');
+                                    }
+                                }
+                            }
+                        }
+
                     } catch (e) {
+                        console.error('[ERRO] Análise em lote:', e);
                         this.mostrar_notificacao('✗ Erro: ' + e.message, 'erro');
                     } finally {
                         this.analisando = false;
+                        // Resetar progresso após 2 segundos
+                        setTimeout(() => {
+                            this.progresso_analise = { atual: 0, total: 0, falha_atual: '' };
+                        }, 2000);
                     }
                 },
 
