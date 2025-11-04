@@ -57,12 +57,12 @@ async def buscar_boas_praticas():
         logger.info("Iniciando busca de boas práticas")
 
         # 1. Obter falhas priorizadas
-        priorizacoes = listar_priorizacoes()
+        priorizacoes = await listar_priorizacoes()
         if not priorizacoes:
             return BuscarBoasPraticasResponse(boas_praticas=[], total=0)
 
         # 2. Obter detalhes das falhas
-        falhas = get_falhas_mercado()
+        falhas = await get_falhas_mercado()
         falhas_dict = {f['id']: f for f in falhas}
 
         # 3. Analisar cada falha
@@ -76,7 +76,7 @@ async def buscar_boas_praticas():
                 continue
 
             # Obter fontes (resultados de pesquisa e documentos)
-            fontes = obter_fontes_por_falha(falha_id)
+            fontes = await obter_fontes_por_falha(falha_id)
 
             # Analisar com LLM para extrair boas práticas
             praticas = await analisador.analisar_boas_praticas(
@@ -111,14 +111,14 @@ async def obter_boas_praticas_falha(falha_id: int):
     """
     try:
         # Obter detalhes da falha
-        falhas = get_falhas_mercado()
+        falhas = await get_falhas_mercado()
         falha = next((f for f in falhas if f['id'] == falha_id), None)
 
         if not falha:
             raise HTTPException(status_code=404, detail="Falha não encontrada")
 
         # Obter fontes
-        fontes = obter_fontes_por_falha(falha_id)
+        fontes = await obter_fontes_por_falha(falha_id)
 
         # Analisar
         praticas = await analisador.analisar_boas_praticas(
