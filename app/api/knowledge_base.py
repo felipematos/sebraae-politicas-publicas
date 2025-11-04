@@ -42,6 +42,7 @@ MAX_FILE_SIZE = 25 * 1024 * 1024  # 26,214,400 bytes
 
 class ChatRequest(BaseModel):
     pergunta: str
+    documentos_mencionados: List[str] = []  # Lista de nomes de documentos @ mencionados
 
 
 def extract_text_from_docx(file_content: bytes) -> str:
@@ -552,6 +553,50 @@ async def list_documents():
         raise HTTPException(status_code=500, detail=f"Erro ao listar documentos: {str(e)}")
 
 
+@router.get("/documentos/buscar")
+async def search_documents(query: str = ""):
+    """
+    Buscar documentos por nome (para autocomplete de @ menções)
+    """
+    try:
+        documentos = []
+
+        # Listar arquivos do diretório
+        if DOCS_DIR.exists():
+            for file_path in DOCS_DIR.iterdir():
+                if file_path.is_file():
+                    # Filtrar por query se fornecida
+                    if query and query.lower() not in file_path.name.lower():
+                        continue
+
+                    stat = file_path.stat()
+                    tipo = file_path.suffix.lower().strip('.')
+
+                    documentos.append({
+                        "nome": file_path.name,
+                        "tamanho": stat.st_size,
+                        "tipo": tipo,
+                        "status": "indexado"
+                    })
+
+        # Ordenar por relevância (começa com query) e depois alfabeticamente
+        if query:
+            documentos.sort(key=lambda d: (
+                not d["nome"].lower().startswith(query.lower()),
+                d["nome"].lower()
+            ))
+        else:
+            documentos.sort(key=lambda d: d["nome"].lower())
+
+        return JSONResponse({
+            "total": len(documentos),
+            "dados": documentos[:10]  # Limitar a 10 resultados para autocomplete
+        })
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar documentos: {str(e)}")
+
+
 @router.get("/estatisticas")
 async def get_statistics():
     """
@@ -667,8 +712,28 @@ async def chat_knowledge_base(request: ChatRequest):
             k=100  # Buscar muitos chunks para depois filtrar
         )
 
+        # PRIORIDADE 0: Se há documentos @ mencionados, buscar APENAS nesses documentos
+        if request.documentos_mencionados:
+            debug_info["estrategia_busca"] = "filtrada_por_mencoes"
+            debug_info["documentos_mencionados"] = request.documentos_mencionados
+
+            for doc_nome in request.documentos_mencionados:
+                # Buscar chunks desse documento específico
+                chunks_filtrados = [
+                    chunk for chunk in todos_chunks
+                    if 'metadata' in chunk and 'source' in chunk['metadata']
+                    and chunk['metadata']['source'] == doc_nome
+                ]
+
+                if chunks_filtrados:
+                    # Ordenar por distância semântica (menor = mais similar)
+                    chunks_filtrados.sort(key=lambda x: x.get('distance', 999))
+                    resultados.extend(chunks_filtrados[:15])  # Top 15 chunks de cada documento mencionado
+
+            debug_info["filtro_aplicado"] = f"Documentos mencionados: {', '.join(request.documentos_mencionados)}"
+
         # Prioridade 1: Se detectou número específico, buscar chunks com "(#45)"
-        if numeros_detectados:
+        if not resultados and numeros_detectados:
             debug_info["estrategia_busca"] = "filtrada_por_numero"
 
             for numero in numeros_detectados:
