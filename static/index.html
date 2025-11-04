@@ -1559,12 +1559,16 @@
                                                 const datasetIndex = context[0].datasetIndex;
                                                 const dataIndex = context[0].dataIndex;
                                                 const dataset = context[0].chart.data.datasets[datasetIndex];
+                                                const pilarAtual = dataset.label; // Nome do pilar do dataset
                                                 const posicaoOriginal = dataset.posicaoOriginal[dataIndex];
                                                 const chave = `${posicaoOriginal.x},${posicaoOriginal.y}`;
-                                                const falhasNaPosicao = this.posicaoMapMatriz[chave] || [];
+                                                const todasFalhasNaPosicao = this.posicaoMapMatriz[chave] || [];
 
-                                                if (falhasNaPosicao.length > 1) {
-                                                    return `${falhasNaPosicao.length} falhas nesta posição (Impacto: ${posicaoOriginal.y}, Esforço: ${posicaoOriginal.x})`;
+                                                // Filtrar apenas as falhas do pilar atual
+                                                const falhasDoPilar = todasFalhasNaPosicao.filter(f => f.pilar === pilarAtual);
+
+                                                if (falhasDoPilar.length > 1) {
+                                                    return `${falhasDoPilar.length} falhas de ${pilarAtual} (Impacto: ${posicaoOriginal.y}, Esforço: ${posicaoOriginal.x})`;
                                                 } else {
                                                     const falha = dataset.falhasData[dataIndex];
                                                     return falha.titulo;
@@ -1574,17 +1578,21 @@
                                                 const datasetIndex = context.datasetIndex;
                                                 const dataIndex = context.dataIndex;
                                                 const dataset = context.chart.data.datasets[datasetIndex];
+                                                const pilarAtual = dataset.label; // Nome do pilar do dataset
                                                 const posicaoOriginal = dataset.posicaoOriginal[dataIndex];
                                                 const chave = `${posicaoOriginal.x},${posicaoOriginal.y}`;
-                                                const falhasNaPosicao = this.posicaoMapMatriz[chave] || [];
+                                                const todasFalhasNaPosicao = this.posicaoMapMatriz[chave] || [];
 
-                                                if (falhasNaPosicao.length > 1) {
-                                                    // Mostrar todas as falhas
+                                                // Filtrar apenas as falhas do pilar atual
+                                                const falhasDoPilar = todasFalhasNaPosicao.filter(f => f.pilar === pilarAtual);
+
+                                                if (falhasDoPilar.length > 1) {
+                                                    // Mostrar apenas as falhas do pilar atual
                                                     const labels = [];
-                                                    falhasNaPosicao.forEach((f, idx) => {
+                                                    falhasDoPilar.forEach((f, idx) => {
                                                         labels.push(''); // Linha em branco para separação
                                                         labels.push(`${idx + 1}. ${f.titulo}`);
-                                                        labels.push(`   ID: ${f.falha_id} | Pilar: ${f.pilar}`);
+                                                        labels.push(`   ID: ${f.falha_id}`);
                                                     });
                                                     return labels;
                                                 } else {
