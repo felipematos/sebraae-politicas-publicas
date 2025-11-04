@@ -3785,28 +3785,22 @@
                         if (!res.ok) throw new Error('Erro ao carregar priorizações');
 
                         const dados = await res.json();
-                        const priorizacoes = dados.priorizacoes || [];
+                        // Filtrar apenas falhas destacadas (priorizadas pelo usuário)
+                        const priorizacoes = (dados.dados || []).filter(p => p.destacada);
 
                         if (priorizacoes.length === 0) {
-                            this.boas_praticas_status = 'Nenhuma falha priorizada encontrada. Complete a Fase 3 primeiro.';
+                            this.boas_praticas_status = 'Nenhuma falha priorizada encontrada. Complete a Fase 3 primeiro e marque falhas como destacadas.';
                             this.boas_praticas_dados = [];
                             this.renderizar_tabela_boas_praticas();
                             return;
                         }
 
-                        // Carregar detalhes das falhas
-                        const falhasRes = await fetch('/api/falhas');
-                        if (!falhasRes.ok) throw new Error('Erro ao carregar falhas');
-
-                        const falhas = await falhasRes.json();
-                        const falhasDict = {};
-                        falhas.forEach(f => falhasDict[f.id] = f);
-
                         // Montar estrutura inicial (sem boas práticas)
+                        // Dados já incluem título e pilar da API
                         this.boas_praticas_dados = priorizacoes.map(prio => ({
                             falha_id: prio.falha_id,
-                            titulo: falhasDict[prio.falha_id]?.titulo || 'Título não encontrado',
-                            pilar: falhasDict[prio.falha_id]?.pilar || 'N/A',
+                            titulo: prio.titulo || 'Título não encontrado',
+                            pilar: prio.pilar || 'N/A',
                             praticas: null  // null indica que ainda não foi feita a busca
                         }));
 

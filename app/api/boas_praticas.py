@@ -56,24 +56,29 @@ async def buscar_boas_praticas():
     try:
         logger.info("Iniciando busca de boas práticas")
 
-        # 1. Obter falhas priorizadas
-        priorizacoes = await listar_priorizacoes()
+        # 1. Obter falhas priorizadas (apenas destacadas)
+        todas_priorizacoes = await listar_priorizacoes()
+        priorizacoes = [p for p in todas_priorizacoes if p.get('destacada')]
+
         if not priorizacoes:
+            logger.warning("Nenhuma falha destacada encontrada")
             return BuscarBoasPraticasResponse(boas_praticas=[], total=0)
 
-        # 2. Obter detalhes das falhas
-        falhas = await get_falhas_mercado()
-        falhas_dict = {f['id']: f for f in falhas}
+        logger.info(f"Processando {len(priorizacoes)} falhas destacadas")
 
-        # 3. Analisar cada falha
+        # 2. Analisar cada falha (dados já vêm completos do banco)
         resultado = []
 
         for prio in priorizacoes:
             falha_id = prio['falha_id']
-            falha = falhas_dict.get(falha_id)
 
-            if not falha:
-                continue
+            # Montar objeto falha (dados já vêm da query JOIN)
+            falha = {
+                'id': falha_id,
+                'titulo': prio['titulo'],
+                'pilar': prio['pilar'],
+                'descricao': prio.get('descricao', '')
+            }
 
             # Obter fontes (resultados de pesquisa e documentos)
             fontes = await obter_fontes_por_falha(falha_id)
@@ -87,8 +92,8 @@ async def buscar_boas_praticas():
             if praticas:
                 resultado.append(BoasPraticasFalha(
                     falha_id=falha_id,
-                    titulo=falha['titulo'],
-                    pilar=falha['pilar'],
+                    titulo=prio['titulo'],
+                    pilar=prio['pilar'],
                     praticas=praticas
                 ))
 

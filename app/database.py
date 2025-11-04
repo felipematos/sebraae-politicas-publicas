@@ -137,6 +137,31 @@ class Database:
             FOREIGN KEY (falha_id) REFERENCES falhas_mercado(id)
         );
 
+        -- Tabela de cache de conteúdo de URLs (via Jina.ai)
+        CREATE TABLE IF NOT EXISTS url_content_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            url TEXT NOT NULL UNIQUE,
+            content TEXT,
+            title TEXT,
+            error TEXT,
+            cached_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            expires_at DATETIME DEFAULT (datetime('now', '+30 days'))
+        );
+
+        -- Tabela de boas práticas identificadas
+        CREATE TABLE IF NOT EXISTS boas_praticas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            falha_id INTEGER NOT NULL,
+            titulo TEXT NOT NULL,
+            descricao TEXT,
+            is_sebrae BOOLEAN DEFAULT 0,
+            fonte_referencia TEXT,
+            fase TEXT DEFAULT 'fase_1',
+            criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+            atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (falha_id) REFERENCES falhas_mercado(id)
+        );
+
         -- Indices para performance
         CREATE INDEX IF NOT EXISTS idx_resultados_falha
             ON resultados_pesquisa(falha_id);
@@ -161,6 +186,18 @@ class Database:
 
         CREATE INDEX IF NOT EXISTS idx_priorizacoes_fontes_falha
             ON priorizacoes_fontes(falha_id);
+
+        CREATE INDEX IF NOT EXISTS idx_url_cache_url
+            ON url_content_cache(url);
+
+        CREATE INDEX IF NOT EXISTS idx_url_cache_expires
+            ON url_content_cache(expires_at);
+
+        CREATE INDEX IF NOT EXISTS idx_boas_praticas_falha
+            ON boas_praticas(falha_id);
+
+        CREATE INDEX IF NOT EXISTS idx_boas_praticas_fase
+            ON boas_praticas(fase);
         """
 
         async with self.get_connection() as conn:
@@ -984,6 +1021,117 @@ async def atualizar_destaque_priorizacao(falha_id: int, destacada: bool, justifi
     WHERE falha_id = ?
     """
     await db.execute(query, (1 if destacada else 0, justificativa, falha_id))
+
+
+# ===== CACHE DE URLs (Jina.ai) =====
+
+async def obter_conteudo_url_cache(url: str) -> Optional[Dict[str, Any]]:
+    """
+    Obtém conteúdo de URL do cache
+    Retorna None se não existir ou estiver expirado
+    """
+    query = """
+    SELECT url, content, title, error, cached_at
+    FROM url_content_cache
+    WHERE url = ? AND datetime('now') < expires_at
+    """
+    return await db.fetch_one(query, (url,))
+
+
+async def salvar_conteudo_url_cache(url: str, content: str = None, title: str = None, error: str = None):
+    """
+    Salva ou atualiza conteúdo de URL no cache
+    """
+    query = """
+    INSERT INTO url_content_cache (url, content, title, error)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(url) DO UPDATE SET
+        content = excluded.content,
+        title = excluded.title,
+        error = excluded.error,
+        cached_at = CURRENT_TIMESTAMP,
+        expires_at = datetime('now', '+30 days')
+    """
+    await db.execute(query, (url, content, title, error))
+
+
+# ===== BOAS PRÁTICAS =====
+
+async def salvar_boa_pratica(
+    falha_id: int,
+    titulo: str,
+    descricao: str = None,
+    is_sebrae: bool = False,
+    fonte_referencia: str = None,
+    fase: str = 'fase_1'
+) -> int:
+    """
+    Salva uma boa prática identificada
+    Retorna o ID da prática criada
+    """
+    query = """
+    INSERT INTO boas_praticas (falha_id, titulo, descricao, is_sebrae, fonte_referencia, fase)
+    VALUES (?, ?, ?, ?, ?, ?)
+    """
+    await db.execute(query, (falha_id, titulo, descricao, 1 if is_sebrae else 0, fonte_referencia, fase))
+
+    # Obter ID da prática recém-criada
+    result = await db.fetch_one("SELECT last_insert_rowid() as id")
+    return result['id'] if result else None
+
+
+async def listar_boas_praticas_por_falha(falha_id: int, fase: str = None) -> List[Dict[str, Any]]:
+    """
+    Lista boas práticas de uma falha específica
+    Pode filtrar por fase (fase_1, fase_2)
+    """
+    if fase:
+        query = """
+        SELECT id, falha_id, titulo, descricao, is_sebrae, fonte_referencia, fase, criado_em
+        FROM boas_praticas
+        WHERE falha_id = ? AND fase = ?
+        ORDER BY criado_em DESC
+        """
+        return await db.fetch_all(query, (falha_id, fase))
+    else:
+        query = """
+        SELECT id, falha_id, titulo, descricao, is_sebrae, fonte_referencia, fase, criado_em
+        FROM boas_praticas
+        WHERE falha_id = ?
+        ORDER BY criado_em DESC
+        """
+        return await db.fetch_all(query, (falha_id,))
+
+
+async def listar_todas_boas_praticas(fase: str = None) -> List[Dict[str, Any]]:
+    """
+    Lista todas as boas práticas
+    Pode filtrar por fase
+    """
+    if fase:
+        query = """
+        SELECT id, falha_id, titulo, descricao, is_sebrae, fonte_referencia, fase, criado_em
+        FROM boas_praticas
+        WHERE fase = ?
+        ORDER BY falha_id, criado_em DESC
+        """
+        return await db.fetch_all(query, (fase,))
+    else:
+        query = """
+        SELECT id, falha_id, titulo, descricao, is_sebrae, fonte_referencia, fase, criado_em
+        FROM boas_praticas
+        ORDER BY falha_id, criado_em DESC
+        """
+        return await db.fetch_all()
+
+
+async def limpar_boas_praticas_fase(falha_id: int, fase: str):
+    """
+    Remove todas as boas práticas de uma fase específica de uma falha
+    Útil para reprocessar
+    """
+    query = "DELETE FROM boas_praticas WHERE falha_id = ? AND fase = ?"
+    await db.execute(query, (falha_id, fase))
 
 
 # Script para inicializar o banco
