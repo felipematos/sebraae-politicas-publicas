@@ -1525,10 +1525,70 @@
                             this.chartMatriz.destroy();
                         }
 
+                        // Registrar plugin customizado para quadrantes
+                        const quadrantPlugin = {
+                            id: 'backgroundQuadrants',
+                            beforeDatasetsDraw: (chart) => {
+                                const ctx = chart.ctx;
+                                const chartArea = chart.chartArea;
+                                const xScale = chart.scales.x;
+                                const yScale = chart.scales.y;
+
+                                if (!chartArea) return;
+
+                                // Salvar estado do contexto
+                                ctx.save();
+
+                                // Definir ponto de divisão (meio da matriz)
+                                const xMid = xScale.getPixelForValue(5);
+                                const yMid = yScale.getPixelForValue(5);
+
+                                // Q1: GANHOS RÁPIDOS (Alto Impacto, Baixo Esforço) - Verde claro
+                                ctx.fillStyle = 'rgba(16, 185, 129, 0.08)'; // Verde
+                                ctx.fillRect(
+                                    chartArea.left,
+                                    chartArea.top,
+                                    xMid - chartArea.left,
+                                    yMid - chartArea.top
+                                );
+
+                                // Q2: INVESTIR COM CAUTELA (Alto Impacto, Alto Esforço) - Amarelo claro
+                                ctx.fillStyle = 'rgba(245, 158, 11, 0.08)'; // Amarelo
+                                ctx.fillRect(
+                                    xMid,
+                                    chartArea.top,
+                                    chartArea.right - xMid,
+                                    yMid - chartArea.top
+                                );
+
+                                // Q3: BAIXA PRIORIDADE (Baixo Impacto, Baixo Esforço) - Cinza claro
+                                ctx.fillStyle = 'rgba(156, 163, 175, 0.08)'; // Cinza
+                                ctx.fillRect(
+                                    chartArea.left,
+                                    yMid,
+                                    xMid - chartArea.left,
+                                    chartArea.bottom - yMid
+                                );
+
+                                // Q4: CONSIDERAR (Baixo Impacto, Alto Esforço) - Vermelho claro
+                                ctx.fillStyle = 'rgba(239, 68, 68, 0.08)'; // Vermelho
+                                ctx.fillRect(
+                                    xMid,
+                                    yMid,
+                                    chartArea.right - xMid,
+                                    chartArea.bottom - yMid
+                                );
+
+                                // Restaurar estado do contexto
+                                ctx.restore();
+                            }
+                        };
+
                         console.log('[MATRIZ] Criando novo gráfico Chart.js...');
                         this.chartMatriz = new Chart(ctx, {
                             type: 'scatter',
                             data: { datasets },
+                            plugins: [quadrantPlugin],
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: true,

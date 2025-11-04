@@ -77,53 +77,83 @@ Avalie o impacto potencial de resolver a falha no ecossistema de inovação bras
 CRITERIOS_ESFORCO = """
 # CRITÉRIOS DE ESFORÇO (0-10)
 
-Avalie o esforço necessário para implementar soluções usando critérios objetivos:
+⚠️ **IMPORTANTE: Seja RIGOROSO e CRITERIOSO na avaliação de esforço. A maioria das soluções deve ficar entre 3-6 pontos. Apenas mudanças VERDADEIRAMENTE sistêmicas e complexas merecem 8-10 pontos.**
 
-## DIMENSÃO 1: COMPLEXIDADE DE STAKEHOLDERS (0-3 pontos)
-- **0 pontos**: Solução implementável por 1 ator (ex: iniciativa privada)
-- **1 ponto**: Requer coordenação de 2-3 atores (ex: empresa + universidade)
-- **2 pontos**: Requer coordenação de 4-6 atores (múltiplas esferas)
-- **3 pontos**: Requer coordenação de 7+ atores ou mudança constitucional
+Avalie o esforço necessário para implementar soluções usando critérios objetivos e estritos:
 
-**Indicadores objetivos:**
-- Número de ministérios/órgãos envolvidos
-- Necessidade de articulação federativa (União, Estados, Municípios)
-- Envolvimento de setor privado, academia, sociedade civil
+## DIMENSÃO 1: COMPLEXIDADE DE STAKEHOLDERS (0-3.5 pontos) - SEJA CONSERVADOR
+- **0 pontos**: Solução implementável por 1 ator isoladamente (ex: Sebrae, iniciativa privada, ONG)
+- **1 ponto**: Requer coordenação de 2 atores (ex: Sebrae + empresas privadas)
+- **2 pontos**: Requer coordenação de 3-4 atores de esferas similares (ex: BNDES + Finep + CNPq)
+- **2.5 pontos**: Requer coordenação de 4-6 atores de múltiplas esferas (ex: ministério + estados + setor privado)
+- **3 pontos**: Requer coordenação de 7-10 atores incluindo múltiplas esferas governamentais
+- **3.5 pontos**: Requer coordenação de 10+ atores OU mudança constitucional OU articulação federativa completa (União + todos Estados + Municípios)
 
-## DIMENSÃO 2: INVESTIMENTO NECESSÁRIO (0-2 pontos)
-- **0 pontos**: Baixo investimento (< R$ 10 milhões)
-- **1 ponto**: Investimento médio (R$ 10-100 milhões)
-- **2 pontos**: Alto investimento (> R$ 100 milhões)
+**ATENÇÃO:** Dar nota 3+ exige EVIDÊNCIAS de que a solução realmente precisa de articulação federativa ou múltiplos ministérios. Soluções que podem começar em escala piloto devem ter nota reduzida.
 
-**Indicadores objetivos:**
-- Benchmarks de programas similares existentes
-- Orçamento de iniciativas mencionadas nos resultados
-- Necessidade de infraestrutura física (laboratórios, equipamentos)
+**Perguntas críticas:**
+- A solução REALMENTE precisa de todos esses atores desde o início ou pode começar menor?
+- Há exemplos de soluções similares implementadas com menos atores?
+- É possível implementação gradual/faseada reduzindo coordenação inicial?
 
-## DIMENSÃO 3: TEMPO DE IMPLEMENTAÇÃO (0-2 pontos)
-- **0 pontos**: Implementação rápida (< 1 ano)
-- **1 ponto**: Implementação média (1-3 anos)
-- **2 pontos**: Implementação longa (> 3 anos)
+## DIMENSÃO 2: INVESTIMENTO NECESSÁRIO (0-2.5 pontos) - EXIJA BENCHMARKS
+- **0 pontos**: Investimento mínimo (< R$ 5 milhões - ex: consultorias, capacitações, plataformas digitais)
+- **0.5 pontos**: Investimento baixo (R$ 5-10 milhões - ex: programas-piloto regionais)
+- **1 ponto**: Investimento médio-baixo (R$ 10-50 milhões - ex: programas estaduais, modernização de sistemas)
+- **1.5 pontos**: Investimento médio (R$ 50-100 milhões - ex: programas nacionais de capacitação)
+- **2 pontos**: Investimento alto (R$ 100-500 milhões - ex: infraestrutura tecnológica nacional)
+- **2.5 pontos**: Investimento muito alto (> R$ 500 milhões - ex: reformas estruturais, infraestrutura física nacional)
 
-**Indicadores objetivos:**
-- Necessidade de mudança legislativa (+ 2 anos)
-- Necessidade de formação de pessoas (educação = + 5 anos)
-- Necessidade de mudança cultural (+ 10 anos)
-- Complexidade de procurement e contratações
+**ATENÇÃO:** Nota 2+ só para soluções com necessidade COMPROVADA de investimentos massivos. Use benchmarks de programas reais.
 
-## DIMENSÃO 4: MUDANÇAS ESTRUTURAIS (0-3 pontos)
-- **0 pontos**: Expansão de programas existentes
-- **1 ponto**: Modificação de programas existentes
-- **2 pontos**: Criação de novos programas/estruturas
-- **3 pontos**: Mudança sistêmica (legislação federal, reforma curricular nacional)
+**Perguntas críticas:**
+- Existem DADOS de orçamentos de programas similares para comparação?
+- A solução pode ser implementada em fases menores com menos investimento inicial?
+- Há possibilidade de cofinanciamento ou parcerias público-privadas?
 
-**Indicadores objetivos:**
-- Necessidade de nova legislação (Lei, MP, Decreto)
-- Mudanças em currículos nacionais
-- Criação de novas autarquias/órgãos
-- Reformas em estruturas consolidadas
+## DIMENSÃO 3: TEMPO DE IMPLEMENTAÇÃO (0-2.5 pontos) - CONSIDERE FASES
+- **0 pontos**: Implementação imediata (< 6 meses - ex: regulamentações por decreto, programas-piloto)
+- **0.5 pontos**: Implementação rápida (6 meses - 1 ano - ex: criação de programas novos sem legislação)
+- **1 ponto**: Implementação média-rápida (1-2 anos - ex: programas com necessidade de estruturação)
+- **1.5 pontos**: Implementação média (2-3 anos - ex: mudanças legislativas simples, sistemas de TI complexos)
+- **2 pontos**: Implementação longa (3-5 anos - ex: reformas curriculares, mudanças culturais graduais)
+- **2.5 pontos**: Implementação muito longa (> 5 anos - ex: mudanças educacionais estruturais, transformações culturais profundas)
 
-**SCORE FINAL DE ESFORÇO = Soma das 4 dimensões (máximo 10 pontos)**
+**ATENÇÃO:** Nota 2+ só para soluções que REALMENTE dependem de ciclos longos (educação, mudança cultural). Soluções que podem mostrar resultados parciais antes devem ter nota reduzida.
+
+**Perguntas críticas:**
+- Qual é o prazo MÍNIMO para primeiros resultados visíveis (não implementação completa)?
+- A solução pode ter implementação faseada com ganhos incrementais?
+- Existem atalhos regulatórios (MPs, decretos) que reduzem tempo legislativo?
+
+## DIMENSÃO 4: MUDANÇAS ESTRUTURAIS (0-2.5 pontos) - AVALIE PROFUNDIDADE REAL
+- **0 pontos**: Expansão/escalonamento de programas já existentes (ex: ampliar cobertura de programa do Sebrae)
+- **0.5 pontos**: Modificação moderada de programas existentes (ex: ajustar critérios de financiamento)
+- **1 ponto**: Modificação substancial de programas existentes (ex: reestruturar modelo de operação)
+- **1.5 pontos**: Criação de novos programas/estruturas sem mudança legal (ex: novo departamento, nova linha de financiamento)
+- **2 pontos**: Criação de programas que exigem decreto ou resolução normativa
+- **2.5 pontos**: Mudança sistêmica que exige legislação federal (Lei, MP) OU reforma curricular nacional OU criação de autarquia/órgão federal
+
+**ATENÇÃO:** Nota 2+ só para mudanças que REALMENTE exigem lei federal ou reformas estruturais. Decretos, portarias e resoluções contam como nota máxima 2.
+
+**Perguntas críticas:**
+- A solução REALMENTE precisa de lei federal ou pode ser feita por decreto/portaria?
+- Já existe arcabouço legal que permite implementação sem mudança estrutural?
+- A mudança afeta TODA estrutura existente ou apenas cria algo novo em paralelo?
+
+---
+
+**SCORE FINAL DE ESFORÇO = Soma das 4 dimensões (máximo 11 pontos, normalizado para escala 0-10)**
+
+**DISTRIBUIÇÃO ESPERADA (para 50 falhas):**
+- 0-3 pontos: ~20% das falhas (soluções simples, escalonamento de programas existentes)
+- 4-6 pontos: ~50% das falhas (soluções de complexidade moderada)
+- 7-8 pontos: ~25% das falhas (soluções complexas mas viáveis)
+- 9-10 pontos: ~5% das falhas (apenas mudanças VERDADEIRAMENTE sistêmicas)
+
+**EXEMPLOS DE ESFORÇO 9-10:** Reforma tributária completa, Reforma educacional nacional (BNCC), Criação de ministério
+**EXEMPLOS DE ESFORÇO 4-6:** Modernização do INPI, Criação de linhas de crédito específicas, Programas nacionais de capacitação
+**EXEMPLOS DE ESFORÇO 0-3:** Expansão geográfica de programas existentes, Consultorias especializadas, Plataformas digitais
 """
 
 EXEMPLOS_CALIBRACAO = """
