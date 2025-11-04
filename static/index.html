@@ -1455,8 +1455,13 @@
                 },
 
                 renderizar_quadrante(quadrante, falhas) {
-                    const el = document.getElementById(`quadrante-${quadrante}`);
-                    if (!el) return;
+                    // Converter underscore para hífen (quick_wins -> quick-wins)
+                    const quadranteId = quadrante.replace(/_/g, '-');
+                    const el = document.getElementById(`quadrante-${quadranteId}`);
+                    if (!el) {
+                        console.error(`[QUADRANTE] Elemento não encontrado: quadrante-${quadranteId}`);
+                        return;
+                    }
                     if (!falhas || falhas.length === 0) {
                         el.innerHTML = '<li class="text-sm text-gray-600">Nenhuma falha neste quadrante</li>';
                     } else {
