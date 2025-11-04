@@ -1370,10 +1370,15 @@
                 },
 
                 async carregar_matriz() {
+                    console.log('[MATRIZ] Iniciando carregamento da matriz...');
                     try {
                         const res = await fetch('/api/priorizacoes/matriz/quadrantes');
-                        if (!res.ok) return;
+                        if (!res.ok) {
+                            console.error('[MATRIZ] Erro ao buscar quadrantes:', res.status);
+                            return;
+                        }
                         const data = await res.json();
+                        console.log('[MATRIZ] Quadrantes recebidos:', data);
 
                         // Renderizar quadrantes
                         this.renderizar_quadrante('quick_wins', data.quick_wins.dados);
@@ -1384,7 +1389,7 @@
                         // Renderizar gráfico
                         this.renderizar_grafico(data);
                     } catch (e) {
-                        console.error('Erro ao carregar matriz', e);
+                        console.error('[MATRIZ] Erro ao carregar matriz:', e);
                     }
                 },
 
@@ -1400,13 +1405,30 @@
 
                 async renderizar_grafico(data) {
                     const canvas = document.getElementById('canvas-matriz');
-                    if (!canvas) return;
+                    if (!canvas) {
+                        console.error('[MATRIZ] Canvas não encontrado');
+                        return;
+                    }
+
+                    // Verificar se canvas está visível
+                    if (canvas.offsetParent === null) {
+                        console.warn('[MATRIZ] Canvas está oculto, aguardando...');
+                        // Aguardar um pouco e tentar novamente
+                        setTimeout(() => this.renderizar_grafico(data), 100);
+                        return;
+                    }
+
                     const ctx = canvas.getContext('2d');
+                    console.log('[MATRIZ] Iniciando renderização do gráfico...');
 
                     try {
                         const res = await fetch('/api/priorizacoes/matriz/dados');
-                        if (!res.ok) return;
+                        if (!res.ok) {
+                            console.error('[MATRIZ] Erro ao buscar dados:', res.status);
+                            return;
+                        }
                         const matrizData = await res.json();
+                        console.log('[MATRIZ] Dados recebidos:', matrizData.total, 'falhas');
 
                         // Mapa de cores por pilar
                         const coresPilares = {
@@ -1444,9 +1466,14 @@
                         });
 
                         const datasets = Object.values(datasetsPorPilar);
+                        console.log('[MATRIZ] Datasets criados:', datasets.length, 'pilares');
 
-                        if (this.chartMatriz) this.chartMatriz.destroy();
+                        if (this.chartMatriz) {
+                            console.log('[MATRIZ] Destruindo gráfico anterior');
+                            this.chartMatriz.destroy();
+                        }
 
+                        console.log('[MATRIZ] Criando novo gráfico Chart.js...');
                         this.chartMatriz = new Chart(ctx, {
                             type: 'scatter',
                             data: { datasets },
@@ -1530,8 +1557,9 @@
                                 }
                             }
                         });
+                        console.log('[MATRIZ] ✓ Gráfico criado com sucesso!');
                     } catch (e) {
-                        console.error('Erro ao renderizar gráfico', e);
+                        console.error('[MATRIZ] ✗ Erro ao renderizar gráfico:', e);
                     }
                 },
 
