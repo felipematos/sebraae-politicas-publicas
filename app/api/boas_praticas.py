@@ -95,15 +95,17 @@ async def listar_falhas_fase1():
         for prio in priorizacoes:
             falha_id = prio['falha_id']
 
-            # Contar fontes disponíveis
-            fontes = await obter_fontes_por_falha(falha_id)
+            # Contar TODAS as fontes disponíveis (resultados de pesquisa + documentos)
+            resultados = await get_resultados_by_falha(falha_id)
+            documentos = await obter_fontes_por_falha(falha_id)
+            total_fontes = len(resultados) + len([d for d in documentos if d.get('fonte_tipo') == 'documento'])
 
             falhas.append(FalhaPriorizadaFase1(
                 falha_id=falha_id,
                 titulo=prio['titulo'],
                 pilar=prio['pilar'],
                 descricao=prio.get('descricao', ''),
-                num_fontes=len(fontes)
+                num_fontes=total_fontes
             ))
 
         return ListarFalhasFase1Response(
