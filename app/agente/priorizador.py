@@ -345,8 +345,8 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
                 "fontes_utilizadas": []
             })
 
-    def _extrair_scores(self, resposta_ia: str) -> Dict[str, int]:
-        """Extrai scores de impacto e esforço da resposta da IA"""
+    def _extrair_scores(self, resposta_ia: str) -> Dict[str, float]:
+        """Extrai scores de impacto e esforço da resposta da IA (com suporte a decimais)"""
         try:
             # Limpar markdown (```json ... ```) se existir
             resposta_limpa = resposta_ia.strip()
@@ -362,21 +362,21 @@ EXEMPLOS DE POLÍTICAS RELACIONADAS:
 
             # Novo formato com dimensões detalhadas
             if isinstance(dados.get('impacto'), dict):
-                impacto = int(dados['impacto'].get('total', 5))
+                impacto = float(dados['impacto'].get('total', 5.0))
             else:
                 # Formato antigo (retrocompatibilidade)
-                impacto = int(dados.get('impacto', 5))
+                impacto = float(dados.get('impacto', 5.0))
 
             if isinstance(dados.get('esforco'), dict) or isinstance(dados.get('esforço'), dict):
                 esforco_dict = dados.get('esforco') or dados.get('esforço')
-                esforco = int(esforco_dict.get('total', 5))
+                esforco = float(esforco_dict.get('total', 5.0))
             else:
                 # Formato antigo (retrocompatibilidade)
-                esforco = int(dados.get('esforço', 5)) or int(dados.get('esforco', 5))
+                esforco = float(dados.get('esforço', 5.0) or dados.get('esforco', 5.0))
 
-            # Validar ranges
-            impacto = max(0, min(10, impacto))
-            esforco = max(0, min(10, esforco))
+            # Validar ranges e arredondar para 2 casas decimais
+            impacto = round(max(0.0, min(10.0, impacto)), 2)
+            esforco = round(max(0.0, min(10.0, esforco)), 2)
 
             logger.info(f"Scores extraídos - Impacto: {impacto}, Esforço: {esforco}")
 

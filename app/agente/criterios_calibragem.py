@@ -226,6 +226,7 @@ Você é um especialista CRÍTICO e RIGOROSO em políticas públicas e ecossiste
 - Apenas problemas VERDADEIRAMENTE sistêmicos e críticos merecem 8-10 pontos de impacto
 - Se tiver dúvida entre duas notas, escolha a MENOR
 - Prefira subestimar do que superestimar o impacto
+- **USE VALORES DECIMAIS** com até 2 casas decimais para maior precisão (ex: 5.75, 3.50, 7.25)
 
 {criterios_impacto}
 
@@ -244,10 +245,11 @@ FALHA PARA ANÁLISE:
 INSTRUÇÕES DETALHADAS:
 1. **Analise cada dimensão objetivamente** usando APENAS os indicadores quantitativos fornecidos
 2. **Exija evidências concretas:** Não assuma impactos sem dados
-3. **Some os pontos** de cada dimensão para obter o score final (não arredonde para cima)
+3. **Some os pontos** de cada dimensão para obter o score final (use valores decimais com até 2 casas)
 4. **Cite as fontes** usando [FONTE-X] para CADA afirmação factual na justificativa
 5. **Seja comparativo:** Use os exemplos como referência - se a falha não é tão crítica quanto "Educação STEM", não pode ter nota similar
 6. **Questione suas próprias suposições:** Antes de dar nota alta, pergunte "Tenho DADOS que comprovam isso?"
+7. **Precisão decimal:** Use incrementos de 0.25 ou 0.5 entre categorias quando apropriado (ex: entre 1 e 1.5, use 1.25 se houver evidência parcial)
 
 ⚠️ **CHECKLIST ANTES DE FINALIZAR:**
 - [ ] Usei APENAS dados quantitativos verificáveis, não impressões qualitativas?
@@ -259,22 +261,28 @@ INSTRUÇÕES DETALHADAS:
 Responda EXATAMENTE no seguinte formato JSON:
 {{
     "impacto": {{
-        "abrangencia": <0-3>,
-        "magnitude": <0-3>,
-        "maturidade": <0-2>,
-        "multiplicador": <0-2>,
-        "total": <soma, 0-10>
+        "abrangencia": <0-3, com 2 casas decimais, ex: 1.75>,
+        "magnitude": <0-3, com 2 casas decimais, ex: 2.25>,
+        "maturidade": <0-2, com 2 casas decimais, ex: 1.50>,
+        "multiplicador": <0-2, com 2 casas decimais, ex: 1.00>,
+        "total": <soma das dimensões, 0-10.00, com 2 casas decimais>
     }},
     "esforco": {{
-        "stakeholders": <0-3>,
-        "investimento": <0-2>,
-        "tempo": <0-2>,
-        "estrutural": <0-3>,
-        "total": <soma, 0-10>
+        "stakeholders": <0-3.5, com 2 casas decimais, ex: 2.75>,
+        "investimento": <0-2.5, com 2 casas decimais, ex: 1.50>,
+        "tempo": <0-2.5, com 2 casas decimais, ex: 0.75>,
+        "estrutural": <0-2.5, com 2 casas decimais, ex: 1.25>,
+        "total": <soma das dimensões normalizada para 0-10.00, com 2 casas decimais>
     }},
     "justificativa": "<explicação detalhada com citações [FONTE-X] para CADA dimensão, sendo crítico e baseado em dados>",
     "fontes_utilizadas": [<lista dos números de fontes citadas>]
 }}
+
+**IMPORTANTE SOBRE ESFORÇO:**
+- O score de esforço é calculado somando as 4 dimensões (máximo 11 pontos)
+- O total deve ser normalizado para escala 0-10.00: `total_normalizado = (soma_dimensoes / 11.0) * 10.0`
+- Exemplo: se stakeholders=2.5, investimento=1.5, tempo=1.0, estrutural=2.0, então soma=7.0
+- Total normalizado = (7.0 / 11.0) * 10.0 = 6.36
 
 IMPORTANTE: Responda APENAS com o JSON, sem texto adicional.
 """
