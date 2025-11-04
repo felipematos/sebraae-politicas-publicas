@@ -864,7 +864,7 @@
                 <div x-show="aba_priorizacao === 'matriz'" class="space-y-6">
                     <!-- Gráfico da Matriz -->
                     <div class="bg-white rounded-lg shadow p-6">
-                        <div class="aspect-square w-full max-w-3xl mx-auto">
+                        <div class="w-full max-w-3xl mx-auto" style="height: 600px;">
                             <canvas id="canvas-matriz"></canvas>
                         </div>
                     </div>
@@ -1403,19 +1403,23 @@
                     }
                 },
 
-                async renderizar_grafico(data) {
+                async renderizar_grafico(data, tentativa = 0) {
                     const canvas = document.getElementById('canvas-matriz');
                     if (!canvas) {
                         console.error('[MATRIZ] Canvas não encontrado');
                         return;
                     }
 
-                    // Verificar se canvas está visível
+                    // Verificar se canvas está visível (com limite de tentativas)
                     if (canvas.offsetParent === null) {
-                        console.warn('[MATRIZ] Canvas está oculto, aguardando...');
-                        // Aguardar um pouco e tentar novamente
-                        setTimeout(() => this.renderizar_grafico(data), 100);
-                        return;
+                        if (tentativa < 20) {
+                            console.warn(`[MATRIZ] Canvas está oculto, aguardando... (tentativa ${tentativa + 1}/20)`);
+                            setTimeout(() => this.renderizar_grafico(data, tentativa + 1), 100);
+                            return;
+                        } else {
+                            console.error('[MATRIZ] Canvas permanece oculto após 20 tentativas');
+                            return;
+                        }
                     }
 
                     const ctx = canvas.getContext('2d');
