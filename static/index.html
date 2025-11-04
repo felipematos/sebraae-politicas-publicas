@@ -1586,8 +1586,12 @@
                                                 const chave = `${posicaoOriginal.x},${posicaoOriginal.y}`;
                                                 const todasFalhasNaPosicao = this.posicaoMapMatriz[chave] || [];
 
-                                                // Filtrar apenas as falhas do pilar atual
-                                                const falhasDoPilar = todasFalhasNaPosicao.filter(f => f.pilar === pilarAtual);
+                                                // Filtrar apenas as falhas do pilar atual e remover duplicatas por ID
+                                                const falhasDoPilar = todasFalhasNaPosicao
+                                                    .filter(f => f.pilar === pilarAtual)
+                                                    .filter((falha, index, self) =>
+                                                        index === self.findIndex(f => f.falha_id === falha.falha_id)
+                                                    );
 
                                                 if (falhasDoPilar.length > 1) {
                                                     return `${falhasDoPilar.length} falhas de ${pilarAtual} (Impacto: ${posicaoOriginal.y}, Esforço: ${posicaoOriginal.x})`;
@@ -1605,11 +1609,15 @@
                                                 const chave = `${posicaoOriginal.x},${posicaoOriginal.y}`;
                                                 const todasFalhasNaPosicao = this.posicaoMapMatriz[chave] || [];
 
-                                                // Filtrar apenas as falhas do pilar atual
-                                                const falhasDoPilar = todasFalhasNaPosicao.filter(f => f.pilar === pilarAtual);
+                                                // Filtrar apenas as falhas do pilar atual e remover duplicatas por ID
+                                                const falhasDoPilar = todasFalhasNaPosicao
+                                                    .filter(f => f.pilar === pilarAtual)
+                                                    .filter((falha, index, self) =>
+                                                        index === self.findIndex(f => f.falha_id === falha.falha_id)
+                                                    );
 
                                                 if (falhasDoPilar.length > 1) {
-                                                    // Mostrar apenas as falhas do pilar atual
+                                                    // Mostrar apenas as falhas do pilar atual (sem duplicatas)
                                                     const labels = [];
                                                     falhasDoPilar.forEach((f, idx) => {
                                                         labels.push(''); // Linha em branco para separação
