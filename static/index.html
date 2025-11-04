@@ -369,15 +369,24 @@
                         <h1 class="text-3xl font-bold" style="color: #1e3a8a;">Sebrae Nacional</h1>
                         <p class="text-sm mt-1" style="color: #374151;">Pesquisa de Políticas Públicas para Inovação</p>
                     </div>
-                    <div class="text-right">
-                        <p class="text-sm font-medium" style="color: #374151;">Fase Atual</p>
-                        <p class="text-lg font-bold text-blue-700" x-text="fases[fase_atual].nome"></p>
+                    <div class="flex items-center gap-4">
+                        <!-- Botão de Biblioteca de Relatórios -->
+                        <button @click="mudar_fase(7)"
+                                :class="fase_atual === 7 ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'"
+                                class="px-4 py-2 rounded-lg font-medium transition-colors border-2"
+                                :class="fase_atual === 7 ? 'border-amber-800' : 'border-amber-300'">
+                            📚 Biblioteca de Relatórios
+                        </button>
+                        <div class="text-right">
+                            <p class="text-sm font-medium" style="color: #374151;">Fase Atual</p>
+                            <p class="text-lg font-bold text-blue-700" x-text="fases[fase_atual].nome"></p>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Navegação de Fases -->
                 <div class="flex gap-2 flex-wrap">
-                    <template x-for="(fase, idx) in fases" :key="idx">
+                    <template x-for="(fase, idx) in fases.slice(0, 7)" :key="idx">
                         <button @click="mudar_fase(idx)"
                                 :class="idx === fase_atual ? 'phase-nav-active' : 'phase-nav-inactive'"
                                 class="phase-badge-nav text-sm">
@@ -387,13 +396,6 @@
                             </template>
                         </button>
                     </template>
-                    <!-- Botão de Biblioteca de Relatórios -->
-                    <button @click="mudar_fase(7)"
-                            :class="fase_atual === 7 ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'"
-                            class="px-4 py-2 rounded-lg font-medium transition-colors border-2"
-                            :class="fase_atual === 7 ? 'border-amber-800' : 'border-amber-300'">
-                        📚 Biblioteca de Relatórios
-                    </button>
                 </div>
             </div>
         </header>
@@ -408,7 +410,7 @@
                         Este sistema ajuda a identificar, pesquisar e priorizar falhas de mercado no ecossistema de inovação brasileiro.
                     </p>
                     <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                        <template x-for="(fase, idx) in fases" :key="idx">
+                        <template x-for="(fase, idx) in fases.slice(0, 7)" :key="idx">
                             <div class="bg-white p-6 rounded-lg shadow-md">
                                 <div class="text-2xl font-bold text-blue-600 mb-2" x-text="`${idx + 1}`"></div>
                                 <h3 class="font-bold mb-2" x-text="fase.nome"></h3>
