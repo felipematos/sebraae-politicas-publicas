@@ -847,17 +847,26 @@ async def listar_priorizacoes_sem_analise() -> List[Dict[str, Any]]:
 
 
 async def gerar_matriz_2x2() -> List[Dict[str, Any]]:
-    """Gera dados para a matriz 2x2 (impacto vs esforço)"""
+    """
+    Gera dados para a matriz 2x2 (impacto vs esforço)
+
+    Inclui cálculo de score de priorização:
+    - Score = (impacto²) / (esforço + 0.1)
+    - Diretamente proporcional ao impacto (quadrático)
+    - Inversamente proporcional ao esforço
+    - Quanto maior o score, maior a prioridade
+    """
     query = """
     SELECT
         pf.id, pf.falha_id, pf.impacto, pf.esforco,
         fm.titulo, fm.pilar,
-        COUNT(rp.id) as total_resultados
+        COUNT(rp.id) as total_resultados,
+        ROUND((pf.impacto * pf.impacto) / (pf.esforco + 0.1), 2) as score
     FROM priorizacoes_falhas pf
     JOIN falhas_mercado fm ON pf.falha_id = fm.id
     LEFT JOIN resultados_pesquisa rp ON fm.id = rp.falha_id
     GROUP BY pf.falha_id
-    ORDER BY pf.impacto DESC, pf.esforco ASC
+    ORDER BY score DESC
     """
     return await db.fetch_all(query)
 
@@ -871,6 +880,8 @@ async def obter_quadrantes_matriz() -> Dict[str, List[Dict[str, Any]]]:
     - Low Priority (Baixa Prioridade): Baixo impacto, Alto esforço (impacto <= 5, esforço > 5)
 
     Usa limiar de 5 (ponto médio da escala 0-10) para consistência com a visualização da matriz
+
+    As falhas em cada quadrante são ordenadas por score (maior primeiro)
     """
     dados = await gerar_matriz_2x2()
 
@@ -891,6 +902,10 @@ async def obter_quadrantes_matriz() -> Dict[str, List[Dict[str, Any]]]:
             quadrantes['fill_in'].append(falha)
         else:
             quadrantes['low_priority'].append(falha)
+
+    # Ordenar cada quadrante por score (já vem ordenado do banco, mas garantir)
+    for quadrante in quadrantes.values():
+        quadrante.sort(key=lambda x: x.get('score', 0), reverse=True)
 
     return quadrantes
 
