@@ -67,17 +67,26 @@ class AnalisadorBoasPraticas:
         for idx, fonte in enumerate(fontes[:15], 1):  # Limitar a 15 fontes
             fonte_tipo = fonte.get('fonte_tipo', 'documento')
             fonte_titulo = fonte.get('fonte_titulo', fonte.get('titulo', 'Sem título'))
-            fonte_conteudo = fonte.get('fonte_conteudo', fonte.get('content', ''))[:800]  # Limitar tamanho
+
+            # Usar conteúdo enriquecido se disponível, senão usar original
+            fonte_conteudo = fonte.get('conteudo_completo') or fonte.get('fonte_conteudo', fonte.get('content', ''))
+
+            # Limitar tamanho total (já vem limitado pelo soft cut, mas garantir)
+            fonte_conteudo = fonte_conteudo[:12000] if fonte_conteudo else ''
 
             # Detectar se é do Sebrae
             is_sebrae = self._detectar_sebrae(fonte)
             sebrae_flag = " [SEBRAE]" if is_sebrae else ""
 
+            # Adicionar informação de erro se URL falhou
+            url_error = fonte.get('url_error')
+            error_info = f"\n⚠️ Erro ao buscar conteúdo: {url_error}" if url_error else ""
+
             contexto_parts.append(
                 f"[FONTE {idx}]{sebrae_flag}\n"
                 f"Tipo: {fonte_tipo}\n"
                 f"Título: {fonte_titulo}\n"
-                f"Conteúdo:\n{fonte_conteudo}\n"
+                f"Conteúdo:\n{fonte_conteudo}{error_info}\n"
             )
 
         return "\n---\n".join(contexto_parts)

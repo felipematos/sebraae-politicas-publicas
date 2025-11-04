@@ -7,8 +7,16 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import json
 
-from app.database import get_falhas_mercado, listar_priorizacoes, obter_fontes_por_falha
+from app.database import (
+    get_falhas_mercado,
+    listar_priorizacoes,
+    obter_fontes_por_falha,
+    listar_boas_praticas_por_falha,
+    salvar_boa_pratica,
+    limpar_boas_praticas_fase
+)
 from app.agente.analisador_boas_praticas import AnalisadorBoasPraticas
+from app.utils.content_fetcher import enrich_sources_with_full_content
 from app.utils.logger import logger
 
 router = APIRouter(
@@ -28,84 +36,177 @@ class BoaPratica(BaseModel):
     fonte: Optional[str] = None
 
 
+class FalhaPriorizadaFase1(BaseModel):
+    """Model para falha priorizada na Fase I (apenas listagem)"""
+    falha_id: int
+    titulo: str
+    pilar: str
+    descricao: str
+    num_fontes: int  # Quantidade de fontes disponíveis
+
+
+class ListarFalhasFase1Response(BaseModel):
+    """Response da Fase I - listagem de falhas priorizadas"""
+    falhas: List[FalhaPriorizadaFase1]
+    total: int
+
+
 class BoasPraticasFalha(BaseModel):
-    """Model para boas práticas de uma falha"""
+    """Model para boas práticas de uma falha (Fase II)"""
     falha_id: int
     titulo: str
     pilar: str
     praticas: List[BoaPratica]
 
 
-class BuscarBoasPraticasResponse(BaseModel):
-    """Response da busca de boas práticas"""
-    boas_praticas: List[BoasPraticasFalha]
-    total: int
+class AnalisarFase2Response(BaseModel):
+    """Response da Fase II - análise com IA"""
+    falha_id: int
+    titulo: str
+    pilar: str
+    praticas: List[BoaPratica]
+    total_praticas: int
 
 
-@router.post("/buscar", response_model=BuscarBoasPraticasResponse)
-async def buscar_boas_praticas():
+@router.get("/fase1/listar", response_model=ListarFalhasFase1Response)
+async def listar_falhas_fase1():
     """
-    Busca boas práticas para todas as falhas priorizadas
+    FASE I: Lista falhas priorizadas sem executar análise de IA
 
-    Processo:
-    1. Obtém todas as falhas priorizadas
-    2. Para cada falha, busca nos resultados de pesquisa e documentos
-    3. Identifica se a prática vem do Sebrae
-    4. Retorna lista de falhas com suas respectivas boas práticas
+    Retorna apenas a lista de falhas destacadas com suas informações básicas
+    e quantidade de fontes disponíveis para análise posterior.
     """
     try:
-        logger.info("Iniciando busca de boas práticas")
+        logger.info("Fase I: Listando falhas priorizadas")
 
-        # 1. Obter falhas priorizadas (apenas destacadas)
+        # Obter falhas priorizadas (apenas destacadas)
         todas_priorizacoes = await listar_priorizacoes()
         priorizacoes = [p for p in todas_priorizacoes if p.get('destacada')]
 
         if not priorizacoes:
             logger.warning("Nenhuma falha destacada encontrada")
-            return BuscarBoasPraticasResponse(boas_praticas=[], total=0)
+            return ListarFalhasFase1Response(falhas=[], total=0)
 
-        logger.info(f"Processando {len(priorizacoes)} falhas destacadas")
+        logger.info(f"Encontradas {len(priorizacoes)} falhas destacadas")
 
-        # 2. Analisar cada falha (dados já vêm completos do banco)
-        resultado = []
-
+        # Montar resposta apenas com dados básicos
+        falhas = []
         for prio in priorizacoes:
             falha_id = prio['falha_id']
 
-            # Montar objeto falha (dados já vêm da query JOIN)
-            falha = {
-                'id': falha_id,
-                'titulo': prio['titulo'],
-                'pilar': prio['pilar'],
-                'descricao': prio.get('descricao', '')
-            }
-
-            # Obter fontes (resultados de pesquisa e documentos)
+            # Contar fontes disponíveis
             fontes = await obter_fontes_por_falha(falha_id)
 
-            # Analisar com LLM para extrair boas práticas
-            praticas = await analisador.analisar_boas_praticas(
-                falha=falha,
-                fontes=fontes
-            )
+            falhas.append(FalhaPriorizadaFase1(
+                falha_id=falha_id,
+                titulo=prio['titulo'],
+                pilar=prio['pilar'],
+                descricao=prio.get('descricao', ''),
+                num_fontes=len(fontes)
+            ))
 
-            if praticas:
-                resultado.append(BoasPraticasFalha(
-                    falha_id=falha_id,
-                    titulo=prio['titulo'],
-                    pilar=prio['pilar'],
-                    praticas=praticas
-                ))
-
-        logger.info(f"Busca concluída: {len(resultado)} falhas com boas práticas")
-
-        return BuscarBoasPraticasResponse(
-            boas_praticas=resultado,
-            total=len(resultado)
+        return ListarFalhasFase1Response(
+            falhas=falhas,
+            total=len(falhas)
         )
 
     except Exception as e:
-        logger.error(f"Erro ao buscar boas práticas: {str(e)}")
+        logger.error(f"Erro na Fase I: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/fase2/analisar/{falha_id}", response_model=AnalisarFase2Response)
+async def analisar_falha_fase2(falha_id: int, reprocessar: bool = False):
+    """
+    FASE II: Executa análise com IA para uma falha específica
+
+    Processo:
+    1. Obtém fontes (resultados de pesquisa + documentos)
+    2. Enriquece fontes com conteúdo completo via Jina.ai
+    3. Extrai trechos de documentos com soft cut
+    4. Executa análise com LLM
+    5. Salva boas práticas identificadas no banco
+
+    Args:
+        falha_id: ID da falha a analisar
+        reprocessar: Se True, limpa práticas existentes e reanalisa
+    """
+    try:
+        logger.info(f"Fase II: Analisando falha {falha_id}")
+
+        # Verificar se falha existe
+        falhas = await get_falhas_mercado()
+        falha = next((f for f in falhas if f['id'] == falha_id), None)
+
+        if not falha:
+            raise HTTPException(status_code=404, detail="Falha não encontrada")
+
+        # Se reprocessar, limpar práticas existentes
+        if reprocessar:
+            await limpar_boas_praticas_fase(falha_id, 'fase_2')
+            logger.info(f"Práticas existentes limpas para reprocessamento")
+
+        # 1. Obter fontes básicas
+        fontes = await obter_fontes_por_falha(falha_id)
+        logger.info(f"Obtidas {len(fontes)} fontes para análise")
+
+        if not fontes:
+            logger.warning(f"Nenhuma fonte disponível para falha {falha_id}")
+            return AnalisarFase2Response(
+                falha_id=falha_id,
+                titulo=falha['titulo'],
+                pilar=falha['pilar'],
+                praticas=[],
+                total_praticas=0
+            )
+
+        # 2. Enriquecer fontes com conteúdo completo
+        logger.info("Enriquecendo fontes com conteúdo completo...")
+        fontes_enriquecidas = await enrich_sources_with_full_content(fontes)
+
+        # 3. Analisar com LLM
+        logger.info("Executando análise com IA...")
+        praticas_extraidas = await analisador.analisar_boas_praticas(
+            falha=falha,
+            fontes=fontes_enriquecidas
+        )
+
+        # 4. Salvar no banco
+        for pratica in praticas_extraidas:
+            await salvar_boa_pratica(
+                falha_id=falha_id,
+                titulo=pratica.get('titulo'),
+                descricao=pratica.get('descricao'),
+                is_sebrae=pratica.get('is_sebrae', False),
+                fonte_referencia=pratica.get('fonte'),
+                fase='fase_2'
+            )
+
+        logger.info(f"Análise concluída: {len(praticas_extraidas)} práticas identificadas")
+
+        # Converter para Pydantic models
+        praticas_models = [
+            BoaPratica(
+                titulo=p.get('titulo'),
+                descricao=p.get('descricao'),
+                is_sebrae=p.get('is_sebrae', False),
+                fonte=p.get('fonte')
+            )
+            for p in praticas_extraidas
+        ]
+
+        return AnalisarFase2Response(
+            falha_id=falha_id,
+            titulo=falha['titulo'],
+            pilar=falha['pilar'],
+            praticas=praticas_models,
+            total_praticas=len(praticas_models)
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro na Fase II para falha {falha_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
