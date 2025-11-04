@@ -1127,31 +1127,88 @@
                     </div>
                 </div>
 
-                <!-- Fase I: Busca de Boas Práticas -->
-                <div x-show="boas_praticas_subfase === 1" class="space-y-4">
+                <!-- Fase I: Listagem de Falhas Priorizadas -->
+                <div x-show="boas_praticas_subfase === 1" class="space-y-4" x-init="carregar_falhas_fase1()">
                     <!-- Controles -->
                     <div class="bg-white rounded-lg shadow p-6">
                         <div class="flex justify-between items-center mb-4">
                             <div>
-                                <h3 class="text-xl font-bold">Fase I - Busca de Boas Práticas</h3>
-                                <p class="text-sm text-gray-600 mt-1">Análise automática de práticas a partir dos resultados de pesquisa</p>
+                                <h3 class="text-xl font-bold">Fase I - Falhas Priorizadas</h3>
+                                <p class="text-sm text-gray-600 mt-1">Visualize as falhas marcadas como prioritárias. A análise de IA será executada na Fase II.</p>
                             </div>
-                            <button @click="executar_busca_boas_praticas()"
-                                    :disabled="buscando_boas_praticas"
+                            <button @click="carregar_falhas_fase1()"
+                                    :disabled="carregando_fase1"
                                     class="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-                                <span x-show="!buscando_boas_praticas">🔍 Executar Busca</span>
-                                <span x-show="buscando_boas_praticas">⏳ Buscando...</span>
+                                <span x-show="!carregando_fase1">🔄 Atualizar Lista</span>
+                                <span x-show="carregando_fase1">⏳ Carregando...</span>
                             </button>
                         </div>
 
                         <!-- Status -->
-                        <div x-show="boas_praticas_status" class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <p class="text-sm text-blue-800" x-text="boas_praticas_status"></p>
+                        <div x-show="fase1_status" class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p class="text-sm text-blue-800" x-text="fase1_status"></p>
                         </div>
                     </div>
 
-                    <!-- Tabela de Boas Práticas -->
+                    <!-- Tabela de Falhas -->
                     <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <!-- Contador no Topo -->
+                        <div x-show="fase1_falhas.length > 0" class="bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4 border-b border-purple-200">
+                            <div class="flex items-center gap-2 text-sm">
+                                <span class="font-semibold text-purple-900">📋 Total de Falhas Priorizadas:</span>
+                                <span class="bg-purple-600 text-white px-3 py-1 rounded-full font-bold" x-text="fase1_falhas.length"></span>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-purple-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">ID</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Falha</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Descrição</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider text-center">Fontes</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="tabela-fase1">
+                                    <!-- Preenchido por JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fase II: Análise com IA -->
+                <div x-show="boas_praticas_subfase === 2" class="space-y-4" x-init="carregar_falhas_fase2()">
+                    <!-- Controles -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">Fase II - Análise de Boas Práticas com IA</h3>
+                            <p class="text-sm text-gray-600">Clique em "Analisar" para executar a análise com IA para cada falha. O sistema buscará conteúdo completo das URLs e analisará documentos.</p>
+                        </div>
+
+                        <!-- Status -->
+                        <div x-show="fase2_status" class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p class="text-sm text-blue-800" x-text="fase2_status"></p>
+                        </div>
+                    </div>
+
+                    <!-- Tabela de Análises -->
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <!-- Contadores no Topo -->
+                        <div x-show="fase2_falhas.length > 0" class="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-purple-200">
+                            <div class="flex gap-6 text-sm">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-semibold text-purple-900">📋 Total de Falhas:</span>
+                                    <span class="bg-purple-600 text-white px-3 py-1 rounded-full font-bold" x-text="fase2_falhas.length"></span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-semibold text-purple-900">✨ Total de Boas Práticas:</span>
+                                    <span class="bg-pink-600 text-white px-3 py-1 rounded-full font-bold" x-text="calcular_total_praticas_fase2()"></span>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-purple-50">
@@ -1162,24 +1219,12 @@
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Ações</th>
                                     </tr>
                                 </thead>
-                                <tbody class="bg-white divide-y divide-gray-200" id="tabela-boas-praticas">
-                                    <tr>
-                                        <td colspan="4" class="px-6 py-8 text-center text-gray-500">
-                                            Clique em "Executar Busca" para identificar boas práticas
-                                        </td>
-                                    </tr>
+                                <tbody class="bg-white divide-y divide-gray-200" id="tabela-fase2">
+                                    <!-- Preenchido por JavaScript -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                </div>
-
-                <!-- Fase II: Consolidação (placeholder) -->
-                <div x-show="boas_praticas_subfase === 2" class="bg-white rounded-lg shadow p-8">
-                    <h3 class="text-xl font-bold mb-4">Fase II - Consolidação de Boas Práticas</h3>
-                    <p class="text-gray-600 text-center">
-                        Em desenvolvimento...
-                    </p>
                 </div>
             </section>
 
@@ -1446,6 +1491,14 @@
                 buscando_boas_praticas: false,
                 boas_praticas_status: '',
                 boas_praticas_dados: [],
+                // Fase I - Listagem
+                carregando_fase1: false,
+                fase1_status: '',
+                falhas_fase1: [],
+                // Fase II - Análise com IA
+                fase2_status: '',
+                falhas_fase2: [],
+                analisando_falha: {},  // { falha_id: true/false }
                 progresso_analise: {
                     etapa: '',
                     progresso: 0,
@@ -1575,6 +1628,9 @@
 
                 async inicializar() {
                     try {
+                        // Expor app globalmente para onclick handlers
+                        window.app = this;
+
                         // Carregar configurações de análise em lote do localStorage
                         const configSalva = localStorage.getItem('config_analise_lote');
                         if (configSalva) {
@@ -3306,8 +3362,14 @@
                     if (!this.detalhes_modal) return;
 
                     const falhaId = this.detalhes_modal.falha_id;
-                    const destacada = this.destacada_temp; // Usar estado temporário
+                    // Preservar o estado atual de destacada ao salvar apenas a justificativa
+                    const destacada = this.detalhes_modal.destacada === 1 || this.detalhes_modal.destacada === true;
                     const justificativa = this.justificativa_temp;
+
+                    // Não fazer requisição se não houver mudanças na justificativa
+                    if (justificativa === (this.detalhes_modal.justificativa_destaque || '')) {
+                        return;
+                    }
 
                     try {
                         const res = await fetch(`/api/priorizacoes/${falhaId}/destaque`, {
@@ -3320,10 +3382,12 @@
 
                         // Atualizar dados do modal
                         this.detalhes_modal.justificativa_destaque = justificativa;
-                        this.detalhes_modal.destacada = destacada ? 1 : 0;
 
-                        // Recarregar tabela para refletir mudanças
-                        await this.carregar_priorizacoes();
+                        // Atualizar também nos dados da tabela
+                        const priorizacao = this.priorizacoes_dados.find(p => p.falha_id === falhaId);
+                        if (priorizacao) {
+                            priorizacao.justificativa_destaque = justificativa;
+                        }
 
                         console.log(`[DEBUG] Justificativa salva para falha ${falhaId}`);
                     } catch (error) {
@@ -3753,13 +3817,115 @@
                     });
                 },
 
-                // ===== BOAS PRÁTICAS =====
-                async executar_busca_boas_praticas() {
-                    this.buscando_boas_praticas = true;
-                    this.boas_praticas_status = 'Iniciando busca de boas práticas...';
+                // ===== BOAS PRÁTICAS - FASE I =====
+                async carregar_falhas_fase1() {
+                    this.carregando_fase1 = true;
+                    this.fase1_status = 'Carregando falhas priorizadas...';
 
                     try {
-                        const res = await fetch('/api/boas-praticas/buscar', {
+                        const res = await fetch('/api/boas-praticas/fase1/listar');
+
+                        if (!res.ok) {
+                            throw new Error(`Erro ${res.status}: ${await res.text()}`);
+                        }
+
+                        const dados = await res.json();
+                        this.falhas_fase1 = dados.falhas || [];
+
+                        if (this.falhas_fase1.length === 0) {
+                            this.fase1_status = 'Nenhuma falha priorizada encontrada. Complete a Fase 3 primeiro e marque falhas como destacadas.';
+                        } else {
+                            this.fase1_status = `✓ ${this.falhas_fase1.length} falha(s) priorizada(s) carregada(s)`;
+                        }
+
+                        this.renderizar_tabela_fase1();
+                    } catch (e) {
+                        this.fase1_status = '✗ Erro ao carregar falhas priorizadas';
+                        this.mostrar_notificacao('✗ Erro: ' + e.message, 'erro');
+                        console.error('Erro:', e);
+                    } finally {
+                        this.carregando_fase1 = false;
+                    }
+                },
+
+                renderizar_tabela_fase1() {
+                    const tbody = document.getElementById('tabela-fase1');
+                    if (!tbody) return;
+
+                    if (this.falhas_fase1.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="4" class="px-6 py-8 text-center text-gray-500">
+                                    Nenhuma falha priorizada encontrada
+                                </td>
+                            </tr>
+                        `;
+                        return;
+                    }
+
+                    tbody.innerHTML = this.falhas_fase1.map(falha => `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                ${falha.falha_id}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-900">
+                                <div class="font-medium">${falha.titulo}</div>
+                                <div class="text-xs text-gray-500 mt-1">${falha.pilar}</div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                ${falha.descricao ? falha.descricao.substring(0, 150) + '...' : 'Sem descrição'}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                    ${falha.num_fontes} fonte${falha.num_fontes !== 1 ? 's' : ''}
+                                </span>
+                            </td>
+                        </tr>
+                    `).join('');
+                },
+
+                // ===== BOAS PRÁTICAS - FASE II =====
+                async carregar_falhas_fase2() {
+                    this.fase2_status = 'Carregando falhas priorizadas...';
+
+                    try {
+                        const res = await fetch('/api/boas-praticas/fase1/listar');
+
+                        if (!res.ok) {
+                            throw new Error(`Erro ${res.status}: ${await res.text()}`);
+                        }
+
+                        const dados = await res.json();
+                        this.falhas_fase2 = dados.falhas.map(f => ({
+                            ...f,
+                            praticas: null,  // null = não analisado ainda
+                            analisando: false
+                        })) || [];
+
+                        if (this.falhas_fase2.length === 0) {
+                            this.fase2_status = 'Nenhuma falha priorizada encontrada.';
+                        } else {
+                            this.fase2_status = `✓ ${this.falhas_fase2.length} falha(s) carregada(s). Clique em "Analisar" para executar a análise com IA.`;
+                        }
+
+                        this.renderizar_tabela_fase2();
+                    } catch (e) {
+                        this.fase2_status = '✗ Erro ao carregar falhas';
+                        this.mostrar_notificacao('✗ Erro: ' + e.message, 'erro');
+                        console.error('Erro:', e);
+                    }
+                },
+
+                async analisar_falha_fase2(falha_id, reprocessar = false) {
+                    const falhaIdx = this.falhas_fase2.findIndex(f => f.falha_id === falha_id);
+                    if (falhaIdx === -1) return;
+
+                    this.falhas_fase2[falhaIdx].analisando = true;
+                    this.fase2_status = `Analisando falha ${falha_id}... (Buscando URLs via Jina.ai e analisando documentos)`;
+                    this.renderizar_tabela_fase2();
+
+                    try {
+                        const res = await fetch(`/api/boas-praticas/fase2/analisar/${falha_id}?reprocessar=${reprocessar}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' }
                         });
@@ -3769,112 +3935,97 @@
                         }
 
                         const dados = await res.json();
-                        this.boas_praticas_dados = dados.boas_praticas || [];
-                        this.boas_praticas_status = `✓ Encontradas ${this.boas_praticas_dados.length} falhas com boas práticas`;
+                        this.falhas_fase2[falhaIdx].praticas = dados.praticas || [];
+                        this.falhas_fase2[falhaIdx].analisando = false;
 
-                        // Atualizar tabela
-                        this.renderizar_tabela_boas_praticas();
+                        this.fase2_status = `✓ Análise concluída para falha ${falha_id}: ${dados.total_praticas} prática(s) identificada(s)`;
+                        this.renderizar_tabela_fase2();
 
-                        this.mostrar_notificacao('✓ Busca de boas práticas concluída', 'sucesso');
-                    } catch (e) {
-                        this.boas_praticas_status = '✗ Erro ao buscar boas práticas';
-                        this.mostrar_notificacao('✗ Erro: ' + e.message, 'erro');
-                    } finally {
-                        this.buscando_boas_praticas = false;
-                    }
-                },
-
-                async carregar_falhas_priorizadas_inicial() {
-                    try {
-                        // Carregar priorizações
-                        const res = await fetch('/api/priorizacoes/');
-                        if (!res.ok) throw new Error('Erro ao carregar priorizações');
-
-                        const dados = await res.json();
-                        // Filtrar apenas falhas destacadas (priorizadas pelo usuário)
-                        const priorizacoes = (dados.dados || []).filter(p => p.destacada);
-
-                        if (priorizacoes.length === 0) {
-                            this.boas_praticas_status = 'Nenhuma falha priorizada encontrada. Complete a Fase 3 primeiro e marque falhas como destacadas.';
-                            this.boas_praticas_dados = [];
-                            this.renderizar_tabela_boas_praticas();
-                            return;
+                        if (dados.total_praticas > 0) {
+                            this.mostrar_notificacao(`✓ ${dados.total_praticas} boa(s) prática(s) identificada(s) para falha ${falha_id}`, 'sucesso');
+                        } else {
+                            this.mostrar_notificacao(`ℹ Nenhuma prática identificada para falha ${falha_id}`, 'aviso');
                         }
-
-                        // Montar estrutura inicial (sem boas práticas)
-                        // Dados já incluem título e pilar da API
-                        this.boas_praticas_dados = priorizacoes.map(prio => ({
-                            falha_id: prio.falha_id,
-                            titulo: prio.titulo || 'Título não encontrado',
-                            pilar: prio.pilar || 'N/A',
-                            praticas: null  // null indica que ainda não foi feita a busca
-                        }));
-
-                        this.boas_praticas_status = `${priorizacoes.length} falha(s) priorizada(s) carregada(s). Clique em "Executar Busca" para identificar boas práticas.`;
-                        this.renderizar_tabela_boas_praticas();
                     } catch (e) {
-                        this.boas_praticas_status = '✗ Erro ao carregar falhas priorizadas';
+                        this.falhas_fase2[falhaIdx].analisando = false;
+                        this.fase2_status = `✗ Erro ao analisar falha ${falha_id}`;
+                        this.mostrar_notificacao('✗ Erro: ' + e.message, 'erro');
+                        this.renderizar_tabela_fase2();
                         console.error('Erro:', e);
                     }
                 },
 
-                renderizar_tabela_boas_praticas() {
-                    const tbody = document.getElementById('tabela-boas-praticas');
+                renderizar_tabela_fase2() {
+                    const tbody = document.getElementById('tabela-fase2');
                     if (!tbody) return;
 
-                    if (this.boas_praticas_dados.length === 0) {
+                    if (this.falhas_fase2.length === 0) {
                         tbody.innerHTML = `
                             <tr>
                                 <td colspan="4" class="px-6 py-8 text-center text-gray-500">
-                                    Nenhuma boa prática encontrada
+                                    Nenhuma falha priorizada encontrada
                                 </td>
                             </tr>
                         `;
                         return;
                     }
 
-                    tbody.innerHTML = this.boas_praticas_dados.map(item => `
+                    tbody.innerHTML = this.falhas_fase2.map(falha => `
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                ${item.falha_id}
+                                ${falha.falha_id}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-900">
-                                <div class="font-medium">${item.titulo}</div>
-                                <div class="text-xs text-gray-500 mt-1">${item.pilar}</div>
+                                <div class="font-medium">${falha.titulo}</div>
+                                <div class="text-xs text-gray-500 mt-1">${falha.pilar}</div>
+                                <div class="text-xs text-gray-400 mt-1">${falha.num_fontes} fonte${falha.num_fontes !== 1 ? 's' : ''} disponível${falha.num_fontes !== 1 ? 'is' : ''}</div>
                             </td>
                             <td class="px-6 py-4 text-sm">
-                                ${this.renderizar_boas_praticas_item(item.praticas)}
+                                ${this.renderizar_praticas_fase2(falha)}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <button onclick="alert('Em desenvolvimento')"
-                                        class="text-purple-600 hover:text-purple-900 font-medium">
-                                    Ver detalhes
-                                </button>
+                                ${falha.analisando ? `
+                                    <span class="text-purple-600 italic">⏳ Analisando...</span>
+                                ` : falha.praticas === null ? `
+                                    <button onclick="window.app.analisar_falha_fase2(${falha.falha_id})"
+                                            class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-medium">
+                                        🔍 Analisar
+                                    </button>
+                                ` : `
+                                    <button onclick="window.app.analisar_falha_fase2(${falha.falha_id}, true)"
+                                            class="text-purple-600 hover:text-purple-900 font-medium">
+                                        🔄 Reprocessar
+                                    </button>
+                                `}
                             </td>
                         </tr>
                     `).join('');
                 },
 
-                renderizar_boas_praticas_item(praticas) {
-                    // null = aguardando busca, [] = busca feita mas vazia
-                    if (praticas === null) {
-                        return '<span class="text-amber-600 italic">⏳ Aguardando busca...</span>';
+                renderizar_praticas_fase2(falha) {
+                    if (falha.analisando) {
+                        return '<span class="text-purple-600 italic">⏳ Analisando com IA...</span>';
                     }
 
-                    if (praticas.length === 0) {
+                    if (falha.praticas === null) {
+                        return '<span class="text-amber-600 italic">⏳ Aguardando análise...</span>';
+                    }
+
+                    if (falha.praticas.length === 0) {
                         return '<span class="text-gray-400 italic">Nenhuma prática identificada</span>';
                     }
 
                     return `
                         <div class="space-y-2">
-                            ${praticas.map((pratica, idx) => `
+                            ${falha.praticas.map((pratica, idx) => `
                                 <div class="border-l-2 border-purple-300 pl-3 py-1">
                                     <div class="flex items-start gap-2">
                                         <span class="text-xs text-gray-500 font-mono">${idx + 1}.</span>
                                         <div class="flex-1">
                                             <div class="text-sm font-medium text-gray-800">${pratica.titulo}</div>
-                                            <div class="text-xs text-gray-600 mt-1">${pratica.descricao || ''}</div>
+                                            ${pratica.descricao ? `<div class="text-xs text-gray-600 mt-1">${pratica.descricao}</div>` : ''}
                                             ${pratica.is_sebrae ? '<span class="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-semibold rounded">📘 Sebrae</span>' : ''}
+                                            ${pratica.fonte ? `<div class="text-xs text-gray-400 mt-1">Fonte: ${pratica.fonte}</div>` : ''}
                                         </div>
                                     </div>
                                 </div>
