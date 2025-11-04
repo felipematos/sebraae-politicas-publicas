@@ -1422,7 +1422,21 @@
                         }
                     }
 
+                    // Forçar dimensões do canvas para compatibilidade com navegadores
+                    const container = canvas.parentElement;
+                    if (container) {
+                        const containerWidth = container.offsetWidth;
+                        const containerHeight = container.offsetHeight;
+                        canvas.width = containerWidth;
+                        canvas.height = containerHeight;
+                        console.log(`[MATRIZ] Canvas dimensões: ${containerWidth}x${containerHeight}`);
+                    }
+
                     const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        console.error('[MATRIZ] Não foi possível obter contexto 2D do canvas');
+                        return;
+                    }
                     console.log('[MATRIZ] Iniciando renderização do gráfico...');
 
                     try {
@@ -1519,6 +1533,14 @@
                                 responsive: true,
                                 maintainAspectRatio: true,
                                 aspectRatio: 1, // Forçar aspecto quadrado
+                                // Configurações adicionais para compatibilidade com navegadores
+                                devicePixelRatio: window.devicePixelRatio || 1,
+                                animation: {
+                                    duration: 0 // Desabilitar animação inicial para renderização mais rápida
+                                },
+                                layout: {
+                                    padding: 10
+                                },
                                 onClick: (event, elements) => {
                                     if (elements.length > 0) {
                                         const element = elements[0];
@@ -1633,6 +1655,18 @@
                             }
                         });
                         console.log('[MATRIZ] ✓ Gráfico criado com sucesso!');
+
+                        // Forçar renderização imediata para compatibilidade com navegadores
+                        // (especialmente Atlas browser)
+                        if (this.chartMatriz) {
+                            try {
+                                this.chartMatriz.update('none'); // Update sem animação
+                                this.chartMatriz.resize(); // Força recalculo de dimensões
+                                console.log('[MATRIZ] ✓ Renderização forçada completada');
+                            } catch (e) {
+                                console.error('[MATRIZ] Erro ao forçar renderização:', e);
+                            }
+                        }
                     } catch (e) {
                         console.error('[MATRIZ] ✗ Erro ao renderizar gráfico:', e);
                     }
