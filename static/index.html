@@ -474,30 +474,84 @@
                     <div class="bg-gray-50 rounded-lg p-4 space-y-3">
                         <p class="text-sm font-medium text-gray-700 mb-2">🌍 Região Geográfica (múltipla seleção)</p>
 
-                        <div class="space-y-2">
-                            <label class="flex items-center space-x-2 cursor-pointer">
-                                <input type="checkbox" value="brasil"
-                                       :checked="filtros_fase1.regiao.includes('brasil')"
-                                       @change="e => { e.target.checked ? filtros_fase1.regiao.push('brasil') : filtros_fase1.regiao = filtros_fase1.regiao.filter(r => r !== 'brasil'); filtros_fase1_alterados = true; }"
-                                       class="form-checkbox h-4 w-4 text-indigo-600 rounded">
-                                <span class="text-sm text-gray-700">Brasil</span>
-                            </label>
+                        <div class="space-y-3">
+                            <!-- Foco Brasil -->
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="brasil"
+                                           :checked="filtros_fase1.regiao.includes('brasil')"
+                                           @change="e => { e.target.checked ? filtros_fase1.regiao.push('brasil') : filtros_fase1.regiao = filtros_fase1.regiao.filter(r => r !== 'brasil'); filtros_fase1_alterados = true; }"
+                                           class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                    <span class="text-sm font-medium text-blue-900">🇧🇷 Brasil</span>
+                                </label>
+                            </div>
 
-                            <label class="flex items-center space-x-2 cursor-pointer">
-                                <input type="checkbox" value="latam"
-                                       :checked="filtros_fase1.regiao.includes('latam')"
-                                       @change="e => { e.target.checked ? filtros_fase1.regiao.push('latam') : filtros_fase1.regiao = filtros_fase1.regiao.filter(r => r !== 'latam'); filtros_fase1_alterados = true; }"
-                                       class="form-checkbox h-4 w-4 text-indigo-600 rounded">
-                                <span class="text-sm text-gray-700">América Latina</span>
-                            </label>
+                            <!-- Continentes -->
+                            <div class="grid grid-cols-1 gap-2">
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="america_sul"
+                                           :checked="filtros_fase1.regiao.includes('america_sul')"
+                                           @change="e => { e.target.checked ? filtros_fase1.regiao.push('america_sul') : filtros_fase1.regiao = filtros_fase1.regiao.filter(r => r !== 'america_sul'); filtros_fase1_alterados = true; }"
+                                           class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                    <span class="text-sm text-gray-700">🌎 América do Sul</span>
+                                </label>
 
-                            <label class="flex items-center space-x-2 cursor-pointer">
-                                <input type="checkbox" value="global"
-                                       :checked="filtros_fase1.regiao.includes('global')"
-                                       @change="e => { e.target.checked ? filtros_fase1.regiao.push('global') : filtros_fase1.regiao = filtros_fase1.regiao.filter(r => r !== 'global'); filtros_fase1_alterados = true; }"
-                                       class="form-checkbox h-4 w-4 text-indigo-600 rounded">
-                                <span class="text-sm text-gray-700">Global</span>
-                            </label>
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="america_norte"
+                                           :checked="filtros_fase1.regiao.includes('america_norte')"
+                                           @change="e => { e.target.checked ? filtros_fase1.regiao.push('america_norte') : filtros_fase1.regiao = filtros_fase1.regiao.filter(r => r !== 'america_norte'); filtros_fase1_alterados = true; }"
+                                           class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                    <span class="text-sm text-gray-700">🌎 América do Norte</span>
+                                </label>
+
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="america_central"
+                                           :checked="filtros_fase1.regiao.includes('america_central')"
+                                           @change="e => { e.target.checked ? filtros_fase1.regiao.push('america_central') : filtros_fase1.regiao = filtros_fase1.regiao.filter(r => r !== 'america_central'); filtros_fase1_alterados = true; }"
+                                           class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                    <span class="text-sm text-gray-700">🌎 América Central e Caribe</span>
+                                </label>
+
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="europa"
+                                           :checked="filtros_fase1.regiao.includes('europa')"
+                                           @change="e => { e.target.checked ? filtros_fase1.regiao.push('europa') : filtros_fase1.regiao = filtros_fase1.regiao.filter(r => r !== 'europa'); filtros_fase1_alterados = true; }"
+                                           class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                    <span class="text-sm text-gray-700">🇪🇺 Europa</span>
+                                </label>
+
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="asia"
+                                           :checked="filtros_fase1.regiao.includes('asia')"
+                                           @change="e => { e.target.checked ? filtros_fase1.regiao.push('asia') : filtros_fase1.regiao = filtros_fase1.regiao.filter(r => r !== 'asia'); filtros_fase1_alterados = true; }"
+                                           class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                    <span class="text-sm text-gray-700">🌏 Ásia</span>
+                                </label>
+
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="africa"
+                                           :checked="filtros_fase1.regiao.includes('africa')"
+                                           @change="e => { e.target.checked ? filtros_fase1.regiao.push('africa') : filtros_fase1.regiao = filtros_fase1.regiao.filter(r => r !== 'africa'); filtros_fase1_alterados = true; }"
+                                           class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                    <span class="text-sm text-gray-700">🌍 África</span>
+                                </label>
+
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="oceania"
+                                           :checked="filtros_fase1.regiao.includes('oceania')"
+                                           @change="e => { e.target.checked ? filtros_fase1.regiao.push('oceania') : filtros_fase1.regiao = filtros_fase1.regiao.filter(r => r !== 'oceania'); filtros_fase1_alterados = true; }"
+                                           class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                    <span class="text-sm text-gray-700">🌏 Oceania</span>
+                                </label>
+
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="global"
+                                           :checked="filtros_fase1.regiao.includes('global')"
+                                           @change="e => { e.target.checked ? filtros_fase1.regiao.push('global') : filtros_fase1.regiao = filtros_fase1.regiao.filter(r => r !== 'global'); filtros_fase1_alterados = true; }"
+                                           class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                    <span class="text-sm text-gray-700">🌐 Global/Internacional</span>
+                                </label>
+                            </div>
                         </div>
                         <p class="text-xs text-gray-500 mt-2">
                             <span x-show="filtros_fase1.regiao.length === 0" class="text-amber-600 font-medium">Nenhuma selecionada = todas as regiões</span>
@@ -509,7 +563,7 @@
                     <div class="bg-gray-50 rounded-lg p-4 space-y-3">
                         <p class="text-sm font-medium text-gray-700 mb-2">🌐 Idioma (múltipla seleção)</p>
 
-                        <div class="space-y-2">
+                        <div class="grid grid-cols-2 gap-2">
                             <label class="flex items-center space-x-2 cursor-pointer">
                                 <input type="checkbox" value="pt"
                                        :checked="filtros_fase1.idioma.includes('pt')"
@@ -532,6 +586,78 @@
                                        @change="e => { e.target.checked ? filtros_fase1.idioma.push('en') : filtros_fase1.idioma = filtros_fase1.idioma.filter(i => i !== 'en'); filtros_fase1_alterados = true; }"
                                        class="form-checkbox h-4 w-4 text-indigo-600 rounded">
                                 <span class="text-sm text-gray-700">Inglês</span>
+                            </label>
+
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" value="fr"
+                                       :checked="filtros_fase1.idioma.includes('fr')"
+                                       @change="e => { e.target.checked ? filtros_fase1.idioma.push('fr') : filtros_fase1.idioma = filtros_fase1.idioma.filter(i => i !== 'fr'); filtros_fase1_alterados = true; }"
+                                       class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                <span class="text-sm text-gray-700">Francês</span>
+                            </label>
+
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" value="de"
+                                       :checked="filtros_fase1.idioma.includes('de')"
+                                       @change="e => { e.target.checked ? filtros_fase1.idioma.push('de') : filtros_fase1.idioma = filtros_fase1.idioma.filter(i => i !== 'de'); filtros_fase1_alterados = true; }"
+                                       class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                <span class="text-sm text-gray-700">Alemão</span>
+                            </label>
+
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" value="it"
+                                       :checked="filtros_fase1.idioma.includes('it')"
+                                       @change="e => { e.target.checked ? filtros_fase1.idioma.push('it') : filtros_fase1.idioma = filtros_fase1.idioma.filter(i => i !== 'it'); filtros_fase1_alterados = true; }"
+                                       class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                <span class="text-sm text-gray-700">Italiano</span>
+                            </label>
+
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" value="zh"
+                                       :checked="filtros_fase1.idioma.includes('zh')"
+                                       @change="e => { e.target.checked ? filtros_fase1.idioma.push('zh') : filtros_fase1.idioma = filtros_fase1.idioma.filter(i => i !== 'zh'); filtros_fase1_alterados = true; }"
+                                       class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                <span class="text-sm text-gray-700">Chinês</span>
+                            </label>
+
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" value="ja"
+                                       :checked="filtros_fase1.idioma.includes('ja')"
+                                       @change="e => { e.target.checked ? filtros_fase1.idioma.push('ja') : filtros_fase1.idioma = filtros_fase1.idioma.filter(i => i !== 'ja'); filtros_fase1_alterados = true; }"
+                                       class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                <span class="text-sm text-gray-700">Japonês</span>
+                            </label>
+
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" value="ko"
+                                       :checked="filtros_fase1.idioma.includes('ko')"
+                                       @change="e => { e.target.checked ? filtros_fase1.idioma.push('ko') : filtros_fase1.idioma = filtros_fase1.idioma.filter(i => i !== 'ko'); filtros_fase1_alterados = true; }"
+                                       class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                <span class="text-sm text-gray-700">Coreano</span>
+                            </label>
+
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" value="ar"
+                                       :checked="filtros_fase1.idioma.includes('ar')"
+                                       @change="e => { e.target.checked ? filtros_fase1.idioma.push('ar') : filtros_fase1.idioma = filtros_fase1.idioma.filter(i => i !== 'ar'); filtros_fase1_alterados = true; }"
+                                       class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                <span class="text-sm text-gray-700">Árabe</span>
+                            </label>
+
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" value="ru"
+                                       :checked="filtros_fase1.idioma.includes('ru')"
+                                       @change="e => { e.target.checked ? filtros_fase1.idioma.push('ru') : filtros_fase1.idioma = filtros_fase1.idioma.filter(i => i !== 'ru'); filtros_fase1_alterados = true; }"
+                                       class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                <span class="text-sm text-gray-700">Russo</span>
+                            </label>
+
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" value="hi"
+                                       :checked="filtros_fase1.idioma.includes('hi')"
+                                       @change="e => { e.target.checked ? filtros_fase1.idioma.push('hi') : filtros_fase1.idioma = filtros_fase1.idioma.filter(i => i !== 'hi'); filtros_fase1_alterados = true; }"
+                                       class="form-checkbox h-4 w-4 text-indigo-600 rounded">
+                                <span class="text-sm text-gray-700">Hindi</span>
                             </label>
                         </div>
                         <p class="text-xs text-gray-500 mt-2">
