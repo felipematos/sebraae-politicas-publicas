@@ -362,6 +362,7 @@
         </div>
 
         <!-- Modal de Configuração de Filtros - Fase I -->
+        <!-- ⚠️ ACCESSIBILITY RULE: All text on white/light backgrounds MUST use text-gray-700 or darker for proper contrast -->
         <div id="filtros-fase1-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="modal_filtros_fase1_aberto = false" x-show="modal_filtros_fase1_aberto" x-cloak>
             <div class="bg-white rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto" @click.stop>
                 <div class="flex justify-between items-start mb-4">
