@@ -5233,7 +5233,19 @@
                     this.fase1_status = 'Carregando falhas priorizadas...';
 
                     try {
-                        const res = await fetch('/api/boas-praticas/fase1/listar');
+                        // Construir URL com parâmetros de filtro
+                        const params = new URLSearchParams({
+                            confianca_minima: this.filtros_fase1.confianca_minima,
+                            peso_sebrae: this.filtros_fase1.peso_sebrae,
+                            tipo_fonte: this.filtros_fase1.tipo_fonte,
+                            anos_publicacao: this.filtros_fase1.anos_publicacao,
+                            regiao: this.filtros_fase1.regiao,
+                            idioma: this.filtros_fase1.idioma,
+                            apenas_com_implementacao: this.filtros_fase1.apenas_com_implementacao,
+                            apenas_com_metricas: this.filtros_fase1.apenas_com_metricas
+                        });
+
+                        const res = await fetch(`/api/boas-praticas/fase1/listar?${params.toString()}`);
 
                         if (!res.ok) {
                             throw new Error(`Erro ${res.status}: ${await res.text()}`);
@@ -5241,6 +5253,13 @@
 
                         const dados = await res.json();
                         this.falhas_fase1 = dados.falhas || [];
+
+                        // Atualizar contagem filtrada para cada falha
+                        this.falhas_fase1.forEach(falha => {
+                            if (falha.num_fontes_filtradas !== null && falha.num_fontes_filtradas !== undefined) {
+                                this.contagem_fontes_fase1[falha.falha_id] = falha.num_fontes_filtradas;
+                            }
+                        });
 
                         if (this.falhas_fase1.length === 0) {
                             this.fase1_status = 'Nenhuma falha priorizada encontrada. Complete a Fase 3 primeiro e marque falhas como destacadas.';

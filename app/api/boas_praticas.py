@@ -49,7 +49,8 @@ class FalhaPriorizadaFase1(BaseModel):
     titulo: str
     pilar: str
     descricao: str
-    num_fontes: int  # Quantidade de fontes disponíveis
+    num_fontes: int  # Quantidade total de fontes disponíveis
+    num_fontes_filtradas: Optional[int] = None  # Quantidade após aplicar filtros
 
 
 class ListarFalhasFase1Response(BaseModel):
@@ -181,12 +182,24 @@ async def enriquecer_fontes_com_analises(fontes: List[Dict[str, Any]]) -> List[D
 
 
 @router.get("/fase1/listar", response_model=ListarFalhasFase1Response)
-async def listar_falhas_fase1():
+async def listar_falhas_fase1(
+    # Filtros opcionais (mesmos do endpoint de fontes)
+    confianca_minima: float = 0.0,
+    peso_sebrae: int = 1,
+    tipo_fonte: str = "",
+    anos_publicacao: str = "todos",
+    regiao: str = "",
+    idioma: str = "",
+    apenas_com_implementacao: bool = False,
+    apenas_com_metricas: bool = False
+):
     """
     FASE I: Lista falhas priorizadas sem executar análise de IA
 
     Retorna apenas a lista de falhas destacadas com suas informações básicas
     e quantidade de fontes disponíveis para análise posterior.
+
+    Se filtros forem fornecidos, também calcula num_fontes_filtradas.
     """
     try:
         logger.info("Fase I: Listando falhas priorizadas")
@@ -201,6 +214,23 @@ async def listar_falhas_fase1():
 
         logger.info(f"Encontradas {len(priorizacoes)} falhas destacadas")
 
+        # Verificar se há filtros ativos
+        filtros_ativos = (
+            confianca_minima > 0.0 or
+            peso_sebrae != 1 or
+            tipo_fonte or
+            anos_publicacao != "todos" or
+            regiao or
+            idioma or
+            apenas_com_implementacao or
+            apenas_com_metricas
+        )
+
+        # Parse de arrays de filtros
+        tipos_fonte_selecionados = [t.strip() for t in tipo_fonte.split(',') if t.strip()]
+        regioes_selecionadas = [r.strip() for r in regiao.split(',') if r.strip()]
+        idiomas_selecionados = [i.strip() for i in idioma.split(',') if i.strip()]
+
         # Montar resposta apenas com dados básicos
         falhas = []
         for prio in priorizacoes:
@@ -211,12 +241,72 @@ async def listar_falhas_fase1():
             documentos = await obter_fontes_por_falha(falha_id)
             total_fontes = len(resultados) + len([d for d in documentos if d.get('fonte_tipo') == 'documento'])
 
+            # Se há filtros ativos, calcular contagem filtrada
+            num_fontes_filtradas = None
+            if filtros_ativos:
+                # Formatar fontes
+                fontes_formatadas = []
+                for resultado in resultados:
+                    fontes_formatadas.append({
+                        "titulo": resultado.get('titulo'),
+                        "url": resultado.get('fonte_url'),
+                        "confidence_score": resultado.get('confidence_score', 0.5),
+                        "pais_origem": resultado.get('pais_origem'),
+                        "idioma": resultado.get('idioma')
+                    })
+
+                for fonte in documentos:
+                    if fonte.get('fonte_tipo') == 'documento':
+                        fontes_formatadas.append({
+                            "titulo": fonte.get('fonte_titulo'),
+                            "url": fonte.get('fonte_url'),
+                            "confidence_score": 0.7,
+                            "pais_origem": None,
+                            "idioma": None
+                        })
+
+                # Aplicar filtros
+                fontes_filtradas_list = []
+                for fonte in fontes_formatadas:
+                    # 1. Filtro de confiança mínima
+                    if fonte['confidence_score'] < confianca_minima:
+                        continue
+
+                    # 2. Filtro de região
+                    if regioes_selecionadas:
+                        pais = (fonte.get('pais_origem') or '').lower()
+                        paises_latam = ['argentina', 'chile', 'colombia', 'mexico', 'peru',
+                                       'uruguay', 'venezuela', 'ecuador', 'bolivia', 'paraguay',
+                                       'brasil', 'brazil']
+
+                        aceitar_fonte = False
+                        if 'brasil' in regioes_selecionadas and pais in ['brasil', 'brazil', 'br']:
+                            aceitar_fonte = True
+                        if 'latam' in regioes_selecionadas and any(p in pais for p in paises_latam):
+                            aceitar_fonte = True
+                        if 'global' in regioes_selecionadas:
+                            aceitar_fonte = True
+
+                        if not aceitar_fonte:
+                            continue
+
+                    # 3. Filtro de idioma
+                    if idiomas_selecionados:
+                        idioma_fonte = (fonte.get('idioma') or '').lower()
+                        if idioma_fonte and idioma_fonte not in idiomas_selecionados:
+                            continue
+
+                    fontes_filtradas_list.append(fonte)
+
+                num_fontes_filtradas = len(fontes_filtradas_list)
+
             falhas.append(FalhaPriorizadaFase1(
                 falha_id=falha_id,
                 titulo=prio['titulo'],
                 pilar=prio['pilar'],
                 descricao=prio.get('descricao', ''),
-                num_fontes=total_fontes
+                num_fontes=total_fontes,
+                num_fontes_filtradas=num_fontes_filtradas
             ))
 
         return ListarFalhasFase1Response(
