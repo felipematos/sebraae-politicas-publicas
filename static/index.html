@@ -1645,6 +1645,58 @@
                         <div x-show="fase1_status" class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                             <p class="text-sm text-blue-800" x-text="fase1_status"></p>
                         </div>
+
+                        <!-- Indicador de Progresso em Lote -->
+                        <div x-show="progresso_lote_fase1.ativo" class="mt-4 p-6 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-300 rounded-lg">
+                            <div class="space-y-4">
+                                <!-- Título -->
+                                <div class="flex items-center justify-between">
+                                    <h4 class="font-bold text-gray-800 flex items-center">
+                                        <span class="mr-2">⚡</span>
+                                        Processando Fontes com Análise de IA
+                                    </h4>
+                                    <span class="text-sm font-mono font-bold text-purple-600" x-text="`${progresso_lote_fase1.processadas}/${progresso_lote_fase1.total}`"></span>
+                                </div>
+
+                                <!-- Falha Atual -->
+                                <div>
+                                    <p class="text-sm text-gray-600 mb-1">Falha Atual:</p>
+                                    <p class="text-sm font-medium text-gray-800" x-text="progresso_lote_fase1.falha_atual"></p>
+                                </div>
+
+                                <!-- Etapa Atual -->
+                                <div>
+                                    <p class="text-sm text-gray-600 mb-1">Etapa:</p>
+                                    <p class="text-sm font-medium text-indigo-600" x-text="progresso_lote_fase1.etapa_atual"></p>
+                                </div>
+
+                                <!-- Barra de Progresso -->
+                                <div class="relative pt-1">
+                                    <div class="flex mb-2 items-center justify-between">
+                                        <div>
+                                            <span class="text-xs font-semibold inline-block text-purple-600">
+                                                Progresso Geral
+                                            </span>
+                                        </div>
+                                        <div class="text-right">
+                                            <span class="text-xs font-semibold inline-block text-purple-600" x-text="`${progresso_lote_fase1.percentual}%`"></span>
+                                        </div>
+                                    </div>
+                                    <div class="overflow-hidden h-4 text-xs flex rounded-full bg-purple-200">
+                                        <div :style="`width: ${progresso_lote_fase1.percentual}%`"
+                                             class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-purple-500 to-indigo-500 transition-all duration-500"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Dica -->
+                                <div class="flex items-start gap-2 text-xs text-gray-600 bg-white bg-opacity-50 rounded p-3">
+                                    <svg class="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span>Este processo pode demorar alguns minutos dependendo do número de fontes e análises necessárias. Por favor, aguarde.</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Tabela de Falhas -->
@@ -2056,6 +2108,15 @@
                 estimativa_dados: null,
                 estimativa_carregando: false,
                 falha_estimativa_id: null,
+                // Progresso de carregamento em lote
+                progresso_lote_fase1: {
+                    ativo: false,
+                    total: 0,
+                    processadas: 0,
+                    falha_atual: '',
+                    etapa_atual: '',
+                    percentual: 0
+                },
 
                 mudar_fase(idx) {
                     this.fase_atual = idx;
@@ -4516,7 +4577,69 @@
 
                 async confirmar_atualizacao_fase1() {
                     this.modal_estimativa_aberto = false;
+
+                    // Verificar se há filtros avançados ativos
+                    const filtros_avancados_ativos =
+                        this.filtros_fase1.tipo_fonte.length > 0 ||
+                        this.filtros_fase1.apenas_com_implementacao ||
+                        this.filtros_fase1.apenas_com_metricas;
+
+                    // Se não há filtros avançados, apenas carregar a lista
+                    if (!filtros_avancados_ativos) {
+                        await this.carregar_falhas_fase1();
+                        return;
+                    }
+
+                    // Com filtros avançados, pré-carregar todas as fontes com progresso
                     await this.carregar_falhas_fase1();
+
+                    if (this.falhas_fase1.length === 0) {
+                        return;
+                    }
+
+                    // Iniciar progresso
+                    this.progresso_lote_fase1 = {
+                        ativo: true,
+                        total: this.falhas_fase1.length,
+                        processadas: 0,
+                        falha_atual: '',
+                        etapa_atual: 'Iniciando...',
+                        percentual: 0
+                    };
+
+                    try {
+                        // Processar cada falha sequencialmente
+                        for (let i = 0; i < this.falhas_fase1.length; i++) {
+                            const falha = this.falhas_fase1[i];
+
+                            this.progresso_lote_fase1.falha_atual = `${falha.titulo} (${i + 1}/${this.falhas_fase1.length})`;
+                            this.progresso_lote_fase1.etapa_atual = 'Carregando fontes...';
+                            this.progresso_lote_fase1.percentual = Math.floor((i / this.falhas_fase1.length) * 100);
+
+                            // Expandir linha e carregar fontes
+                            this.linhas_expandidas_fase1[falha.falha_id] = true;
+                            await this.carregar_fontes_fase1(falha.falha_id);
+
+                            this.progresso_lote_fase1.processadas = i + 1;
+                            this.progresso_lote_fase1.percentual = Math.floor(((i + 1) / this.falhas_fase1.length) * 100);
+                        }
+
+                        this.progresso_lote_fase1.etapa_atual = 'Concluído!';
+                        this.progresso_lote_fase1.percentual = 100;
+                        this.mostrar_notificacao('✓ Todas as fontes foram carregadas e analisadas!', 'sucesso');
+
+                        // Renderizar tabela final
+                        this.renderizar_tabela_fase1();
+
+                    } catch (e) {
+                        console.error('Erro ao processar falhas:', e);
+                        this.mostrar_notificacao('Erro ao processar algumas falhas: ' + e.message, 'erro');
+                    } finally {
+                        // Aguardar 2 segundos antes de fechar o progresso
+                        setTimeout(() => {
+                            this.progresso_lote_fase1.ativo = false;
+                        }, 2000);
+                    }
                 },
 
                 cancelar_atualizacao_fase1() {
