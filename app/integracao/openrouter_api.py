@@ -28,6 +28,70 @@ class OpenRouterClient:
         "deteccao_idioma": "xai/grok-4-fast",  # Detecção de idioma (muito preciso)
     }
 
+    # Modelos para avaliação profunda (em ordem de prioridade)
+    # Usado quando usuário solicita análise mais detalhada
+    MODELOS_AVALIACAO_PROFUNDA = [
+        # Tier 1: Modelos premium (mais caros, melhor qualidade)
+        {
+            "nome": "xai/grok-4",
+            "descricao": "Grok 4 - Análise profunda de alta qualidade",
+            "custo_por_1k_tokens": 0.015,  # Estimativa
+            "qualidade": "premium",
+            "velocidade": "média"
+        },
+        {
+            "nome": "openai/gpt-4",
+            "descricao": "GPT-4 - Análise robusta e confiável",
+            "custo_por_1k_tokens": 0.03,
+            "qualidade": "premium",
+            "velocidade": "média"
+        },
+        # Tier 2: Modelos balanceados (bom custo-benefício)
+        {
+            "nome": "xai/grok-4-fast",
+            "descricao": "Grok 4 Fast - Rápido com boa qualidade",
+            "custo_por_1k_tokens": 0.005,
+            "qualidade": "alta",
+            "velocidade": "rápida"
+        },
+        {
+            "nome": "anthropic/claude-3-sonnet",
+            "descricao": "Claude 3 Sonnet - Análise balanceada",
+            "custo_por_1k_tokens": 0.008,
+            "qualidade": "alta",
+            "velocidade": "média"
+        },
+        # Tier 3: Modelos gratuitos de alta qualidade (com rate limit)
+        {
+            "nome": "mistralai/mixtral-8x7b-instruct:free",
+            "descricao": "Mixtral 8x7B - Gratuito, alta capacidade",
+            "custo_por_1k_tokens": 0.0,
+            "qualidade": "boa",
+            "velocidade": "média"
+        },
+        {
+            "nome": "google/gemma-2-27b-it:free",
+            "descricao": "Gemma 2 27B - Gratuito, Google",
+            "custo_por_1k_tokens": 0.0,
+            "qualidade": "boa",
+            "velocidade": "média"
+        },
+        {
+            "nome": "meta-llama/llama-3.1-70b-instruct:free",
+            "descricao": "Llama 3.1 70B - Gratuito, Meta",
+            "custo_por_1k_tokens": 0.0,
+            "qualidade": "boa",
+            "velocidade": "lenta"
+        },
+        {
+            "nome": "qwen/qwen-2-72b-instruct:free",
+            "descricao": "Qwen 2 72B - Gratuito, Alibaba",
+            "custo_por_1k_tokens": 0.0,
+            "qualidade": "boa",
+            "velocidade": "média"
+        }
+    ]
+
     BASE_URL = "https://openrouter.io/api/v1"
 
     def __init__(self, api_key: Optional[str] = None):
@@ -268,6 +332,19 @@ Text to translate:
                 "confianca": 0.0
             }
 
+        # MELHORIA: Tradução automática quando necessário
+        # Se o idioma não é português e não há tradução disponível, traduzir automaticamente
+        if idioma and idioma != 'pt':
+            # Traduzir título se não houver tradução
+            if not titulo_pt and titulo:
+                print(f"[TRADUÇÃO] Traduzindo título de {idioma} para pt...")
+                titulo_pt = await self._traduzir_texto(titulo, idioma)
+
+            # Traduzir descrição se não houver tradução
+            if not descricao_pt and descricao:
+                print(f"[TRADUÇÃO] Traduzindo descrição de {idioma} para pt...")
+                descricao_pt = await self._traduzir_texto(descricao, idioma)
+
         # Priorizar traduções para português quando disponíveis
         # Isso garante acurácia consistente independente do idioma original
         titulo_para_analise = titulo_pt if titulo_pt else titulo
@@ -366,18 +443,25 @@ Response Format (JSON only):
         return self._classificar_heuristico(titulo, descricao, url)
 
     def _classificar_heuristico(self, titulo: str, descricao: str, url: str = None) -> dict:
-        """Classificação heurística multilíngue completa
+        """Classificação heurística multilíngue com score dinâmico
+
+        MELHORIAS IMPLEMENTADAS:
+        1. Score dinâmico baseado em contagem de keywords (não apenas boolean)
+        2. Boost para múltiplas evidências convergentes
+        3. Detecção de domínios autoritativos (.gov, .edu, etc)
+        4. Densidade de palavras-chave (TF-IDF simplificado)
+        5. Tamanho do texto como fator de relevância
 
         IMPORTANTE: Usa palavras-chave em TODOS os idiomas suportados (pt, en, es, fr, de, it, ja, ar, ko, he)
         para garantir acurácia consistente independente do idioma do texto.
         """
         texto = f"{titulo or ''} {descricao or ''} {url or ''}".lower()
 
-        # Tipo de fonte - palavras-chave em todos os idiomas
-        tipo_fonte = "tecnico"  # padrão
+        # Calcular tamanho do texto (palavras)
+        palavras_total = len(texto.split())
 
-        # Governamental (pt, en, es, fr, de, it, ja, ar, ko, he)
-        if any(palavra in texto for palavra in [
+        # Keywords organizadas por categoria e idioma
+        keywords_governamental = [
             # Português
             "lei", "decreto", "portaria", "gov.br", "planalto", "programa nacional",
             "governo", "ministerio", "ministério", "política pública",
@@ -404,11 +488,9 @@ Response Format (JSON only):
             "beob", "jeongbu", "gukga peurogeulaem",
             # עברית (Hebraico - romanizado)
             "hok", "memshala", "misrad", "tochnit leumit"
-        ]):
-            tipo_fonte = "governamental"
+        ]
 
-        # Acadêmica (pt, en, es, fr, de, it, ja, ar, ko, he)
-        elif any(palavra in texto for palavra in [
+        keywords_academica = [
             # Português
             "universidade", "pesquisa", "estudo", "paper", "journal", "revista científica",
             "artigo científico", "tese", "dissertação",
@@ -435,11 +517,9 @@ Response Format (JSON only):
             "daehak", "yeongu", "nonmun", "haksul",
             # עברית (Hebraico - romanizado)
             "universita", "mehkar", "ma'amar", "akademi"
-        ]):
-            tipo_fonte = "academica"
+        ]
 
-        # Caso de sucesso (pt, en, es, fr, de, it, ja, ar, ko, he)
-        elif any(palavra in texto for palavra in [
+        keywords_caso_sucesso = [
             # Português
             "caso", "sucesso", "exemplo", "implementação bem-sucedida", "história de",
             # English
@@ -460,11 +540,9 @@ Response Format (JSON only):
             "seong-gong sa-rye",
             # עברית (Hebraico - romanizado)
             "sippur hatzlacha", "mikreh matzliach"
-        ]):
-            tipo_fonte = "caso_sucesso"
+        ]
 
-        # Tem implementação - palavras-chave em todos os idiomas
-        tem_implementacao = any(palavra in texto for palavra in [
+        keywords_implementacao = [
             # Português
             "implementou", "implementado", "implementação", "aplicou", "executou",
             "caso prático", "experiência", "projeto piloto", "iniciativa",
@@ -492,10 +570,9 @@ Response Format (JSON only):
             "silhaeng", "jeog-yong", "pailleot", "gyeolgwa",
             # עברית (Hebraico - romanizado)
             "miyum", "hechel", "pilo't", "totsa'a"
-        ])
+        ]
 
-        # Tem métricas - buscar números e indicadores em todos os idiomas
-        tem_metricas = any(palavra in texto for palavra in [
+        keywords_metricas = [
             # Símbolos e números universais
             "%", "r$", "$", "€", "¥", "£",
             # Português
@@ -529,14 +606,314 @@ Response Format (JSON only):
             "peosenteu", "baeg-man", "seong-jang", "jeungga", "data", "jihyo",
             # עברית (Hebraico - romanizado)
             "achuz", "milyon", "tzmikha", "ne'tanim", "ma'arachim"
+        ]
+
+        # MELHORIA #1: Contar matches de keywords (não apenas boolean)
+        count_gov = sum(1 for k in keywords_governamental if k in texto)
+        count_acad = sum(1 for k in keywords_academica if k in texto)
+        count_sucesso = sum(1 for k in keywords_caso_sucesso if k in texto)
+        count_impl = sum(1 for k in keywords_implementacao if k in texto)
+        count_metricas = sum(1 for k in keywords_metricas if k in texto)
+
+        # Determinar tipo de fonte (maior contagem)
+        tipo_fonte = "tecnico"  # padrão
+        max_count = max(count_gov, count_acad, count_sucesso)
+
+        if max_count > 0:
+            if count_gov == max_count:
+                tipo_fonte = "governamental"
+            elif count_acad == max_count:
+                tipo_fonte = "academica"
+            elif count_sucesso == max_count:
+                tipo_fonte = "caso_sucesso"
+
+        # Determinar tem_implementacao e tem_metricas
+        tem_implementacao = count_impl > 0
+        tem_metricas = count_metricas > 0
+
+        # CALCULAR SCORE DE CONFIANÇA (0.0 a 1.0)
+        confianca = 0.3  # baseline para heurística
+
+        # MELHORIA #1: Ajustar baseado em número de matches
+        # Normalizar por categoria (mais matches = maior confiança)
+        tipo_score = min(max_count * 0.05, 0.3)  # até +0.3
+        impl_score = min(count_impl * 0.03, 0.15)  # até +0.15
+        metricas_score = min(count_metricas * 0.03, 0.15)  # até +0.15
+
+        confianca += tipo_score + impl_score + metricas_score
+
+        # MELHORIA #2: Boost para evidências convergentes
+        # Se tem tipo_fonte identificado + implementação + métricas = forte evidência
+        categorias_presentes = sum([
+            max_count > 0,  # tipo identificado
+            tem_implementacao,
+            tem_metricas
         ])
+
+        if categorias_presentes == 3:
+            confianca += 0.15  # Boost significativo para evidência tripla
+        elif categorias_presentes == 2:
+            confianca += 0.05  # Boost moderado para evidência dupla
+
+        # MELHORIA #4: Boost para domínios autoritativos
+        dominios_autoritativos = [
+            '.gov', '.edu', '.org',
+            'gov.br', 'planalto.gov.br', 'bndes.gov.br',
+            'sebrae.com.br', 'cnpq.br', 'capes.gov.br',
+            'finep.gov.br', 'mctic.gov.br', 'mdic.gov.br'
+        ]
+
+        if url:
+            url_lower = url.lower()
+            if any(dom in url_lower for dom in dominios_autoritativos):
+                confianca += 0.1  # Boost por domínio autoritativo
+
+        # MELHORIA #7: Densidade de keywords (TF-IDF simplificado)
+        if palavras_total > 0:
+            total_keywords = count_gov + count_acad + count_sucesso + count_impl + count_metricas
+            densidade = total_keywords / palavras_total
+
+            # Normalizar densidade (valores típicos: 0.01 a 0.1)
+            densidade_score = min(densidade * 2, 0.1)  # até +0.1
+            confianca += densidade_score
+
+        # MELHORIA #5: Tamanho do texto como fator de relevância
+        # Textos mais longos tendem a ser mais relevantes (até um cap)
+        if palavras_total >= 500:
+            confianca += 0.1  # Texto substancial (pesquisa/estudo)
+        elif palavras_total >= 200:
+            confianca += 0.05  # Texto médio (artigo)
+        # Abaixo de 200 palavras = notícia curta, sem boost
+        # Cap máximo: acima de 500 palavras não aumenta mais
+
+        # Garantir que confiança fique entre 0.0 e 1.0
+        confianca = min(max(confianca, 0.0), 1.0)
 
         return {
             "tipo_fonte": tipo_fonte,
             "tem_implementacao": tem_implementacao,
             "tem_metricas": tem_metricas,
-            "confianca": 0.3  # Baixa confiança para classificação heurística
+            "confianca": round(confianca, 2)
         }
+
+    async def _traduzir_texto(self, texto: str, idioma_origem: str) -> str:
+        """Traduz texto para português usando LLM
+
+        Args:
+            texto: Texto a ser traduzido
+            idioma_origem: Código do idioma de origem (en, es, fr, etc.)
+
+        Returns:
+            Texto traduzido para português
+        """
+        if not texto or not texto.strip():
+            return ""
+
+        # Mapear idioma para nome legível
+        idioma_map = {
+            "en": "English", "es": "Spanish", "fr": "French",
+            "de": "German", "it": "Italian", "ja": "Japanese",
+            "ar": "Arabic", "ko": "Korean", "he": "Hebrew"
+        }
+        idioma_nome = idioma_map.get(idioma_origem, idioma_origem)
+
+        # Prompt de tradução simples e direto
+        prompt = f"""Translate the following text from {idioma_nome} to Portuguese (Brazilian).
+Return ONLY the translated text, without any additional explanations or comments.
+
+Text to translate:
+{texto[:1000]}"""  # Limitar tamanho
+
+        try:
+            # Usar modelo rápido e barato para tradução
+            modelo = "meta-llama/llama-3.2-3b-instruct:free"
+            traducao = await self._chamar_modelo(modelo, prompt)
+            return traducao.strip()
+        except Exception as e:
+            print(f"[TRADUÇÃO] ✗ Erro ao traduzir de {idioma_origem}: {str(e)[:100]}")
+            # Em caso de erro, retornar texto original
+            return texto
+
+    def selecionar_modelos_avaliacao(
+        self,
+        modo: str = "gratuito",
+        max_modelos: int = 3
+    ) -> list:
+        """Seleciona modelos para avaliação profunda baseado no modo escolhido
+
+        Args:
+            modo: "premium", "balanceado" ou "gratuito"
+            max_modelos: Número máximo de modelos a retornar
+
+        Returns:
+            Lista de modelos selecionados
+        """
+        if modo == "premium":
+            # Usar apenas modelos premium (pagos de alta qualidade)
+            modelos = [m for m in self.MODELOS_AVALIACAO_PROFUNDA
+                      if m["qualidade"] == "premium"]
+        elif modo == "balanceado":
+            # Usar modelos premium + alta qualidade
+            modelos = [m for m in self.MODELOS_AVALIACAO_PROFUNDA
+                      if m["qualidade"] in ["premium", "alta"]]
+        else:  # gratuito
+            # Usar apenas modelos gratuitos
+            modelos = [m for m in self.MODELOS_AVALIACAO_PROFUNDA
+                      if m["custo_por_1k_tokens"] == 0.0]
+
+        return modelos[:max_modelos]
+
+    def estimar_custo_tempo_avaliacao(
+        self,
+        num_fontes: int,
+        modo: str = "gratuito"
+    ) -> dict:
+        """Estima custo e tempo para avaliação profunda
+
+        Args:
+            num_fontes: Número de fontes a analisar
+            modo: Modo de avaliação ("premium", "balanceado", "gratuito")
+
+        Returns:
+            Dict com estimativas de custo e tempo
+        """
+        modelos = self.selecionar_modelos_avaliacao(modo, max_modelos=1)
+
+        if not modelos:
+            return {
+                "custo_estimado": 0.0,
+                "tempo_estimado_segundos": num_fontes * 3,
+                "modo": modo,
+                "modelo": "heurístico"
+            }
+
+        modelo = modelos[0]
+
+        # Estimativas (baseado em experiência)
+        tokens_por_fonte = 1200  # Prompt + resposta
+        tempo_por_fonte = 5 if modelo["velocidade"] == "rápida" else 8 if modelo["velocidade"] == "média" else 12
+
+        custo_total = (num_fontes * tokens_por_fonte / 1000) * modelo["custo_por_1k_tokens"]
+        tempo_total = num_fontes * tempo_por_fonte
+
+        return {
+            "custo_estimado": round(custo_total, 3),
+            "tempo_estimado_segundos": tempo_total,
+            "modo": modo,
+            "modelo": modelo["descricao"]
+        }
+
+    async def analisar_fonte_profunda(
+        self,
+        titulo: str,
+        descricao: str,
+        url: str = None,
+        titulo_pt: str = None,
+        descricao_pt: str = None,
+        idioma: str = None,
+        modo: str = "gratuito"
+    ) -> dict:
+        """Avaliação profunda usando LLMs de alta qualidade com fallback automático
+
+        Args:
+            titulo: Título da fonte
+            descricao: Descrição da fonte
+            url: URL da fonte (opcional)
+            titulo_pt: Tradução do título (opcional)
+            descricao_pt: Tradução da descrição (opcional)
+            idioma: Código do idioma (opcional)
+            modo: "premium", "balanceado" ou "gratuito"
+
+        Returns:
+            Dict com análise profunda e maior confiança
+        """
+        # Traduzir se necessário (mesma lógica do método regular)
+        if idioma and idioma != 'pt':
+            if not titulo_pt and titulo:
+                titulo_pt = await self._traduzir_texto(titulo, idioma)
+            if not descricao_pt and descricao:
+                descricao_pt = await self._traduzir_texto(descricao, idioma)
+
+        titulo_analise = titulo_pt if titulo_pt else titulo
+        descricao_analise = descricao_pt if descricao_pt else descricao
+
+        # Selecionar modelos para tentar
+        modelos = self.selecionar_modelos_avaliacao(modo, max_modelos=3)
+
+        if not modelos:
+            # Fallback para análise heurística
+            print("[AVALIAÇÃO PROFUNDA] Nenhum modelo disponível, usando heurística")
+            return self._classificar_heuristico(titulo_analise, descricao_analise, url)
+
+        # Prompt mais detalhado para avaliação profunda
+        prompt = f"""You are an expert analyst evaluating innovation ecosystem documents.
+
+Analyze this document in depth and provide a detailed classification.
+
+Document:
+Title: {titulo_analise[:300]}
+Description: {descricao_analise[:1500]}
+URL: {url or 'N/A'}
+
+Provide a thorough analysis considering:
+1. Document type and source credibility
+2. Presence of concrete implementation cases
+3. Availability of quantifiable metrics and data
+4. Overall quality and relevance
+
+Return ONLY a JSON object with:
+{{
+  "tipo_fonte": "academica|governamental|tecnico|caso_sucesso",
+  "tem_implementacao": true|false,
+  "tem_metricas": true|false,
+  "confianca": 0.0-1.0,
+  "justificativa": "Brief explanation of classification (max 200 chars)"
+}}"""
+
+        # Tentar cada modelo com fallback automático
+        for i, modelo_info in enumerate(modelos):
+            modelo_nome = modelo_info["nome"]
+            try:
+                print(f"[AVALIAÇÃO PROFUNDA] Tentando modelo {i+1}/{len(modelos)}: {modelo_info['descricao']}")
+                resultado = await self._chamar_modelo(modelo_nome, prompt)
+
+                if resultado:
+                    import json
+                    # Remover marcadores de código
+                    resultado_limpo = resultado.strip()
+                    if resultado_limpo.startswith("```"):
+                        resultado_limpo = resultado_limpo.split("```")[1]
+                        if resultado_limpo.startswith("json"):
+                            resultado_limpo = resultado_limpo[4:]
+                    resultado_limpo = resultado_limpo.strip()
+
+                    analise = json.loads(resultado_limpo)
+
+                    # Validar e retornar
+                    if analise.get("tipo_fonte") in ["academica", "governamental", "tecnico", "caso_sucesso"]:
+                        print(f"[AVALIAÇÃO PROFUNDA] ✓ Análise concluída com {modelo_info['descricao']}")
+                        return {
+                            "tipo_fonte": analise.get("tipo_fonte", "tecnico"),
+                            "tem_implementacao": bool(analise.get("tem_implementacao", False)),
+                            "tem_metricas": bool(analise.get("tem_metricas", False)),
+                            "confianca": float(analise.get("confianca", 0.7)),
+                            "justificativa": analise.get("justificativa", ""),
+                            "modelo_usado": modelo_info["descricao"]
+                        }
+
+            except Exception as e:
+                print(f"[AVALIAÇÃO PROFUNDA] ✗ Erro com {modelo_nome}: {str(e)[:100]}")
+                # Continuar para próximo modelo
+                if i < len(modelos) - 1:
+                    print(f"[AVALIAÇÃO PROFUNDA] Tentando próximo modelo...")
+                    await asyncio.sleep(1)  # Pequena pausa antes do fallback
+                continue
+
+        # Se todos os modelos falharam, usar heurística
+        print("[AVALIAÇÃO PROFUNDA] Todos os modelos falharam, usando heurística")
+        resultado_heuristico = self._classificar_heuristico(titulo_analise, descricao_analise, url)
+        resultado_heuristico["modelo_usado"] = "Heurística (fallback)"
+        return resultado_heuristico
 
     async def _chamar_modelo(self, modelo: str, prompt: str) -> str:
         """
