@@ -970,6 +970,67 @@
                     </button>
                 </div>
 
+                <!-- Barra de Busca e Filtros -->
+                <div class="p-4 border-b bg-gray-50">
+                    <div class="flex gap-3 mb-3">
+                        <!-- Campo de busca -->
+                        <div class="flex-1 relative">
+                            <input
+                                type="text"
+                                x-model="busca_resultados_pesquisa"
+                                @input="aplicar_filtros_resultados()"
+                                placeholder="Buscar nos resultados (título, descrição, tradução...)"
+                                class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                        <!-- Botão de filtros -->
+                        <button
+                            @click="mostrar_filtros_resultados = !mostrar_filtros_resultados"
+                            class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                            </svg>
+                            Filtros
+                        </button>
+                    </div>
+
+                    <!-- Painel de filtros expansível -->
+                    <div x-show="mostrar_filtros_resultados" x-collapse class="grid grid-cols-3 gap-3 p-3 bg-white border border-gray-200 rounded-lg">
+                        <!-- Ordenar por -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Ordenar por</label>
+                            <select x-model="ordenacao_resultados" @change="aplicar_filtros_resultados()" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="score_desc">Score (maior → menor)</option>
+                                <option value="score_asc">Score (menor → maior)</option>
+                                <option value="idioma">Idioma (A → Z)</option>
+                                <option value="pais">País (A → Z)</option>
+                            </select>
+                        </div>
+                        <!-- Filtrar por idioma -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Idioma</label>
+                            <select x-model="filtro_idioma_resultados" @change="aplicar_filtros_resultados()" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">Todos</option>
+                                <option value="pt">Português</option>
+                                <option value="en">Inglês</option>
+                                <option value="es">Espanhol</option>
+                            </select>
+                        </div>
+                        <!-- Filtrar por score mínimo -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Score mínimo</label>
+                            <select x-model="filtro_score_minimo_resultados" @change="aplicar_filtros_resultados()" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="0">Todos (0%+)</option>
+                                <option value="0.25">Amarelo/Verde (25%+)</option>
+                                <option value="0.5">Verde (50%+)</option>
+                                <option value="0.75">Muito alta (75%+)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Conteúdo -->
                 <div class="flex-1 overflow-y-auto p-6">
                     <!-- Loading -->
@@ -979,24 +1040,35 @@
                     </div>
 
                     <!-- Resultados -->
-                    <div x-show="!carregando_resultados_pesquisa && resultados_pesquisa.length > 0" class="space-y-4">
+                    <div x-show="!carregando_resultados_pesquisa && resultados_pesquisa_filtrados.length > 0" class="space-y-4">
                         <!-- Info do total -->
                         <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
                             <p class="text-sm text-blue-800">
-                                <span class="font-semibold" x-text="paginacao_resultados_pesquisa.total"></span> resultado(s) encontrado(s)
+                                <span class="font-semibold" x-text="resultados_pesquisa_filtrados.length"></span> resultado(s)
+                                <span x-show="resultados_pesquisa_filtrados.length !== paginacao_resultados_pesquisa.total">
+                                    filtrado(s) de <span class="font-semibold" x-text="paginacao_resultados_pesquisa.total"></span>
+                                </span>
+                                <span x-show="resultados_pesquisa_filtrados.length === paginacao_resultados_pesquisa.total">
+                                    encontrado(s)
+                                </span>
                             </p>
                         </div>
 
                         <!-- Lista de resultados -->
-                        <template x-for="resultado in resultados_pesquisa" :key="resultado.id">
+                        <template x-for="resultado in resultados_pesquisa_filtrados" :key="resultado.id">
                             <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                                 <div class="flex items-start justify-between gap-4 mb-3">
                                     <div class="flex-1">
                                         <!-- Título em português (se disponível) -->
                                         <h4 class="font-semibold text-gray-900" x-show="resultado.titulo_pt" x-text="resultado.titulo_pt"></h4>
 
-                                        <!-- Título original (se idioma != pt e não houver tradução) -->
-                                        <h4 class="font-semibold text-gray-900" x-show="!resultado.titulo_pt" x-text="resultado.titulo"></h4>
+                                        <!-- Título original (se não houver tradução PT) -->
+                                        <div x-show="!resultado.titulo_pt">
+                                            <h4 class="font-semibold text-gray-900" x-text="resultado.titulo"></h4>
+                                            <p class="text-xs text-amber-600 italic mt-1" x-show="resultado.idioma !== 'pt'">
+                                                ⚠️ Tradução do título em português não disponível
+                                            </p>
+                                        </div>
 
                                         <!-- Mostrar original em itálico se houver tradução e idioma != pt -->
                                         <p class="text-xs text-gray-500 italic mt-1"
@@ -1004,7 +1076,15 @@
                                            x-text="`Original (${resultado.idioma?.toUpperCase()}): ${resultado.titulo}`"></p>
                                     </div>
                                     <div class="flex items-center gap-2 flex-shrink-0">
-                                        <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded" x-text="(resultado.confidence_score * 100).toFixed(0) + '%'"></span>
+                                        <!-- Score com cores tipo semáforo -->
+                                        <span
+                                            class="px-2 py-1 text-xs font-medium rounded"
+                                            :class="{
+                                                'bg-green-100 text-green-800': resultado.confidence_score >= 0.5,
+                                                'bg-yellow-100 text-yellow-800': resultado.confidence_score >= 0.25 && resultado.confidence_score < 0.5,
+                                                'bg-red-100 text-red-800': resultado.confidence_score < 0.25
+                                            }"
+                                            x-text="(resultado.confidence_score * 100).toFixed(0) + '%'"></span>
                                         <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded" x-text="resultado.idioma?.toUpperCase()"></span>
                                     </div>
                                 </div>
@@ -1015,7 +1095,7 @@
                                 <!-- Descrição original (se não houver tradução) -->
                                 <div x-show="!resultado.descricao_pt">
                                     <p class="text-sm text-gray-600 mb-2" x-text="resultado.descricao"></p>
-                                    <p class="text-xs text-amber-600 italic" x-show="resultado.idioma !== 'pt'">⚠️ Tradução em português não disponível</p>
+                                    <p class="text-xs text-amber-600 italic" x-show="resultado.idioma !== 'pt'">⚠️ Tradução da descrição em português não disponível</p>
                                 </div>
 
                                 <div class="flex items-center justify-between text-xs text-gray-500">
@@ -1043,7 +1123,15 @@
                     </div>
 
                     <!-- Mensagem quando não há resultados -->
-                    <div x-show="!carregando_resultados_pesquisa && resultados_pesquisa.length === 0" class="text-center py-12">
+                    <div x-show="!carregando_resultados_pesquisa && resultados_pesquisa_filtrados.length === 0 && paginacao_resultados_pesquisa.total > 0" class="text-center py-12">
+                        <div class="text-6xl mb-4">🔍</div>
+                        <p class="text-gray-500 text-lg">Nenhum resultado encontrado com os filtros aplicados</p>
+                        <button @click="limpar_filtros_resultados()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Limpar filtros
+                        </button>
+                    </div>
+
+                    <div x-show="!carregando_resultados_pesquisa && paginacao_resultados_pesquisa.total === 0" class="text-center py-12">
                         <div class="text-6xl mb-4">🔍</div>
                         <p class="text-gray-500 text-lg">Nenhum resultado encontrado para esta falha</p>
                     </div>
@@ -2420,6 +2508,7 @@
                 modal_resultados_pesquisa_aberto: false,
                 falha_selecionada_resultados: null,
                 resultados_pesquisa: [],
+                resultados_pesquisa_filtrados: [],
                 carregando_resultados_pesquisa: false,
                 paginacao_resultados_pesquisa: {
                     page: 1,
@@ -2428,6 +2517,12 @@
                     has_next: false,
                     has_prev: false
                 },
+                // Filtros e busca
+                busca_resultados_pesquisa: '',
+                mostrar_filtros_resultados: false,
+                ordenacao_resultados: 'score_desc',
+                filtro_idioma_resultados: '',
+                filtro_score_minimo_resultados: 0,
 
                 mudar_fase(idx) {
                     this.fase_atual = idx;
@@ -2689,13 +2784,73 @@
                             has_next: data.has_next,
                             has_prev: data.has_prev
                         };
+                        // Aplicar filtros iniciais
+                        this.aplicar_filtros_resultados();
                     } catch (e) {
                         console.error('Erro ao carregar resultados:', e);
                         this.mostrar_notificacao('Erro ao carregar resultados: ' + e.message, 'erro');
                         this.resultados_pesquisa = [];
+                        this.resultados_pesquisa_filtrados = [];
                     } finally {
                         this.carregando_resultados_pesquisa = false;
                     }
+                },
+
+                aplicar_filtros_resultados() {
+                    let resultados = [...this.resultados_pesquisa];
+
+                    // 1. Filtro de busca (busca em título, descrição e traduções)
+                    if (this.busca_resultados_pesquisa.trim()) {
+                        const busca = this.busca_resultados_pesquisa.toLowerCase();
+                        resultados = resultados.filter(r => {
+                            return (r.titulo && r.titulo.toLowerCase().includes(busca)) ||
+                                   (r.descricao && r.descricao.toLowerCase().includes(busca)) ||
+                                   (r.titulo_pt && r.titulo_pt.toLowerCase().includes(busca)) ||
+                                   (r.descricao_pt && r.descricao_pt.toLowerCase().includes(busca)) ||
+                                   (r.titulo_en && r.titulo_en.toLowerCase().includes(busca)) ||
+                                   (r.descricao_en && r.descricao_en.toLowerCase().includes(busca));
+                        });
+                    }
+
+                    // 2. Filtro de idioma
+                    if (this.filtro_idioma_resultados) {
+                        resultados = resultados.filter(r =>
+                            r.idioma && r.idioma.toLowerCase() === this.filtro_idioma_resultados.toLowerCase()
+                        );
+                    }
+
+                    // 3. Filtro de score mínimo
+                    if (this.filtro_score_minimo_resultados > 0) {
+                        resultados = resultados.filter(r =>
+                            r.confidence_score >= this.filtro_score_minimo_resultados
+                        );
+                    }
+
+                    // 4. Ordenação
+                    switch (this.ordenacao_resultados) {
+                        case 'score_desc':
+                            resultados.sort((a, b) => (b.confidence_score || 0) - (a.confidence_score || 0));
+                            break;
+                        case 'score_asc':
+                            resultados.sort((a, b) => (a.confidence_score || 0) - (b.confidence_score || 0));
+                            break;
+                        case 'idioma':
+                            resultados.sort((a, b) => (a.idioma || '').localeCompare(b.idioma || ''));
+                            break;
+                        case 'pais':
+                            resultados.sort((a, b) => (a.pais_origem || '').localeCompare(b.pais_origem || ''));
+                            break;
+                    }
+
+                    this.resultados_pesquisa_filtrados = resultados;
+                },
+
+                limpar_filtros_resultados() {
+                    this.busca_resultados_pesquisa = '';
+                    this.filtro_idioma_resultados = '';
+                    this.filtro_score_minimo_resultados = 0;
+                    this.ordenacao_resultados = 'score_desc';
+                    this.aplicar_filtros_resultados();
                 },
 
                 async mudar_pagina_resultados_pesquisa(nova_pagina) {
@@ -2708,6 +2863,7 @@
                     this.modal_resultados_pesquisa_aberto = false;
                     this.falha_selecionada_resultados = null;
                     this.resultados_pesquisa = [];
+                    this.resultados_pesquisa_filtrados = [];
                     this.paginacao_resultados_pesquisa = {
                         page: 1,
                         total_pages: 1,
@@ -2715,6 +2871,12 @@
                         has_next: false,
                         has_prev: false
                     };
+                    // Limpar filtros
+                    this.busca_resultados_pesquisa = '';
+                    this.filtro_idioma_resultados = '';
+                    this.filtro_score_minimo_resultados = 0;
+                    this.ordenacao_resultados = 'score_desc';
+                    this.mostrar_filtros_resultados = false;
                 },
 
                 async carregar_dados_priorizacao() {
