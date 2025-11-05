@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 
 from app.config import settings, get_static_path, get_chroma_path
 from app.database import db
-from app.api import falhas, resultados, pesquisas, health_check, config, vector_search, priorizacoes, knowledge_base, boas_praticas
+from app.api import falhas, resultados, pesquisas, health_check, config, vector_search, priorizacoes, knowledge_base, boas_praticas, traducao
 from app.agente.processador import Processador
 from app.vector.vector_store import get_vector_store
 from app.vector.embeddings import EmbeddingClient
@@ -124,6 +124,7 @@ app.include_router(priorizacoes.router)  # Sem prefix pois as rotas já têm /ap
 app.include_router(vector_search.router)  # Sem prefix pois as rotas já têm /api/
 app.include_router(knowledge_base.router)  # Knowledge base with CSV/MD support
 app.include_router(boas_praticas.router)  # Boas práticas (Best Practices)
+app.include_router(traducao.router)  # Tradução de textos
 
 # Montar pasta static
 try:
