@@ -4036,9 +4036,11 @@
                                                     ` : ''}
                                                     ${fonte.url ? `
                                                         <a href="${fonte.url}" target="_blank"
-                                                           class="text-xs text-purple-600 hover:text-purple-800 hover:underline break-all"
+                                                           class="text-xs text-purple-600 hover:text-purple-800 hover:underline block truncate max-w-full"
+                                                           style="word-break: break-word; overflow-wrap: break-word;"
+                                                           title="${fonte.url}"
                                                            onclick="event.stopPropagation()">
-                                                            ${fonte.url}
+                                                            ${fonte.url.length > 80 ? fonte.url.substring(0, 77) + '...' : fonte.url}
                                                         </a>
                                                     ` : ''}
                                                 </div>
