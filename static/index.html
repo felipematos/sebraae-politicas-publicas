@@ -361,6 +361,172 @@
             </div>
         </div>
 
+        <!-- Modal de Configuração de Filtros - Fase I -->
+        <div id="filtros-fase1-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="modal_filtros_fase1_aberto = false" x-show="modal_filtros_fase1_aberto" x-cloak>
+            <div class="bg-white rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto" @click.stop>
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-700">⚙️ Configurar Filtros de Fontes</h3>
+                        <p class="text-sm text-gray-600 mt-1">
+                            Configure como as fontes serão filtradas e priorizadas para identificação de boas práticas
+                        </p>
+                    </div>
+                    <button @click="modal_filtros_fase1_aberto = false" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Configurações -->
+                <div class="space-y-4 mb-6">
+                    <!-- Taxa de Confiança -->
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                        <p class="text-sm font-medium text-gray-700 mb-2">📊 Qualidade das Fontes</p>
+
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 flex items-center justify-between">
+                                Taxa de Confiança Mínima
+                                <span class="text-indigo-600 font-mono" x-text="(filtros_fase1.confianca_minima * 100).toFixed(0) + '%'"></span>
+                            </label>
+                            <input type="range" x-model.number="filtros_fase1.confianca_minima" min="0" max="1" step="0.05" class="w-full">
+                            <p class="text-xs text-gray-500 mt-1">Fontes com confiança abaixo deste valor serão filtradas</p>
+                        </div>
+                    </div>
+
+                    <!-- Priorização Sebrae -->
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 space-y-3 border border-blue-200">
+                        <p class="text-sm font-medium text-blue-900 mb-2">🏢 Priorização de Fontes Sebrae</p>
+
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 block mb-2">Multiplicador de Peso</label>
+                            <select x-model.number="filtros_fase1.peso_sebrae" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900">
+                                <option :value="1" class="text-gray-900">1x - Peso Normal</option>
+                                <option :value="2" class="text-gray-900">2x - Prioridade Moderada</option>
+                                <option :value="5" class="text-gray-900">5x - Prioridade Alta</option>
+                                <option :value="10" class="text-gray-900">10x - Prioridade Máxima</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Documentos do Sebrae terão seu score multiplicado por este valor</p>
+                        </div>
+                    </div>
+
+                    <!-- Tipo de Fonte -->
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                        <p class="text-sm font-medium text-gray-700 mb-2">📚 Tipo de Fonte</p>
+
+                        <div>
+                            <select x-model="filtros_fase1.tipo_fonte" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900">
+                                <option value="todos" class="text-gray-900">Todos os Tipos</option>
+                                <option value="academica" class="text-gray-900">Acadêmica (Artigos, Pesquisas)</option>
+                                <option value="governamental" class="text-gray-900">Governamental (Leis, Decretos, Programas)</option>
+                                <option value="tecnico" class="text-gray-900">Técnico (Relatórios, White Papers)</option>
+                                <option value="caso_sucesso" class="text-gray-900">Casos de Sucesso</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Filtrar por tipo específico de documento</p>
+                        </div>
+                    </div>
+
+                    <!-- Período de Publicação -->
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                        <p class="text-sm font-medium text-gray-700 mb-2">📅 Período de Publicação</p>
+
+                        <div>
+                            <select x-model="filtros_fase1.anos_publicacao" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900">
+                                <option value="todos" class="text-gray-900">Sem Limite de Tempo</option>
+                                <option value="3" class="text-gray-900">Últimos 3 Anos</option>
+                                <option value="5" class="text-gray-900">Últimos 5 Anos</option>
+                                <option value="10" class="text-gray-900">Últimos 10 Anos</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Considerar apenas documentos publicados recentemente</p>
+                        </div>
+                    </div>
+
+                    <!-- Região Geográfica -->
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                        <p class="text-sm font-medium text-gray-700 mb-2">🌍 Região Geográfica</p>
+
+                        <div>
+                            <select x-model="filtros_fase1.regiao" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900">
+                                <option value="todos" class="text-gray-900">Todas as Regiões</option>
+                                <option value="brasil" class="text-gray-900">Brasil</option>
+                                <option value="latam" class="text-gray-900">América Latina</option>
+                                <option value="global" class="text-gray-900">Global</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Foco geográfico das políticas e práticas</p>
+                        </div>
+                    </div>
+
+                    <!-- Idioma -->
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                        <p class="text-sm font-medium text-gray-700 mb-2">🌐 Idioma</p>
+
+                        <div>
+                            <select x-model="filtros_fase1.idioma" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900">
+                                <option value="todos" class="text-gray-900">Todos os Idiomas</option>
+                                <option value="pt" class="text-gray-900">Português</option>
+                                <option value="es" class="text-gray-900">Espanhol</option>
+                                <option value="en" class="text-gray-900">Inglês</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Idioma preferencial dos documentos</p>
+                        </div>
+                    </div>
+
+                    <!-- Filtros Avançados -->
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                        <p class="text-sm font-medium text-gray-700 mb-2">🔍 Filtros Avançados</p>
+
+                        <label class="flex items-start space-x-3 cursor-pointer">
+                            <input type="checkbox" x-model="filtros_fase1.apenas_com_implementacao" class="form-checkbox h-5 w-5 text-indigo-600 mt-0.5">
+                            <div>
+                                <p class="text-sm font-medium">Apenas com Casos de Implementação</p>
+                                <p class="text-xs text-gray-500">Priorizar fontes que descrevam implementação prática</p>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start space-x-3 cursor-pointer">
+                            <input type="checkbox" x-model="filtros_fase1.apenas_com_metricas" class="form-checkbox h-5 w-5 text-indigo-600 mt-0.5">
+                            <div>
+                                <p class="text-sm font-medium">Apenas com Métricas de Impacto</p>
+                                <p class="text-xs text-gray-500">Priorizar fontes com dados quantificáveis de resultados</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Resumo da Configuração -->
+                    <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                        <p class="text-sm font-medium text-indigo-900 mb-2">📋 Resumo dos Filtros Ativos</p>
+                        <div class="text-xs text-indigo-800 space-y-1">
+                            <p><span class="font-medium">Confiança Mínima:</span> <span x-text="(filtros_fase1.confianca_minima * 100).toFixed(0) + '%'"></span></p>
+                            <p><span class="font-medium">Peso Sebrae:</span> <span x-text="filtros_fase1.peso_sebrae + 'x'"></span></p>
+                            <p><span class="font-medium">Tipo:</span> <span x-text="filtros_fase1.tipo_fonte"></span></p>
+                            <p><span class="font-medium">Período:</span> <span x-text="filtros_fase1.anos_publicacao === 'todos' ? 'Sem limite' : 'Últimos ' + filtros_fase1.anos_publicacao + ' anos'"></span></p>
+                            <p><span class="font-medium">Região:</span> <span x-text="filtros_fase1.regiao"></span></p>
+                            <p><span class="font-medium">Idioma:</span> <span x-text="filtros_fase1.idioma"></span></p>
+                            <p><span class="font-medium">Com Implementação:</span> <span x-text="filtros_fase1.apenas_com_implementacao ? 'Sim' : 'Não'"></span></p>
+                            <p><span class="font-medium">Com Métricas:</span> <span x-text="filtros_fase1.apenas_com_metricas ? 'Sim' : 'Não'"></span></p>
+                        </div>
+                    </div>
+
+                    <!-- Aviso -->
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p class="text-sm text-yellow-800">
+                            <span class="font-medium">💡 Dica:</span> Filtros mais restritivos retornarão menos fontes, mas com maior relevância. Use a priorização Sebrae para valorizar documentos internos da organização.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="flex gap-3 justify-end">
+                    <button @click="resetar_filtros_fase1()" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded font-medium">
+                        🔄 Restaurar Padrões
+                    </button>
+                    <button @click="aplicar_filtros_fase1()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-medium">
+                        ✓ Aplicar Filtros
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Header Principal -->
         <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
             <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
@@ -1136,12 +1302,18 @@
                                 <h3 class="text-xl font-bold">Fase I - Falhas Priorizadas</h3>
                                 <p class="text-sm text-gray-600 mt-1">Visualize as falhas marcadas como prioritárias. A análise de IA será executada na Fase II.</p>
                             </div>
-                            <button @click="carregar_falhas_fase1()"
-                                    :disabled="carregando_fase1"
-                                    class="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-                                <span x-show="!carregando_fase1">🔄 Atualizar Lista</span>
-                                <span x-show="carregando_fase1">⏳ Carregando...</span>
-                            </button>
+                            <div class="flex gap-3">
+                                <button @click="modal_filtros_fase1_aberto = true"
+                                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
+                                    ⚙️ Configurar Filtros
+                                </button>
+                                <button @click="carregar_falhas_fase1()"
+                                        :disabled="carregando_fase1"
+                                        class="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                                    <span x-show="!carregando_fase1">🔄 Atualizar Lista</span>
+                                    <span x-show="carregando_fase1">⏳ Carregando...</span>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Status -->
@@ -1510,7 +1682,7 @@
                     idioma: 'todos',  // todos, pt, es, en
                     apenas_com_implementacao: false,
                     apenas_com_metricas: false
-                }
+                },
                 // Fase II - Análise com IA
                 fase2_status: '',
                 falhas_fase2: [],
@@ -2493,6 +2665,35 @@
                     localStorage.setItem('config_analise_lote', JSON.stringify(this.config_analise_lote));
                     this.mostrar_notificacao('✓ Configurações salvas com sucesso!', 'sucesso');
                     this.fechar_config_lote();
+                },
+
+                resetar_filtros_fase1() {
+                    // Restaurar valores padrão
+                    this.filtros_fase1 = {
+                        confianca_minima: 0.5,
+                        peso_sebrae: 1,
+                        tipo_fonte: 'todos',
+                        anos_publicacao: 'todos',
+                        regiao: 'todos',
+                        idioma: 'todos',
+                        apenas_com_implementacao: false,
+                        apenas_com_metricas: false
+                    };
+                    this.mostrar_notificacao('✓ Filtros restaurados para os valores padrão', 'sucesso');
+                },
+
+                aplicar_filtros_fase1() {
+                    // Salvar filtros no localStorage
+                    localStorage.setItem('filtros_fase1', JSON.stringify(this.filtros_fase1));
+                    this.mostrar_notificacao('✓ Filtros aplicados com sucesso!', 'sucesso');
+                    this.modal_filtros_fase1_aberto = false;
+
+                    // Recarregar fontes de todas as falhas expandidas
+                    Object.keys(this.linhas_expandidas_fase1).forEach(falha_id => {
+                        if (this.linhas_expandidas_fase1[falha_id]) {
+                            this.carregar_fontes_fase1(parseInt(falha_id), 1);
+                        }
+                    });
                 },
 
                 async executar_analise_individual() {
@@ -3904,7 +4105,21 @@
                     this.renderizar_tabela_fase1();
 
                     try {
-                        const res = await fetch(`/api/boas-praticas/fase1/fontes/${falha_id}?page=${page}&page_size=20`);
+                        // Construir URL com parâmetros de filtro
+                        const params = new URLSearchParams({
+                            page: page,
+                            page_size: 20,
+                            confianca_minima: this.filtros_fase1.confianca_minima,
+                            peso_sebrae: this.filtros_fase1.peso_sebrae,
+                            tipo_fonte: this.filtros_fase1.tipo_fonte,
+                            anos_publicacao: this.filtros_fase1.anos_publicacao,
+                            regiao: this.filtros_fase1.regiao,
+                            idioma: this.filtros_fase1.idioma,
+                            apenas_com_implementacao: this.filtros_fase1.apenas_com_implementacao,
+                            apenas_com_metricas: this.filtros_fase1.apenas_com_metricas
+                        });
+
+                        const res = await fetch(`/api/boas-praticas/fase1/fontes/${falha_id}?${params.toString()}`);
 
                         if (!res.ok) {
                             throw new Error(`Erro ${res.status}: ${await res.text()}`);
@@ -4057,9 +4272,10 @@
                                                         </p>
                                                     ` : ''}
                                                     ${fonte.url ? `
-                                                        <div class="w-full overflow-hidden">
+                                                        <div style="max-width: 100%; overflow: hidden;">
                                                             <a href="${fonte.url}" target="_blank"
-                                                               class="text-xs text-purple-600 hover:text-purple-800 hover:underline block truncate"
+                                                               class="text-xs text-purple-600 hover:text-purple-800 hover:underline"
+                                                               style="display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
                                                                title="${fonte.url}"
                                                                onclick="event.stopPropagation()">
                                                                 ${fonte.url.length > 80 ? fonte.url.substring(0, 77) + '...' : fonte.url}
