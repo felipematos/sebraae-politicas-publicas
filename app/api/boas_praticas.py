@@ -214,19 +214,20 @@ async def analisar_falha_fase2(falha_id: int, reprocessar: bool = False):
 
 
 @router.get("/fase1/fontes/{falha_id}")
-async def obter_fontes_falha_fase1(falha_id: int, limit: int = 20):
+async def obter_fontes_falha_fase1(falha_id: int, page: int = 1, page_size: int = 20):
     """
-    Obtém as fontes disponíveis para uma falha na Fase I
+    Obtém as fontes disponíveis para uma falha na Fase I com paginação
 
     Retorna todas as fontes (resultados de pesquisa e documentos RAG)
-    disponíveis para a falha especificada.
+    disponíveis para a falha especificada, ordenadas por score de confiança.
 
     Args:
         falha_id: ID da falha
-        limit: Número máximo de fontes a retornar (padrão: 20)
+        page: Número da página (começa em 1)
+        page_size: Número de fontes por página (padrão: 20)
     """
     try:
-        logger.info(f"Fase I: Obtendo fontes para falha {falha_id} (limit={limit})")
+        logger.info(f"Fase I: Obtendo fontes para falha {falha_id} (page={page}, page_size={page_size})")
 
         # Buscar TODAS as fontes disponíveis diretamente das tabelas originais
         # 1. Resultados de pesquisa
@@ -235,11 +236,11 @@ async def obter_fontes_falha_fase1(falha_id: int, limit: int = 20):
         # 2. Fontes salvas (documentos RAG que foram usados na priorização)
         fontes_salvas = await obter_fontes_por_falha(falha_id)
 
-        # Formatar resultados de pesquisa
+        # Formatar e consolidar todas as fontes
         fontes_formatadas = []
 
-        # Adicionar resultados de pesquisa (limitando)
-        for resultado in resultados_pesquisa[:limit]:
+        # Adicionar resultados de pesquisa com score
+        for resultado in resultados_pesquisa:
             fontes_formatadas.append({
                 "id": resultado.get('id'),
                 "tipo": "resultado_pesquisa",
@@ -248,10 +249,11 @@ async def obter_fontes_falha_fase1(falha_id: int, limit: int = 20):
                 "url": resultado.get('fonte_url'),
                 "idioma": resultado.get('idioma'),
                 "pais_origem": resultado.get('pais_origem'),
+                "confidence_score": resultado.get('confidence_score', 0.5),
                 "criado_em": resultado.get('criado_em')
             })
 
-        # Adicionar documentos RAG salvos
+        # Adicionar documentos RAG salvos (score padrão 0.7 para documentos curados)
         for fonte in fontes_salvas:
             if fonte.get('fonte_tipo') == 'documento':
                 fontes_formatadas.append({
@@ -262,15 +264,33 @@ async def obter_fontes_falha_fase1(falha_id: int, limit: int = 20):
                     "url": fonte.get('fonte_url'),
                     "idioma": None,
                     "pais_origem": None,
+                    "confidence_score": 0.7,  # Score padrão para documentos curados
                     "criado_em": fonte.get('criado_em')
                 })
 
-        logger.info(f"Fontes encontradas: {len(fontes_formatadas)} ({len(resultados_pesquisa)} pesquisas, {len([f for f in fontes_salvas if f.get('fonte_tipo') == 'documento'])} documentos)")
+        # Ordenar por score de confiança (maior para menor)
+        fontes_formatadas.sort(key=lambda x: x['confidence_score'], reverse=True)
+
+        # Calcular totais
+        total_fontes = len(fontes_formatadas)
+        total_pages = (total_fontes + page_size - 1) // page_size  # ceil division
+
+        # Aplicar paginação
+        start_idx = (page - 1) * page_size
+        end_idx = start_idx + page_size
+        fontes_pagina = fontes_formatadas[start_idx:end_idx]
+
+        logger.info(f"Fontes encontradas: {total_fontes} total ({len(resultados_pesquisa)} pesquisas, {len([f for f in fontes_salvas if f.get('fonte_tipo') == 'documento'])} documentos) - Página {page}/{total_pages}")
 
         return {
             "falha_id": falha_id,
-            "fontes": fontes_formatadas,
-            "total": len(fontes_formatadas),
+            "fontes": fontes_pagina,
+            "total": total_fontes,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+            "has_next": page < total_pages,
+            "has_prev": page > 1,
             "total_pesquisas": len(resultados_pesquisa),
             "total_documentos": len([f for f in fontes_salvas if f.get('fonte_tipo') == 'documento'])
         }
