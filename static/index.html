@@ -3331,8 +3331,9 @@
                 aplicar_filtros_fase1() {
                     // Salvar filtros no localStorage
                     localStorage.setItem('filtros_fase1', JSON.stringify(this.filtros_fase1));
-                    this.filtros_fase1_alterados = false;
-                    this.mostrar_notificacao('✓ Filtros aplicados com sucesso!', 'sucesso');
+                    // NOTA: Mantemos filtros_fase1_alterados = true para que o botão "Atualizar Lista" continue destacado
+                    // A flag só será resetada quando a lista for efetivamente atualizada
+                    this.mostrar_notificacao('✓ Filtros salvos! Clique em "Atualizar Lista" para aplicá-los.', 'sucesso');
                     this.modal_filtros_fase1_aberto = false;
 
                     // Recarregar fontes de todas as falhas expandidas
