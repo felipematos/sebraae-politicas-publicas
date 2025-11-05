@@ -1255,6 +1255,26 @@ async def limpar_boas_praticas_fase(falha_id: int, fase: str):
     await db.execute(query, (falha_id, fase))
 
 
+async def get_todos_resultados() -> List[Dict[str, Any]]:
+    """
+    Retorna todos os resultados de pesquisa
+    """
+    query = """
+        SELECT * FROM resultados_pesquisa
+        ORDER BY criado_em DESC
+    """
+    return await db.fetch_all(query)
+
+
+async def limpar_cache_analises():
+    """
+    Limpa todo o cache de análises de fontes
+    Útil para forçar reanálise com novos critérios
+    """
+    query = "DELETE FROM cache_analises_fontes"
+    await db.execute(query)
+
+
 # Script para inicializar o banco
 if __name__ == "__main__":
     import asyncio

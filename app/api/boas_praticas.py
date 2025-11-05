@@ -951,3 +951,130 @@ async def obter_boas_praticas_falha(falha_id: int):
     except Exception as e:
         logger.error(f"Erro ao obter boas práticas da falha {falha_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/analise/estimar")
+async def estimar_custo_tempo_reanalisar(
+    num_fontes: int,
+    modo: str = "gratuito"
+):
+    """
+    Estima custo e tempo para reanalisar fontes com avaliação profunda
+
+    Args:
+        num_fontes: Número de fontes a reanalisar
+        modo: Modo de avaliação ("premium", "balanceado", "gratuito")
+
+    Returns:
+        Estimativa de custo, tempo, modelo usado
+    """
+    try:
+        async with OpenRouterClient() as client:
+            estimativa = client.estimar_custo_tempo_avaliacao(num_fontes, modo)
+            return estimativa
+
+    except Exception as e:
+        logger.error(f"Erro ao estimar custo/tempo: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/analise/reanalisar")
+async def reanalisar_fontes(
+    avaliar_profundamente: bool = False,
+    modo_avaliacao: str = "gratuito"
+):
+    """
+    Reanalisa todas as fontes existentes com novos critérios de avaliação
+
+    Args:
+        avaliar_profundamente: Se deve usar avaliação profunda via LLM
+        modo_avaliacao: Modo de avaliação ("premium", "balanceado", "gratuito")
+
+    Returns:
+        Total de fontes reanalisadas
+    """
+    try:
+        logger.info(f"Iniciando reanálise de fontes (profunda: {avaliar_profundamente}, modo: {modo_avaliacao})")
+
+        # Obter todas as fontes (resultados de pesquisa)
+        from app.database import get_todos_resultados, limpar_cache_analises
+
+        todos_resultados = await get_todos_resultados()
+
+        if not todos_resultados:
+            return {"total_reanalisadas": 0, "mensagem": "Nenhuma fonte para reanalisar"}
+
+        # Limpar cache de análises para forçar reavaliação
+        await limpar_cache_analises()
+        logger.info(f"Cache de análises limpo. Iniciando reanálise de {len(todos_resultados)} fontes...")
+
+        # Formatar fontes para análise
+        fontes = []
+        for resultado in todos_resultados:
+            fontes.append({
+                "titulo": resultado.get('titulo'),
+                "descricao": resultado.get('descricao', ''),
+                "url": resultado.get('fonte_url'),
+                "titulo_pt": resultado.get('titulo_pt'),
+                "descricao_pt": resultado.get('descricao_pt'),
+                "idioma": resultado.get('idioma'),
+                "_hash": resultado.get('fonte_hash')
+            })
+
+        # Executar análise
+        async with OpenRouterClient() as client:
+            semaphore = asyncio.Semaphore(5)  # Máximo 5 análises simultâneas
+
+            async def analisar_e_cachear(fonte):
+                async with semaphore:
+                    try:
+                        # Escolher método de análise
+                        if avaliar_profundamente:
+                            analise = await client.analisar_fonte_profunda(
+                                titulo=fonte.get('titulo', ''),
+                                descricao=fonte.get('descricao', ''),
+                                url=fonte.get('url'),
+                                titulo_pt=fonte.get('titulo_pt'),
+                                descricao_pt=fonte.get('descricao_pt'),
+                                idioma=fonte.get('idioma'),
+                                modo=modo_avaliacao
+                            )
+                        else:
+                            analise = await client.analisar_fonte(
+                                titulo=fonte.get('titulo', ''),
+                                descricao=fonte.get('descricao', ''),
+                                url=fonte.get('url'),
+                                titulo_pt=fonte.get('titulo_pt'),
+                                descricao_pt=fonte.get('descricao_pt'),
+                                idioma=fonte.get('idioma')
+                            )
+
+                        # Salvar no cache
+                        await salvar_analise_fonte_cache(
+                            fonte_hash=fonte['_hash'],
+                            tipo_fonte=analise.get('tipo_fonte'),
+                            tem_implementacao=analise.get('tem_implementacao', False),
+                            tem_metricas=analise.get('tem_metricas', False),
+                            confianca_analise=analise.get('confianca', 0.0)
+                        )
+
+                        return True
+                    except Exception as e:
+                        logger.error(f"Erro ao reanalisar fonte: {str(e)}")
+                        return False
+
+            # Executar reanálises em paralelo
+            resultados = await asyncio.gather(*[analisar_e_cachear(f) for f in fontes])
+
+        total_reanalisadas = sum(1 for r in resultados if r)
+        logger.info(f"Reanálise concluída: {total_reanalisadas}/{len(fontes)} fontes")
+
+        return {
+            "total_reanalisadas": total_reanalisadas,
+            "total_fontes": len(fontes),
+            "mensagem": f"Reanálise concluída com sucesso!"
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao reanalisar fontes: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -656,11 +656,82 @@ Response Format (JSON only):
             confianca += 0.05  # Boost moderado para evidência dupla
 
         # MELHORIA #4: Boost para domínios autoritativos
+        # Domínios confiáveis dos países com idiomas suportados
         dominios_autoritativos = [
-            '.gov', '.edu', '.org',
+            # Genéricos globais
+            '.gov', '.edu', '.org', '.ac',
+
+            # Brasil (pt)
             'gov.br', 'planalto.gov.br', 'bndes.gov.br',
             'sebrae.com.br', 'cnpq.br', 'capes.gov.br',
-            'finep.gov.br', 'mctic.gov.br', 'mdic.gov.br'
+            'finep.gov.br', 'mctic.gov.br', 'mdic.gov.br',
+            'ipea.gov.br', 'ibge.gov.br', '.edu.br',
+
+            # Portugal (pt)
+            'gov.pt', 'parlamento.pt', 'presidencia.pt',
+            'iapmei.pt', 'ani.pt', 'fct.pt', '.edu.pt',
+
+            # Estados Unidos (en)
+            'gov', 'senate.gov', 'house.gov', 'whitehouse.gov',
+            'nsf.gov', 'nih.gov', 'sba.gov', 'commerce.gov',
+            'mit.edu', 'stanford.edu', 'harvard.edu',
+
+            # Reino Unido (en)
+            'gov.uk', 'parliament.uk', 'innovateuk.org',
+            'ox.ac.uk', 'cam.ac.uk', '.ac.uk',
+
+            # Espanha (es)
+            'gob.es', 'congreso.es', 'boe.es',
+            'mineco.gob.es', 'cdti.es', '.edu.es',
+
+            # México (es)
+            'gob.mx', 'conacyt.mx', 'economia.gob.mx',
+            'inadem.gob.mx', '.edu.mx',
+
+            # Argentina (es)
+            'argentina.gob.ar', 'conicet.gov.ar',
+            'produccion.gob.ar', '.edu.ar',
+
+            # Chile (es)
+            'gob.cl', 'corfo.cl', 'conicyt.cl', '.edu.cl',
+
+            # Colômbia (es)
+            'gov.co', 'minciencias.gov.co',
+            'innpulsacolombia.com', '.edu.co',
+
+            # França (fr)
+            'gouv.fr', 'assemblee-nationale.fr',
+            'bpifrance.fr', 'cnrs.fr', '.edu.fr',
+
+            # Alemanha (de)
+            'bund.de', 'bundesregierung.de', 'bundestag.de',
+            'bmwi.de', 'dlr.de', 'fraunhofer.de', '.edu.de',
+
+            # Itália (it)
+            'gov.it', 'governo.it', 'camera.it',
+            'mise.gov.it', 'cnr.it', '.edu.it',
+
+            # Japão (ja)
+            'go.jp', 'meti.go.jp', 'mext.go.jp',
+            'jst.go.jp', 'nedo.go.jp', '.ac.jp',
+
+            # Coreia do Sul (ko)
+            'go.kr', 'moef.go.kr', 'msit.go.kr',
+            'nrf.re.kr', 'kista.re.kr', '.ac.kr',
+
+            # Israel (he)
+            'gov.il', 'knesset.gov.il', 'economy.gov.il',
+            'innovationisrael.org.il', '.ac.il',
+
+            # Emirados Árabes (ar)
+            'gov.ae', 'u.ae', '.ac.ae',
+
+            # Arábia Saudita (ar)
+            'gov.sa', 'kacst.edu.sa', '.edu.sa',
+
+            # Organizações internacionais
+            'oecd.org', 'worldbank.org', 'un.org',
+            'wipo.int', 'europa.eu', 'ec.europa.eu'
         ]
 
         if url:
