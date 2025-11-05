@@ -50,13 +50,21 @@ def extrair_palavras_chave(texto: str, min_length: int = 3) -> List[str]:
     return list(dict.fromkeys(palavras_chave))
 
 
-async def calcular_score_relevancia(resultado: str, query: str) -> float:
+async def calcular_score_relevancia(
+    resultado: str,
+    query: str,
+    resultado_traduzido: Optional[str] = None
+) -> float:
     """
     Calcula score de relevancia baseado em matching de palavras-chave
 
+    Para resultados em idiomas diferentes do português, usa a tradução
+    para garantir comparação justa com a query em português.
+
     Args:
-        resultado: Texto do resultado
-        query: Query/pergunta original
+        resultado: Texto do resultado (idioma original)
+        query: Query/pergunta original (em português)
+        resultado_traduzido: Texto do resultado traduzido para português (opcional)
 
     Returns:
         Score de relevancia entre 0.0 e 1.0
@@ -64,19 +72,23 @@ async def calcular_score_relevancia(resultado: str, query: str) -> float:
     if not resultado or not query:
         return 0.0
 
+    # Se temos tradução, usar ela para calcular relevância
+    # Isso garante que resultados em outros idiomas sejam avaliados de forma justa
+    texto_para_avaliar = resultado_traduzido if resultado_traduzido else resultado
+
     # Extrair palavras-chave da query
     palavras_query = extrair_palavras_chave(query)
     if not palavras_query:
         return 0.0
 
-    # Converter resultado para minusculas para matching
-    resultado_lower = resultado.lower()
+    # Converter texto para minusculas para matching
+    texto_lower = texto_para_avaliar.lower()
     query_lower = query.lower()
 
-    # Contar quantas palavras-chave aparecem no resultado
+    # Contar quantas palavras-chave aparecem no texto
     matches = 0
     for palavra in palavras_query:
-        if palavra in resultado_lower:
+        if palavra in texto_lower:
             matches += 1
 
     # Score base: proporcao de palavras encontradas (0-0.8)
@@ -85,7 +97,7 @@ async def calcular_score_relevancia(resultado: str, query: str) -> float:
 
     # Bonus se query completa aparece como phrase (0-0.15)
     bonus_phrase = 0.0
-    if query_lower in resultado_lower:
+    if query_lower in texto_lower:
         bonus_phrase = 0.15  # Muito bom: encontrou a query inteira
     elif matches == len(palavras_query):
         # Se todas as palavras estao presentes mas nao em sequence
@@ -335,9 +347,13 @@ class Avaliador:
         """
         Avalia um resultado individual e retorna confidence score
 
+        Para resultados em idiomas diferentes do português, utiliza as traduções
+        armazenadas (titulo_pt, descricao_pt) para garantir comparação justa.
+
         Args:
             resultado: Dicionario com titulo, descricao, url, fonte
-            query: Query para avaliar relevancia
+                      Pode conter titulo_pt e descricao_pt para resultados traduzidos
+            query: Query para avaliar relevancia (em português)
             num_ocorrencias: Numero de vezes que apareceu
             usar_rag: Se deve usar RAG para ajustar score
 
@@ -349,9 +365,33 @@ class Avaliador:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        # Calcular score de relevancia
+        # Preparar texto para avaliação
+        # Se resultado tem tradução (titulo_pt, descricao_pt), usar ela
+        idioma = resultado.get('idioma', 'pt')
+
+        if idioma != 'pt':
+            # Resultado em outro idioma: usar tradução se disponível
+            titulo_pt = resultado.get('titulo_pt', '')
+            descricao_pt = resultado.get('descricao_pt', '')
+
+            # Se tem traduções, usá-las; senão usar original
+            if titulo_pt or descricao_pt:
+                resultado_traduzido = f"{titulo_pt} {descricao_pt}"
+            else:
+                resultado_traduzido = None
+        else:
+            # Resultado já em português: não precisa tradução
+            resultado_traduzido = None
+
+        # Texto original (sempre necessário como fallback)
         resultado_texto = f"{resultado.get('titulo', '')} {resultado.get('descricao', '')}"
-        score_relevancia = await calcular_score_relevancia(resultado_texto, query)
+
+        # Calcular score de relevancia (usa tradução se disponível)
+        score_relevancia = await calcular_score_relevancia(
+            resultado_texto,
+            query,
+            resultado_traduzido=resultado_traduzido
+        )
 
         # Get confiabilidade da fonte
         fonte = resultado.get("fonte", "unknown")

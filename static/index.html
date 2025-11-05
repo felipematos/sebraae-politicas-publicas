@@ -948,6 +948,115 @@
             </div>
         </div>
 
+        <!-- Modal de Resultados da Pesquisa (Fase 1) -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 z-[10001] flex items-center justify-center" @click.self="fechar_modal_resultados_pesquisa()" x-show="modal_resultados_pesquisa_aberto" x-cloak>
+            <div class="bg-white rounded-lg max-w-6xl w-full mx-4 max-h-[90vh] flex flex-col" @click.stop>
+                <!-- Cabeçalho -->
+                <div class="flex justify-between items-start p-6 border-b sticky top-0 bg-white rounded-t-lg z-10">
+                    <div class="flex-1">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">📊 Resultados da Pesquisa</h3>
+                        <div x-show="falha_selecionada_resultados">
+                            <p class="text-sm text-gray-600 mb-1">
+                                <span class="font-semibold">Falha #<span x-text="falha_selecionada_resultados?.id"></span>:</span>
+                                <span x-text="falha_selecionada_resultados?.titulo"></span>
+                            </p>
+                            <span class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded text-sm" x-text="falha_selecionada_resultados?.pilar"></span>
+                        </div>
+                    </div>
+                    <button @click="fechar_modal_resultados_pesquisa()" class="text-gray-400 hover:text-gray-600 ml-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Conteúdo -->
+                <div class="flex-1 overflow-y-auto p-6">
+                    <!-- Loading -->
+                    <div x-show="carregando_resultados_pesquisa" class="text-center py-12">
+                        <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mb-4"></div>
+                        <p class="text-gray-600">Carregando resultados...</p>
+                    </div>
+
+                    <!-- Resultados -->
+                    <div x-show="!carregando_resultados_pesquisa && resultados_pesquisa.length > 0" class="space-y-4">
+                        <!-- Info do total -->
+                        <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                            <p class="text-sm text-blue-800">
+                                <span class="font-semibold" x-text="paginacao_resultados_pesquisa.total"></span> resultado(s) encontrado(s)
+                            </p>
+                        </div>
+
+                        <!-- Lista de resultados -->
+                        <template x-for="resultado in resultados_pesquisa" :key="resultado.id">
+                            <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                <div class="flex items-start justify-between gap-4 mb-3">
+                                    <h4 class="font-semibold text-gray-900 flex-1" x-text="resultado.titulo_pt || resultado.titulo"></h4>
+                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                        <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded" x-text="(resultado.confidence_score * 100).toFixed(0) + '%'"></span>
+                                        <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded" x-text="resultado.idioma?.toUpperCase()"></span>
+                                    </div>
+                                </div>
+
+                                <p class="text-sm text-gray-600 mb-3 line-clamp-3" x-text="resultado.descricao_pt || resultado.descricao"></p>
+
+                                <div class="flex items-center justify-between text-xs text-gray-500">
+                                    <div class="flex items-center gap-3">
+                                        <span x-show="resultado.pais_origem">
+                                            🌍 <span x-text="resultado.pais_origem"></span>
+                                        </span>
+                                        <span x-show="resultado.fonte_tipo">
+                                            📑 <span x-text="resultado.fonte_tipo"></span>
+                                        </span>
+                                        <span x-show="resultado.ferramenta_origem">
+                                            🔍 <span x-text="resultado.ferramenta_origem"></span>
+                                        </span>
+                                    </div>
+                                    <a :href="resultado.fonte_url" target="_blank" rel="noopener noreferrer"
+                                       class="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                                        Ver fonte
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Mensagem quando não há resultados -->
+                    <div x-show="!carregando_resultados_pesquisa && resultados_pesquisa.length === 0" class="text-center py-12">
+                        <div class="text-6xl mb-4">🔍</div>
+                        <p class="text-gray-500 text-lg">Nenhum resultado encontrado para esta falha</p>
+                    </div>
+                </div>
+
+                <!-- Paginação -->
+                <div x-show="!carregando_resultados_pesquisa && paginacao_resultados_pesquisa.total_pages > 1" class="p-6 border-t bg-gray-50 rounded-b-lg">
+                    <div class="flex items-center justify-between">
+                        <button @click="mudar_pagina_resultados_pesquisa(paginacao_resultados_pesquisa.page - 1)"
+                                :disabled="!paginacao_resultados_pesquisa.has_prev"
+                                :class="paginacao_resultados_pesquisa.has_prev ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'"
+                                class="px-4 py-2 rounded-lg font-medium transition-colors">
+                            ← Anterior
+                        </button>
+
+                        <span class="text-sm text-gray-600">
+                            Página <span class="font-semibold" x-text="paginacao_resultados_pesquisa.page"></span> de
+                            <span class="font-semibold" x-text="paginacao_resultados_pesquisa.total_pages"></span>
+                        </span>
+
+                        <button @click="mudar_pagina_resultados_pesquisa(paginacao_resultados_pesquisa.page + 1)"
+                                :disabled="!paginacao_resultados_pesquisa.has_next"
+                                :class="paginacao_resultados_pesquisa.has_next ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'"
+                                class="px-4 py-2 rounded-lg font-medium transition-colors">
+                            Próxima →
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Header Principal -->
         <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
             <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
@@ -2289,6 +2398,18 @@
                 modal_confirmacao_pesquisa_aberto: false,
                 estimativa_pesquisa: null,
                 estimativa_pesquisa_carregando: false,
+                // Modal de resultados da pesquisa
+                modal_resultados_pesquisa_aberto: false,
+                falha_selecionada_resultados: null,
+                resultados_pesquisa: [],
+                carregando_resultados_pesquisa: false,
+                paginacao_resultados_pesquisa: {
+                    page: 1,
+                    total_pages: 1,
+                    total: 0,
+                    has_next: false,
+                    has_prev: false
+                },
 
                 mudar_fase(idx) {
                     this.fase_atual = idx;
@@ -2502,15 +2623,19 @@
                         const tbody = document.getElementById('tabela-falhas');
                         if (data.dados && Array.isArray(data.dados)) {
                             tbody.innerHTML = data.dados.map(falha => `
-                                <tr class="border-b hover:bg-blue-50 cursor-pointer" onclick="console.log('Clicou na falha: ' + ${falha.id})">
+                                <tr class="border-b hover:bg-blue-50 cursor-pointer" onclick="app.abrir_modal_resultados_pesquisa(${falha.id}, '${falha.titulo.replace(/'/g, "\\'")}', '${falha.pilar}')">
                                     <td class="px-6 py-4 text-sm">${falha.id}</td>
                                     <td class="px-6 py-4 text-sm font-medium">${falha.titulo}</td>
                                     <td class="px-6 py-4 text-sm"><span class="bg-blue-100 text-blue-800 px-3 py-1 rounded">${falha.pilar}</span></td>
-                                    <td class="px-6 py-4 text-sm flex items-center gap-3">
-                                        <div class="flex-1 max-w-xs">
-                                            <div class="w-16 bg-gray-200 rounded h-2"><div class="bg-blue-600 h-2 rounded" style="width: ${Math.min((falha.total_resultados || 0) * 5, 100)}%"></div></div>
+                                    <td class="px-6 py-4 text-sm">
+                                        <div class="flex items-center gap-3">
+                                            <div class="flex-1 max-w-xs">
+                                                <div class="w-16 bg-gray-200 rounded h-2">
+                                                    <div class="bg-blue-600 h-2 rounded" style="width: ${Math.min((falha.total_resultados || 0) / 10, 100)}%"></div>
+                                                </div>
+                                            </div>
+                                            <span class="font-medium whitespace-nowrap text-blue-600">${falha.total_resultados || 0}</span>
                                         </div>
-                                        <span class="font-medium whitespace-nowrap text-blue-600">${falha.total_resultados || 0}</span>
                                     </td>
                                 </tr>
                             `).join('');
@@ -2518,6 +2643,60 @@
                     } catch (e) {
                         console.error('Erro ao carregar falhas', e);
                     }
+                },
+
+                async abrir_modal_resultados_pesquisa(falha_id, titulo, pilar) {
+                    this.falha_selecionada_resultados = {
+                        id: falha_id,
+                        titulo: titulo,
+                        pilar: pilar
+                    };
+                    this.modal_resultados_pesquisa_aberto = true;
+                    await this.carregar_resultados_pesquisa(falha_id, 1);
+                },
+
+                async carregar_resultados_pesquisa(falha_id, page = 1) {
+                    this.carregando_resultados_pesquisa = true;
+                    try {
+                        const res = await fetch(`/api/falhas/${falha_id}/resultados?page=${page}&page_size=20`);
+                        if (!res.ok) {
+                            throw new Error(`Erro ${res.status}: ${await res.text()}`);
+                        }
+                        const data = await res.json();
+                        this.resultados_pesquisa = data.resultados || [];
+                        this.paginacao_resultados_pesquisa = {
+                            page: data.page,
+                            total_pages: data.total_pages,
+                            total: data.total,
+                            has_next: data.has_next,
+                            has_prev: data.has_prev
+                        };
+                    } catch (e) {
+                        console.error('Erro ao carregar resultados:', e);
+                        this.mostrar_notificacao('Erro ao carregar resultados: ' + e.message, 'erro');
+                        this.resultados_pesquisa = [];
+                    } finally {
+                        this.carregando_resultados_pesquisa = false;
+                    }
+                },
+
+                async mudar_pagina_resultados_pesquisa(nova_pagina) {
+                    if (this.falha_selecionada_resultados) {
+                        await this.carregar_resultados_pesquisa(this.falha_selecionada_resultados.id, nova_pagina);
+                    }
+                },
+
+                fechar_modal_resultados_pesquisa() {
+                    this.modal_resultados_pesquisa_aberto = false;
+                    this.falha_selecionada_resultados = null;
+                    this.resultados_pesquisa = [];
+                    this.paginacao_resultados_pesquisa = {
+                        page: 1,
+                        total_pages: 1,
+                        total: 0,
+                        has_next: false,
+                        has_prev: false
+                    };
                 },
 
                 async carregar_dados_priorizacao() {

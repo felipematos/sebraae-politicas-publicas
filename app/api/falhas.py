@@ -104,26 +104,74 @@ async def obter_falha(falha_id: int):
 
 
 @router.get("/falhas/{falha_id}/resultados")
-async def obter_resultados_falha(falha_id: int):
+async def obter_resultados_falha(
+    falha_id: int,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100)
+):
     """
-    Obter todos os resultados de pesquisa para uma falha
+    Obter resultados de pesquisa para uma falha com paginação
+
+    - **page**: Número da página (começa em 1)
+    - **page_size**: Quantidade de resultados por página (default: 20, max: 100)
     """
     # Verificar se falha existe
     falha = await get_falha_by_id(falha_id)
     if not falha:
         raise HTTPException(status_code=404, detail=f"Falha {falha_id} nao encontrada")
 
-    # Obter resultados
-    resultados = await get_resultados_by_falha(falha_id)
+    # Calcular offset
+    offset = (page - 1) * page_size
 
-    # Obter estatisticas
-    stats = await get_estatisticas_falha(falha_id)
+    # Obter contagem total
+    query_count = """
+    SELECT COUNT(*) as total
+    FROM resultados_pesquisa
+    WHERE falha_id = :falha_id
+    """
+    total_result = await db.fetch_one(query_count, {"falha_id": falha_id})
+    total = total_result["total"] if total_result else 0
+
+    # Obter resultados paginados
+    query_resultados = """
+    SELECT
+        id,
+        falha_id,
+        titulo,
+        descricao,
+        fonte_url,
+        fonte_tipo,
+        pais_origem,
+        idioma,
+        confidence_score,
+        num_ocorrencias,
+        ferramenta_origem,
+        criado_em,
+        titulo_pt,
+        descricao_pt,
+        titulo_en,
+        descricao_en
+    FROM resultados_pesquisa
+    WHERE falha_id = :falha_id
+    ORDER BY confidence_score DESC, id DESC
+    LIMIT :limit OFFSET :offset
+    """
+
+    resultados = await db.fetch_all(
+        query_resultados,
+        {"falha_id": falha_id, "limit": page_size, "offset": offset}
+    )
+
+    # Calcular total de páginas
+    total_pages = (total + page_size - 1) // page_size
 
     return {
         "falha": falha,
-        "resultados": resultados,
-        "total_resultados": stats["total_resultados"],
-        "confidence_medio": stats["confidence_medio"],
-        "top_paises": stats["top_paises"],
-        "idiomas": stats["idiomas"]
+        "resultados": [dict(r) for r in resultados],
+        "page": page,
+        "page_size": page_size,
+        "total": total,
+        "total_pages": total_pages,
+        "has_next": page < total_pages,
+        "has_prev": page > 1
     }
