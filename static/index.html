@@ -1346,16 +1346,26 @@
 
                 <!-- Sub-navegação de Fases -->
                 <div class="bg-white rounded-lg shadow p-4">
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 flex-wrap">
                         <button @click="boas_praticas_subfase = 1"
                                 :class="boas_praticas_subfase === 1 ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                                 class="px-4 py-2 rounded-lg font-medium transition-colors">
-                            Fase I - Busca de Boas Práticas
+                            Fase I - Busca de Fontes
                         </button>
                         <button @click="boas_praticas_subfase = 2"
                                 :class="boas_praticas_subfase === 2 ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                                 class="px-4 py-2 rounded-lg font-medium transition-colors">
-                            Fase II - Consolidação
+                            Fase II - Detecção de Boas Práticas
+                        </button>
+                        <button @click="boas_praticas_subfase = 3"
+                                :class="boas_praticas_subfase === 3 ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                                class="px-4 py-2 rounded-lg font-medium transition-colors">
+                            Fase III - Sugestão de Boas Práticas
+                        </button>
+                        <button @click="boas_praticas_subfase = 4"
+                                :class="boas_praticas_subfase === 4 ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                                class="px-4 py-2 rounded-lg font-medium transition-colors">
+                            Fase IV - Consolidação de Boas Práticas
                         </button>
                     </div>
                 </div>
@@ -1366,8 +1376,8 @@
                     <div class="bg-white rounded-lg shadow p-6">
                         <div class="flex justify-between items-center mb-4">
                             <div>
-                                <h3 class="text-xl font-bold">Fase I - Falhas Priorizadas</h3>
-                                <p class="text-sm text-gray-600 mt-1">Visualize as falhas marcadas como prioritárias. A análise de IA será executada na Fase II.</p>
+                                <h3 class="text-xl font-bold">Fase I - Busca de Fontes</h3>
+                                <p class="text-sm text-gray-600 mt-1">Visualize as fontes encontradas para cada falha priorizada. A detecção de boas práticas será executada na Fase II.</p>
                             </div>
                             <div class="flex gap-3">
                                 <button @click="modal_filtros_fase1_aberto = true"
@@ -1425,8 +1435,8 @@
                     <!-- Controles -->
                     <div class="bg-white rounded-lg shadow p-6">
                         <div>
-                            <h3 class="text-xl font-bold mb-2">Fase II - Análise de Boas Práticas com IA</h3>
-                            <p class="text-sm text-gray-600">Clique em "Analisar" para executar a análise com IA para cada falha. O sistema buscará conteúdo completo das URLs e analisará documentos.</p>
+                            <h3 class="text-xl font-bold mb-2">Fase II - Detecção de Boas Práticas</h3>
+                            <p class="text-sm text-gray-600">Clique em "Analisar" para executar a detecção de boas práticas com IA para cada falha. O sistema buscará conteúdo completo das URLs e analisará documentos.</p>
                         </div>
 
                         <!-- Status -->
@@ -1465,6 +1475,28 @@
                                     <!-- Preenchido por JavaScript -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fase III: Sugestão de Boas Práticas -->
+                <div x-show="boas_praticas_subfase === 3" class="space-y-4">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="text-center py-12">
+                            <div class="text-6xl mb-4">💡</div>
+                            <h3 class="text-xl font-bold mb-2">Fase III - Sugestão de Boas Práticas</h3>
+                            <p class="text-gray-600">Esta fase será implementada em breve.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fase IV: Consolidação de Boas Práticas -->
+                <div x-show="boas_praticas_subfase === 4" class="space-y-4">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="text-center py-12">
+                            <div class="text-6xl mb-4">📊</div>
+                            <h3 class="text-xl font-bold mb-2">Fase IV - Consolidação de Boas Práticas</h3>
+                            <p class="text-gray-600">Esta fase será implementada em breve.</p>
                         </div>
                     </div>
                 </div>
