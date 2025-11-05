@@ -414,13 +414,14 @@
                     <div class="bg-gray-50 rounded-lg p-4 space-y-3">
                         <p class="text-sm font-medium text-gray-700 mb-2">📚 Tipo de Fonte (múltipla seleção)</p>
 
+                        <!-- CONTRAST FIX: Always use text-gray-700+ for text on white backgrounds -->
                         <div class="space-y-2">
                             <label class="flex items-center space-x-2 cursor-pointer">
                                 <input type="checkbox" value="academica"
                                        :checked="filtros_fase1.tipo_fonte.includes('academica')"
                                        @change="e => { e.target.checked ? filtros_fase1.tipo_fonte.push('academica') : filtros_fase1.tipo_fonte = filtros_fase1.tipo_fonte.filter(t => t !== 'academica'); filtros_fase1_alterados = true; }"
                                        class="form-checkbox h-4 w-4 text-indigo-600 rounded">
-                                <span class="text-sm">Acadêmica (Artigos, Pesquisas)</span>
+                                <span class="text-sm text-gray-700">Acadêmica (Artigos, Pesquisas)</span>
                             </label>
 
                             <label class="flex items-center space-x-2 cursor-pointer">
@@ -428,7 +429,7 @@
                                        :checked="filtros_fase1.tipo_fonte.includes('governamental')"
                                        @change="e => { e.target.checked ? filtros_fase1.tipo_fonte.push('governamental') : filtros_fase1.tipo_fonte = filtros_fase1.tipo_fonte.filter(t => t !== 'governamental'); filtros_fase1_alterados = true; }"
                                        class="form-checkbox h-4 w-4 text-indigo-600 rounded">
-                                <span class="text-sm">Governamental (Leis, Decretos, Programas)</span>
+                                <span class="text-sm text-gray-700">Governamental (Leis, Decretos, Programas)</span>
                             </label>
 
                             <label class="flex items-center space-x-2 cursor-pointer">
@@ -436,7 +437,7 @@
                                        :checked="filtros_fase1.tipo_fonte.includes('tecnico')"
                                        @change="e => { e.target.checked ? filtros_fase1.tipo_fonte.push('tecnico') : filtros_fase1.tipo_fonte = filtros_fase1.tipo_fonte.filter(t => t !== 'tecnico'); filtros_fase1_alterados = true; }"
                                        class="form-checkbox h-4 w-4 text-indigo-600 rounded">
-                                <span class="text-sm">Técnico (Relatórios, White Papers)</span>
+                                <span class="text-sm text-gray-700">Técnico (Relatórios, White Papers)</span>
                             </label>
 
                             <label class="flex items-center space-x-2 cursor-pointer">
@@ -444,7 +445,7 @@
                                        :checked="filtros_fase1.tipo_fonte.includes('caso_sucesso')"
                                        @change="e => { e.target.checked ? filtros_fase1.tipo_fonte.push('caso_sucesso') : filtros_fase1.tipo_fonte = filtros_fase1.tipo_fonte.filter(t => t !== 'caso_sucesso'); filtros_fase1_alterados = true; }"
                                        class="form-checkbox h-4 w-4 text-indigo-600 rounded">
-                                <span class="text-sm">Casos de Sucesso</span>
+                                <span class="text-sm text-gray-700">Casos de Sucesso</span>
                             </label>
                         </div>
                         <p class="text-xs text-gray-500 mt-2">
@@ -478,7 +479,7 @@
                                        :checked="filtros_fase1.regiao.includes('brasil')"
                                        @change="e => { e.target.checked ? filtros_fase1.regiao.push('brasil') : filtros_fase1.regiao = filtros_fase1.regiao.filter(r => r !== 'brasil'); filtros_fase1_alterados = true; }"
                                        class="form-checkbox h-4 w-4 text-indigo-600 rounded">
-                                <span class="text-sm">Brasil</span>
+                                <span class="text-sm text-gray-700">Brasil</span>
                             </label>
 
                             <label class="flex items-center space-x-2 cursor-pointer">
@@ -486,7 +487,7 @@
                                        :checked="filtros_fase1.regiao.includes('latam')"
                                        @change="e => { e.target.checked ? filtros_fase1.regiao.push('latam') : filtros_fase1.regiao = filtros_fase1.regiao.filter(r => r !== 'latam'); filtros_fase1_alterados = true; }"
                                        class="form-checkbox h-4 w-4 text-indigo-600 rounded">
-                                <span class="text-sm">América Latina</span>
+                                <span class="text-sm text-gray-700">América Latina</span>
                             </label>
 
                             <label class="flex items-center space-x-2 cursor-pointer">
@@ -494,7 +495,7 @@
                                        :checked="filtros_fase1.regiao.includes('global')"
                                        @change="e => { e.target.checked ? filtros_fase1.regiao.push('global') : filtros_fase1.regiao = filtros_fase1.regiao.filter(r => r !== 'global'); filtros_fase1_alterados = true; }"
                                        class="form-checkbox h-4 w-4 text-indigo-600 rounded">
-                                <span class="text-sm">Global</span>
+                                <span class="text-sm text-gray-700">Global</span>
                             </label>
                         </div>
                         <p class="text-xs text-gray-500 mt-2">
@@ -513,7 +514,7 @@
                                        :checked="filtros_fase1.idioma.includes('pt')"
                                        @change="e => { e.target.checked ? filtros_fase1.idioma.push('pt') : filtros_fase1.idioma = filtros_fase1.idioma.filter(i => i !== 'pt'); filtros_fase1_alterados = true; }"
                                        class="form-checkbox h-4 w-4 text-indigo-600 rounded">
-                                <span class="text-sm">Português</span>
+                                <span class="text-sm text-gray-700">Português</span>
                             </label>
 
                             <label class="flex items-center space-x-2 cursor-pointer">
@@ -521,7 +522,7 @@
                                        :checked="filtros_fase1.idioma.includes('es')"
                                        @change="e => { e.target.checked ? filtros_fase1.idioma.push('es') : filtros_fase1.idioma = filtros_fase1.idioma.filter(i => i !== 'es'); filtros_fase1_alterados = true; }"
                                        class="form-checkbox h-4 w-4 text-indigo-600 rounded">
-                                <span class="text-sm">Espanhol</span>
+                                <span class="text-sm text-gray-700">Espanhol</span>
                             </label>
 
                             <label class="flex items-center space-x-2 cursor-pointer">
@@ -529,7 +530,7 @@
                                        :checked="filtros_fase1.idioma.includes('en')"
                                        @change="e => { e.target.checked ? filtros_fase1.idioma.push('en') : filtros_fase1.idioma = filtros_fase1.idioma.filter(i => i !== 'en'); filtros_fase1_alterados = true; }"
                                        class="form-checkbox h-4 w-4 text-indigo-600 rounded">
-                                <span class="text-sm">Inglês</span>
+                                <span class="text-sm text-gray-700">Inglês</span>
                             </label>
                         </div>
                         <p class="text-xs text-gray-500 mt-2">
@@ -545,7 +546,7 @@
                         <label class="flex items-start space-x-3 cursor-pointer">
                             <input type="checkbox" x-model="filtros_fase1.apenas_com_implementacao" @change="filtros_fase1_alterados = true" class="form-checkbox h-5 w-5 text-indigo-600 mt-0.5">
                             <div>
-                                <p class="text-sm font-medium">Apenas com Casos de Implementação</p>
+                                <p class="text-sm font-medium text-gray-700">Apenas com Casos de Implementação</p>
                                 <p class="text-xs text-gray-500">Priorizar fontes que descrevam implementação prática</p>
                             </div>
                         </label>
@@ -553,7 +554,7 @@
                         <label class="flex items-start space-x-3 cursor-pointer">
                             <input type="checkbox" x-model="filtros_fase1.apenas_com_metricas" @change="filtros_fase1_alterados = true" class="form-checkbox h-5 w-5 text-indigo-600 mt-0.5">
                             <div>
-                                <p class="text-sm font-medium">Apenas com Métricas de Impacto</p>
+                                <p class="text-sm font-medium text-gray-700">Apenas com Métricas de Impacto</p>
                                 <p class="text-xs text-gray-500">Priorizar fontes com dados quantificáveis de resultados</p>
                             </div>
                         </label>
