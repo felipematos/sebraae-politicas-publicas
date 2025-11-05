@@ -61,15 +61,29 @@ class AnalisadorBoasPraticas:
             return []
 
     def _construir_contexto_fontes(self, fontes: List[Dict[str, Any]]) -> str:
-        """Constrói texto formatado das fontes para o LLM"""
+        """Constrói texto formatado das fontes para o LLM
+
+        IMPORTANTE: Para garantir acurácia multilíngue, prioriza traduções
+        para português quando disponíveis.
+        """
         contexto_parts = []
 
         for idx, fonte in enumerate(fontes[:15], 1):  # Limitar a 15 fontes
             fonte_tipo = fonte.get('fonte_tipo', 'documento')
-            fonte_titulo = fonte.get('fonte_titulo', fonte.get('titulo', 'Sem título'))
+
+            # Priorizar traduções para português quando disponíveis
+            # Isso garante análise consistente independente do idioma original
+            fonte_titulo = fonte.get('fonte_titulo')
+            if not fonte_titulo:
+                # Tentar título traduzido primeiro, depois original
+                fonte_titulo = fonte.get('titulo_pt') or fonte.get('titulo', 'Sem título')
 
             # Usar conteúdo enriquecido se disponível, senão usar original
             fonte_conteudo = fonte.get('conteudo_completo') or fonte.get('fonte_conteudo', fonte.get('content', ''))
+
+            # Se não há conteúdo enriquecido, tentar usar tradução da descrição
+            if not fonte_conteudo:
+                fonte_conteudo = fonte.get('descricao_pt') or fonte.get('descricao', '')
 
             # Limitar tamanho total (já vem limitado pelo soft cut, mas garantir)
             fonte_conteudo = fonte_conteudo[:12000] if fonte_conteudo else ''
@@ -78,12 +92,21 @@ class AnalisadorBoasPraticas:
             is_sebrae = self._detectar_sebrae(fonte)
             sebrae_flag = " [SEBRAE]" if is_sebrae else ""
 
+            # Adicionar flag de idioma se for tradução
+            idioma = fonte.get('idioma', 'pt')
+            idioma_flag = ""
+            if idioma != 'pt' and (fonte.get('titulo_pt') or fonte.get('descricao_pt')):
+                idioma_map = {"en": "Inglês", "es": "Espanhol", "fr": "Francês",
+                             "de": "Alemão", "it": "Italiano"}
+                idioma_nome = idioma_map.get(idioma, idioma.upper())
+                idioma_flag = f" [TRADUZIDO DE {idioma_nome}]"
+
             # Adicionar informação de erro se URL falhou
             url_error = fonte.get('url_error')
             error_info = f"\n⚠️ Erro ao buscar conteúdo: {url_error}" if url_error else ""
 
             contexto_parts.append(
-                f"[FONTE {idx}]{sebrae_flag}\n"
+                f"[FONTE {idx}]{sebrae_flag}{idioma_flag}\n"
                 f"Tipo: {fonte_tipo}\n"
                 f"Título: {fonte_titulo}\n"
                 f"Conteúdo:\n{fonte_conteudo}{error_info}\n"

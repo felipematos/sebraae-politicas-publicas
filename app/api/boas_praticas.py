@@ -137,10 +137,14 @@ async def enriquecer_fontes_com_analises(fontes: List[Dict[str, Any]]) -> List[D
             async def analisar_e_cachear(fonte):
                 async with semaphore:
                     try:
+                        # Usar traduções quando disponíveis para garantir acurácia multilíngue
                         analise = await client.analisar_fonte(
                             titulo=fonte.get('titulo', ''),
                             descricao=fonte.get('descricao', ''),
-                            url=fonte.get('url')
+                            url=fonte.get('url'),
+                            titulo_pt=fonte.get('titulo_pt'),
+                            descricao_pt=fonte.get('descricao_pt'),
+                            idioma=fonte.get('idioma')
                         )
 
                         # Salvar no cache

@@ -232,15 +232,26 @@ Text to translate:
         self,
         titulo: str,
         descricao: str,
-        url: str = None
+        url: str = None,
+        titulo_pt: str = None,
+        descricao_pt: str = None,
+        idioma: str = None
     ) -> dict:
         """
         Analisa uma fonte para determinar tipo, se tem implementação e métricas
 
+        IMPORTANTE: Para garantir acurácia multilíngue, esta função:
+        1. Usa prompt em inglês (idioma universal para LLMs)
+        2. Prioriza traduções para português quando disponíveis
+        3. Fornece contexto de idioma para o LLM
+
         Args:
-            titulo: Título da fonte
-            descricao: Descrição/resumo da fonte
+            titulo: Título da fonte (idioma original)
+            descricao: Descrição/resumo da fonte (idioma original)
             url: URL da fonte (opcional)
+            titulo_pt: Tradução do título para português (opcional)
+            descricao_pt: Tradução da descrição para português (opcional)
+            idioma: Código do idioma da fonte (opcional, ex: 'en', 'es', 'pt')
 
         Returns:
             dict com:
@@ -257,38 +268,57 @@ Text to translate:
                 "confianca": 0.0
             }
 
+        # Priorizar traduções para português quando disponíveis
+        # Isso garante acurácia consistente independente do idioma original
+        titulo_para_analise = titulo_pt if titulo_pt else titulo
+        descricao_para_analise = descricao_pt if descricao_pt else descricao
+
         # Truncar texto para não exceder limites
-        titulo_trunc = (titulo or '')[:200]
-        descricao_trunc = (descricao or '')[:800]
+        titulo_trunc = (titulo_para_analise or '')[:200]
+        descricao_trunc = (descricao_para_analise or '')[:800]
         url_info = f"\nURL: {url}" if url else ""
 
-        prompt = f"""Analise o seguinte documento e classifique-o de acordo com os critérios abaixo.
-Retorne APENAS um objeto JSON válido, sem explicações adicionais.
+        # Adicionar informação de idioma se disponível
+        idioma_info = ""
+        if idioma:
+            idioma_map = {"pt": "Portuguese", "en": "English", "es": "Spanish",
+                         "fr": "French", "de": "German", "it": "Italian"}
+            idioma_nome = idioma_map.get(idioma, idioma)
+            idioma_info = f"\nOriginal Language: {idioma_nome}"
 
-Documento:
-Título: {titulo_trunc}
-Descrição: {descricao_trunc}{url_info}
+        # Se há tradução, indicar isso no prompt
+        traducao_info = ""
+        if titulo_pt or descricao_pt:
+            traducao_info = "\n(Text has been translated to Portuguese for analysis)"
 
-Critérios de classificação:
+        # Prompt em inglês para melhor acurácia multilíngue
+        prompt = f"""Analyze the following document and classify it according to the criteria below.
+Return ONLY a valid JSON object, without additional explanations.
 
-1. tipo_fonte (escolha APENAS UMA opção):
-   - "academica": Artigos científicos, pesquisas acadêmicas, estudos universitários
-   - "governamental": Leis, decretos, programas governamentais, políticas públicas oficiais
-   - "tecnico": Relatórios técnicos, white papers, estudos de mercado, análises
-   - "caso_sucesso": Casos de sucesso, histórias de implementação bem-sucedida
+Document:
+Title: {titulo_trunc}
+Description: {descricao_trunc}{url_info}{idioma_info}{traducao_info}
+
+Classification Criteria:
+
+1. tipo_fonte (choose ONLY ONE option):
+   - "academica": Scientific articles, academic research, university studies
+   - "governamental": Laws, decrees, government programs, official public policies
+   - "tecnico": Technical reports, white papers, market studies, analyses
+   - "caso_sucesso": Success cases, successful implementation stories
 
 2. tem_implementacao (true/false):
-   - true: Se descreve casos práticos de implementação, experiências reais, exemplos concretos
-   - false: Se é apenas teórico, conceitual ou propositivo
+   - true: If it describes practical implementation cases, real experiences, concrete examples
+   - false: If it is only theoretical, conceptual, or propositional
 
 3. tem_metricas (true/false):
-   - true: Se apresenta dados quantificáveis, métricas de impacto, números, resultados mensuráveis
-   - false: Se não possui dados quantitativos
+   - true: If it presents quantifiable data, impact metrics, numbers, measurable results
+   - false: If it does not have quantitative data
 
-4. confianca (0.0 a 1.0):
-   - Seu nível de confiança na classificação (0.0 = incerto, 1.0 = muito confiante)
+4. confianca (0.0 to 1.0):
+   - Your confidence level in the classification (0.0 = uncertain, 1.0 = very confident)
 
-Formato de resposta (JSON apenas):
+Response Format (JSON only):
 {{
   "tipo_fonte": "academica|governamental|tecnico|caso_sucesso",
   "tem_implementacao": true|false,
@@ -333,28 +363,85 @@ Formato de resposta (JSON apenas):
         return self._classificar_heuristico(titulo, descricao, url)
 
     def _classificar_heuristico(self, titulo: str, descricao: str, url: str = None) -> dict:
-        """Classificação heurística básica baseada em palavras-chave"""
+        """Classificação heurística melhorada baseada em palavras-chave multilíngues
+
+        IMPORTANTE: Usa palavras-chave em múltiplos idiomas para garantir
+        acurácia consistente independente do idioma do texto.
+        """
         texto = f"{titulo or ''} {descricao or ''} {url or ''}".lower()
 
-        # Tipo de fonte
+        # Tipo de fonte - palavras-chave em PT, EN, ES
         tipo_fonte = "tecnico"  # padrão
-        if any(palavra in texto for palavra in ["lei", "decreto", "portaria", "gov.br", "planalto", "programa nacional"]):
+
+        # Governamental (PT, EN, ES)
+        if any(palavra in texto for palavra in [
+            # Português
+            "lei", "decreto", "portaria", "gov.br", "planalto", "programa nacional",
+            "governo", "ministerio", "ministério", "política pública",
+            # English
+            "law", "decree", "government program", "national program", "policy",
+            "ministry", "public policy",
+            # Español
+            "ley", "decreto", "programa nacional", "programa gubernamental",
+            "gobierno", "ministerio", "política pública"
+        ]):
             tipo_fonte = "governamental"
-        elif any(palavra in texto for palavra in ["universidade", "pesquisa", "estudo", "paper", "journal", "revista científica"]):
+
+        # Acadêmica (PT, EN, ES)
+        elif any(palavra in texto for palavra in [
+            # Português
+            "universidade", "pesquisa", "estudo", "paper", "journal", "revista científica",
+            "artigo científico", "tese", "dissertação",
+            # English
+            "university", "research", "study", "scientific", "journal", "article",
+            "thesis", "dissertation",
+            # Español
+            "universidad", "investigación", "estudio", "revista científica",
+            "artículo científico", "tesis"
+        ]):
             tipo_fonte = "academica"
-        elif any(palavra in texto for palavra in ["caso", "sucesso", "exemplo", "implementação bem-sucedida"]):
+
+        # Caso de sucesso (PT, EN, ES)
+        elif any(palavra in texto for palavra in [
+            # Português
+            "caso", "sucesso", "exemplo", "implementação bem-sucedida", "história de",
+            # English
+            "success case", "success story", "successful implementation", "case study",
+            # Español
+            "caso de éxito", "historia de", "implementación exitosa"
+        ]):
             tipo_fonte = "caso_sucesso"
 
-        # Tem implementação
+        # Tem implementação - palavras-chave em PT, EN, ES
         tem_implementacao = any(palavra in texto for palavra in [
-            "implementou", "implementação", "aplicou", "executou", "caso prático",
-            "experiência", "projeto piloto", "iniciativa"
+            # Português
+            "implementou", "implementado", "implementação", "aplicou", "executou",
+            "caso prático", "experiência", "projeto piloto", "iniciativa",
+            "resultou", "resultando", "apoiou", "criação de", "criou",
+            # English
+            "implemented", "implementation", "applied", "executed", "supported",
+            "resulted", "resulting", "creation of", "created", "pilot project",
+            # Español
+            "implementó", "implementado", "implementación", "aplicó", "ejecutó",
+            "apoyó", "resultó", "creación de", "creó", "proyecto piloto"
         ])
 
-        # Tem métricas
+        # Tem métricas - buscar números e indicadores
         tem_metricas = any(palavra in texto for palavra in [
-            "%", "percentual", "crescimento", "aumento", "redução", "impacto mensurável",
-            "dados", "estatísticas", "resultados quantificáveis", "indicadores"
+            # Símbolos e números
+            "%", "percentual", "r$", "million", "milhão", "millones",
+            # Português
+            "crescimento", "aumento", "redução", "impacto mensurável",
+            "dados", "estatísticas", "resultados quantificáveis", "indicadores",
+            "empregos", "faturamento", "investimento",
+            # English
+            "growth", "increase", "reduction", "measurable impact", "data",
+            "statistics", "quantifiable results", "indicators", "jobs",
+            "revenue", "investment",
+            # Español
+            "crecimiento", "aumento", "reducción", "impacto mensurable",
+            "datos", "estadísticas", "resultados cuantificables", "indicadores",
+            "empleos", "ingresos", "inversión"
         ])
 
         return {
