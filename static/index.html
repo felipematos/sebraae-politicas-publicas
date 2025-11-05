@@ -5036,10 +5036,21 @@
                         const fontes = this.fontes_falha_fase1[falha.falha_id] || [];
                         const progresso = this.progresso_falhas_fase1[falha.falha_id];
 
-                        // Usar contagem atualizada se disponível
-                        const numFontes = this.contagem_fontes_fase1[falha.falha_id] !== undefined
-                            ? this.contagem_fontes_fase1[falha.falha_id]
-                            : falha.num_fontes;
+                        // Contagem original (antes dos filtros)
+                        const numFontesOriginal = falha.num_fontes;
+
+                        // Contagem filtrada (se disponível)
+                        const numFontesFiltradas = this.contagem_fontes_fase1[falha.falha_id];
+
+                        // Determinar texto a exibir
+                        let textoFontes;
+                        if (numFontesFiltradas !== undefined) {
+                            // Mostrar "X de Y" se temos a contagem filtrada
+                            textoFontes = `${numFontesFiltradas} de ${numFontesOriginal}`;
+                        } else {
+                            // Mostrar apenas o total original
+                            textoFontes = `${numFontesOriginal} fonte${numFontesOriginal !== 1 ? 's' : ''}`;
+                        }
 
                         // Linha principal
                         html += `
@@ -5061,7 +5072,7 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                        ${numFontes} fonte${numFontes !== 1 ? 's' : ''}
+                                        ${textoFontes}
                                     </span>
                                 </td>
                             </tr>
