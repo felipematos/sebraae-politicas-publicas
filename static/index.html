@@ -1657,6 +1657,16 @@
                             }
                         }
 
+                        // Carregar filtros salvos do localStorage
+                        const filtrosSalvos = localStorage.getItem('filtros_fase1');
+                        if (filtrosSalvos) {
+                            try {
+                                this.filtros_fase1 = JSON.parse(filtrosSalvos);
+                            } catch (e) {
+                                console.warn('Erro ao carregar filtros salvos:', e);
+                            }
+                        }
+
                         // Carregar página baseada na URL
                         this.fase_atual = this.get_fase_from_hash();
 
@@ -4042,7 +4052,7 @@
                                                         ${fonte.titulo || 'Sem título'}
                                                     </h5>
                                                     ${fonte.descricao ? `
-                                                        <p class="text-xs text-gray-600 line-clamp-2 mb-2">
+                                                        <p class="text-xs text-gray-600 line-clamp-2 mb-2 break-all">
                                                             ${fonte.descricao}
                                                         </p>
                                                     ` : ''}
