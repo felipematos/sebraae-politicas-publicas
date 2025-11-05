@@ -1499,6 +1499,18 @@
                 fontes_falha_fase1: {},  // { falha_id: [fontes] }
                 carregando_fontes_fase1: {},  // { falha_id: true/false }
                 paginacao_fontes_fase1: {},  // { falha_id: { page, total_pages, has_next, has_prev } }
+                // Modal e configurações de filtros
+                modal_filtros_fase1_aberto: false,
+                filtros_fase1: {
+                    confianca_minima: 0.5,
+                    peso_sebrae: 1,  // 1 = normal, 2 = 2X, 5 = 5X, 10 = 10X
+                    tipo_fonte: 'todos',  // todos, academica, governamental, tecnico, caso_sucesso
+                    anos_publicacao: 'todos',  // todos, 3, 5, 10
+                    regiao: 'todos',  // todos, brasil, latam, global
+                    idioma: 'todos',  // todos, pt, es, en
+                    apenas_com_implementacao: false,
+                    apenas_com_metricas: false
+                }
                 // Fase II - Análise com IA
                 fase2_status: '',
                 falhas_fase2: [],
@@ -4035,13 +4047,14 @@
                                                         </p>
                                                     ` : ''}
                                                     ${fonte.url ? `
-                                                        <a href="${fonte.url}" target="_blank"
-                                                           class="text-xs text-purple-600 hover:text-purple-800 hover:underline block truncate max-w-full"
-                                                           style="word-break: break-word; overflow-wrap: break-word;"
-                                                           title="${fonte.url}"
-                                                           onclick="event.stopPropagation()">
-                                                            ${fonte.url.length > 80 ? fonte.url.substring(0, 77) + '...' : fonte.url}
-                                                        </a>
+                                                        <div class="w-full overflow-hidden">
+                                                            <a href="${fonte.url}" target="_blank"
+                                                               class="text-xs text-purple-600 hover:text-purple-800 hover:underline block truncate"
+                                                               title="${fonte.url}"
+                                                               onclick="event.stopPropagation()">
+                                                                ${fonte.url.length > 80 ? fonte.url.substring(0, 77) + '...' : fonte.url}
+                                                            </a>
+                                                        </div>
                                                     ` : ''}
                                                 </div>
                                             </div>
