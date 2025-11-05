@@ -991,14 +991,32 @@
                         <template x-for="resultado in resultados_pesquisa" :key="resultado.id">
                             <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                                 <div class="flex items-start justify-between gap-4 mb-3">
-                                    <h4 class="font-semibold text-gray-900 flex-1" x-text="resultado.titulo_pt || resultado.titulo"></h4>
+                                    <div class="flex-1">
+                                        <!-- Título em português (se disponível) -->
+                                        <h4 class="font-semibold text-gray-900" x-show="resultado.titulo_pt" x-text="resultado.titulo_pt"></h4>
+
+                                        <!-- Título original (se idioma != pt e não houver tradução) -->
+                                        <h4 class="font-semibold text-gray-900" x-show="!resultado.titulo_pt" x-text="resultado.titulo"></h4>
+
+                                        <!-- Mostrar original em itálico se houver tradução e idioma != pt -->
+                                        <p class="text-xs text-gray-500 italic mt-1"
+                                           x-show="resultado.titulo_pt && resultado.idioma !== 'pt'"
+                                           x-text="`Original (${resultado.idioma?.toUpperCase()}): ${resultado.titulo}`"></p>
+                                    </div>
                                     <div class="flex items-center gap-2 flex-shrink-0">
                                         <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded" x-text="(resultado.confidence_score * 100).toFixed(0) + '%'"></span>
                                         <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded" x-text="resultado.idioma?.toUpperCase()"></span>
                                     </div>
                                 </div>
 
-                                <p class="text-sm text-gray-600 mb-3 line-clamp-3" x-text="resultado.descricao_pt || resultado.descricao"></p>
+                                <!-- Descrição em português (se disponível) -->
+                                <p class="text-sm text-gray-600 mb-3" x-show="resultado.descricao_pt" x-text="resultado.descricao_pt"></p>
+
+                                <!-- Descrição original (se não houver tradução) -->
+                                <div x-show="!resultado.descricao_pt">
+                                    <p class="text-sm text-gray-600 mb-2" x-text="resultado.descricao"></p>
+                                    <p class="text-xs text-amber-600 italic" x-show="resultado.idioma !== 'pt'">⚠️ Tradução em português não disponível</p>
+                                </div>
 
                                 <div class="flex items-center justify-between text-xs text-gray-500">
                                     <div class="flex items-center gap-3">
