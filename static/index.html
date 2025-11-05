@@ -4866,12 +4866,6 @@
                             const paginacao = this.paginacao_fontes_fase1[falha.falha_id];
                             if (paginacao) {
                                 this.contagem_fontes_fase1[falha.falha_id] = paginacao.total || 0;
-
-                                // Atualizar também o objeto da falha
-                                const falhaObj = this.falhas_fase1.find(f => f.falha_id === falha.falha_id);
-                                if (falhaObj) {
-                                    falhaObj.num_fontes = paginacao.total || 0;
-                                }
                             }
 
                             // Marcar como concluída
