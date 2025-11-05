@@ -722,6 +722,123 @@
             </div>
         </div>
 
+        <!-- Modal de Estimativa de Custo - Fase I -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 z-[10001] flex items-center justify-center" @click.self="cancelar_atualizacao_fase1()" x-show="modal_estimativa_aberto" x-cloak>
+            <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4" @click.stop>
+                <!-- Cabeçalho -->
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">📊 Estimativa de Custo e Tempo</h3>
+                        <p class="text-sm text-gray-600 mt-1">
+                            Revise as informações antes de prosseguir com a análise
+                        </p>
+                    </div>
+                    <button @click="cancelar_atualizacao_fase1()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Conteúdo -->
+                <div x-show="estimativa_carregando" class="text-center py-12">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mb-4"></div>
+                    <p class="text-gray-600">Calculando estimativas...</p>
+                </div>
+
+                <div x-show="!estimativa_carregando && estimativa_dados" class="space-y-4">
+                    <!-- Resumo Geral -->
+                    <div class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-6 border border-purple-200">
+                        <h4 class="font-bold text-gray-800 mb-4 flex items-center">
+                            <span class="mr-2">📋</span>
+                            Resumo da Operação
+                        </h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-600">Falhas Priorizadas</p>
+                                <p class="text-2xl font-bold text-purple-600" x-text="estimativa_dados?.num_falhas || 0"></p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Total de Fontes</p>
+                                <p class="text-2xl font-bold text-indigo-600" x-text="estimativa_dados?.total_fontes_disponiveis || 0"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Análises Necessárias -->
+                    <div class="bg-amber-50 rounded-lg p-6 border border-amber-200">
+                        <h4 class="font-bold text-gray-800 mb-4 flex items-center">
+                            <span class="mr-2">🤖</span>
+                            Análises com IA
+                        </h4>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-700">Fontes após filtros:</span>
+                                <span class="font-mono font-bold text-gray-800" x-text="estimativa_dados?.total_fontes_apos_filtros || 0"></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-700">Já em cache:</span>
+                                <span class="font-mono font-bold text-green-600" x-text="estimativa_dados?.fontes_em_cache || 0"></span>
+                            </div>
+                            <div class="flex justify-between items-center pt-2 border-t border-amber-300">
+                                <span class="text-sm font-medium text-gray-800">Novas análises necessárias:</span>
+                                <span class="font-mono font-bold text-amber-700" x-text="estimativa_dados?.fontes_a_analisar || 0"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estimativas de Tempo e Custo -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Tempo -->
+                        <div class="bg-blue-50 rounded-lg p-6 border border-blue-200">
+                            <div class="flex items-center mb-2">
+                                <span class="text-2xl mr-2">⏱️</span>
+                                <h4 class="font-bold text-gray-800">Tempo</h4>
+                            </div>
+                            <p class="text-xl font-bold text-blue-600" x-text="estimativa_dados?.tempo_estimado_formatado || '0s'"></p>
+                            <p class="text-xs text-gray-500 mt-1">Tempo estimado de processamento</p>
+                        </div>
+
+                        <!-- Custo -->
+                        <div class="bg-green-50 rounded-lg p-6 border border-green-200">
+                            <div class="flex items-center mb-2">
+                                <span class="text-2xl mr-2">💰</span>
+                                <h4 class="font-bold text-gray-800">Custo</h4>
+                            </div>
+                            <p class="text-xl font-bold text-green-600" x-text="estimativa_dados?.custo_estimado_formatado || '$0.0000 USD'"></p>
+                            <p class="text-xs text-gray-500 mt-1">Custo estimado (Grok 4 Fast)</p>
+                        </div>
+                    </div>
+
+                    <!-- Aviso -->
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-yellow-700">
+                                    <strong>Atenção:</strong> As estimativas são aproximadas. O tempo real e custo podem variar dependendo da carga do sistema e complexidade das análises.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div x-show="!estimativa_carregando" class="flex gap-3 justify-end mt-6 pt-4 border-t">
+                    <button @click="cancelar_atualizacao_fase1()" class="px-6 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-medium transition-colors">
+                        ✕ Cancelar
+                    </button>
+                    <button @click="confirmar_atualizacao_fase1()" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors">
+                        ✓ Confirmar e Prosseguir
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Header Principal -->
         <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
             <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
@@ -1512,7 +1629,7 @@
                                         class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
                                     ⚙️ Configurar Filtros
                                 </button>
-                                <button @click="carregar_falhas_fase1()"
+                                <button @click="solicitar_atualizacao_fase1()"
                                         :disabled="carregando_fase1"
                                         :class="filtros_fase1_alterados
                                             ? 'bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-medium transition-colors animate-pulse'
@@ -1934,6 +2051,11 @@
                 confirmacao_titulo: '',
                 confirmacao_mensagem: '',
                 confirmacao_callback: null,
+                // Modal de estimativa de custo
+                modal_estimativa_aberto: false,
+                estimativa_dados: null,
+                estimativa_carregando: false,
+                falha_estimativa_id: null,
 
                 mudar_fase(idx) {
                     this.fase_atual = idx;
@@ -4284,6 +4406,124 @@
                 },
 
                 // ===== BOAS PRÁTICAS - FASE I =====
+
+                async solicitar_atualizacao_fase1() {
+                    // Se não houver filtros avançados ativos, carregar diretamente
+                    const filtros_avancados_ativos =
+                        this.filtros_fase1.tipo_fonte.length > 0 ||
+                        this.filtros_fase1.apenas_com_implementacao ||
+                        this.filtros_fase1.apenas_com_metricas;
+
+                    if (!filtros_avancados_ativos) {
+                        // Sem filtros avançados, não há análise LLM necessária
+                        await this.carregar_falhas_fase1();
+                        return;
+                    }
+
+                    // Com filtros avançados, mostrar estimativa
+                    this.modal_estimativa_aberto = true;
+                    this.estimativa_carregando = true;
+                    this.estimativa_dados = null;
+
+                    try {
+                        // Primeiro, buscar lista de falhas priorizadas
+                        const resFalhas = await fetch('/api/boas-praticas/fase1/listar');
+                        if (!resFalhas.ok) throw new Error('Erro ao buscar falhas');
+
+                        const dadosFalhas = await resFalhas.json();
+                        const falhas = dadosFalhas.falhas || [];
+
+                        if (falhas.length === 0) {
+                            this.modal_estimativa_aberto = false;
+                            this.mostrar_notificacao('Nenhuma falha priorizada encontrada', 'aviso');
+                            return;
+                        }
+
+                        // Estimar custo para cada falha e agregar
+                        let total_fontes = 0;
+                        let total_fontes_apos_filtros = 0;
+                        let total_em_cache = 0;
+                        let total_a_analisar = 0;
+                        let tempo_total = 0;
+                        let custo_total = 0;
+
+                        const params = new URLSearchParams({
+                            confianca_minima: this.filtros_fase1.confianca_minima,
+                            peso_sebrae: this.filtros_fase1.peso_sebrae,
+                            tipo_fonte: this.filtros_fase1.tipo_fonte.join(','),
+                            anos_publicacao: this.filtros_fase1.anos_publicacao,
+                            regiao: this.filtros_fase1.regiao.join(','),
+                            idioma: this.filtros_fase1.idioma.join(','),
+                            apenas_com_implementacao: this.filtros_fase1.apenas_com_implementacao,
+                            apenas_com_metricas: this.filtros_fase1.apenas_com_metricas
+                        });
+
+                        // Buscar estimativa para cada falha em paralelo
+                        const estimativas = await Promise.all(
+                            falhas.map(async (falha) => {
+                                try {
+                                    const resEst = await fetch(`/api/boas-praticas/fase1/estimar-custo/${falha.falha_id}?${params.toString()}`);
+                                    if (!resEst.ok) return null;
+                                    return await resEst.json();
+                                } catch (e) {
+                                    console.error(`Erro ao estimar falha ${falha.falha_id}:`, e);
+                                    return null;
+                                }
+                            })
+                        );
+
+                        // Agregar resultados
+                        estimativas.forEach(est => {
+                            if (!est) return;
+                            total_fontes += est.total_fontes_disponiveis || 0;
+                            total_fontes_apos_filtros += est.total_fontes_apos_filtros || 0;
+                            total_em_cache += est.fontes_em_cache || 0;
+                            total_a_analisar += est.fontes_a_analisar || 0;
+                            tempo_total += est.tempo_estimado_segundos || 0;
+                            custo_total += est.custo_estimado_usd || 0;
+                        });
+
+                        // Formatar tempo
+                        let tempo_formatado;
+                        if (tempo_total < 60) {
+                            tempo_formatado = `~${Math.ceil(tempo_total)} segundos`;
+                        } else {
+                            const minutos = Math.floor(tempo_total / 60);
+                            const segundos = Math.ceil(tempo_total % 60);
+                            tempo_formatado = `~${minutos}min ${segundos}s`;
+                        }
+
+                        this.estimativa_dados = {
+                            num_falhas: falhas.length,
+                            total_fontes_disponiveis: total_fontes,
+                            total_fontes_apos_filtros: total_fontes_apos_filtros,
+                            fontes_em_cache: total_em_cache,
+                            fontes_a_analisar: total_a_analisar,
+                            tempo_estimado_segundos: tempo_total,
+                            tempo_estimado_formatado: tempo_formatado,
+                            custo_estimado_usd: custo_total,
+                            custo_estimado_formatado: `$${custo_total.toFixed(4)} USD`
+                        };
+
+                    } catch (e) {
+                        console.error('Erro ao estimar:', e);
+                        this.modal_estimativa_aberto = false;
+                        this.mostrar_notificacao('Erro ao calcular estimativa: ' + e.message, 'erro');
+                    } finally {
+                        this.estimativa_carregando = false;
+                    }
+                },
+
+                async confirmar_atualizacao_fase1() {
+                    this.modal_estimativa_aberto = false;
+                    await this.carregar_falhas_fase1();
+                },
+
+                cancelar_atualizacao_fase1() {
+                    this.modal_estimativa_aberto = false;
+                    this.estimativa_dados = null;
+                },
+
                 async carregar_falhas_fase1() {
                     this.carregando_fase1 = true;
                     this.filtros_fase1_alterados = false;  // Resetar flag ao atualizar

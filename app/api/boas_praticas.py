@@ -493,13 +493,39 @@ async def obter_fontes_falha_fase1(
                 except:
                     pass
 
-            # 7. Filtros avançados (implementação básica - requer análise de conteúdo)
-            # TODO: Implementar análise semântica para detectar casos de implementação e métricas
-            if apenas_com_implementacao or apenas_com_metricas:
-                # Por ora, permitir todas (implementação futura com NLP)
-                pass
-
             fontes_filtradas.append(fonte)
+
+        # 7. Filtros avançados com LLM (se necessário)
+        # Aplicar ANTES da paginação para garantir resultados corretos
+        if tipos_fonte_selecionados or apenas_com_implementacao or apenas_com_metricas:
+            logger.info(f"Aplicando filtros avançados com LLM...")
+
+            # Enriquecer fontes com análises (usa cache quando possível)
+            fontes_filtradas = await enriquecer_fontes_com_analises(fontes_filtradas)
+
+            # Aplicar filtros baseados nas análises
+            fontes_filtradas_final = []
+            for fonte in fontes_filtradas:
+                # Filtro de tipo de fonte
+                if tipos_fonte_selecionados:
+                    tipo_llm = fonte.get('tipo_fonte_llm', 'desconhecido')
+                    if tipo_llm not in tipos_fonte_selecionados:
+                        continue
+
+                # Filtro de implementação
+                if apenas_com_implementacao:
+                    if not fonte.get('tem_implementacao_llm', False):
+                        continue
+
+                # Filtro de métricas
+                if apenas_com_metricas:
+                    if not fonte.get('tem_metricas_llm', False):
+                        continue
+
+                fontes_filtradas_final.append(fonte)
+
+            fontes_filtradas = fontes_filtradas_final
+            logger.info(f"Após filtros avançados: {len(fontes_filtradas)} fontes")
 
         # Ordenar por score ajustado (maior para menor)
         fontes_filtradas.sort(key=lambda x: x['score_ajustado'], reverse=True)
@@ -545,6 +571,212 @@ async def obter_fontes_falha_fase1(
 
     except Exception as e:
         logger.error(f"Erro ao obter fontes da falha {falha_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/fase1/estimar-custo/{falha_id}")
+async def estimar_custo_analise_fase1(
+    falha_id: int,
+    # Filtros (mesmos do endpoint principal)
+    confianca_minima: float = 0.0,
+    peso_sebrae: int = 1,
+    tipo_fonte: str = "",
+    anos_publicacao: str = "todos",
+    regiao: str = "",
+    idioma: str = "",
+    apenas_com_implementacao: bool = False,
+    apenas_com_metricas: bool = False
+):
+    """
+    Estima o custo e tempo de execução de uma análise antes de executá-la
+
+    Calcula:
+    - Total de fontes que serão processadas
+    - Quantas já estão em cache
+    - Quantas precisam de análise LLM
+    - Tempo estimado (considerando 5 análises paralelas)
+    - Custo estimado (baseado em Grok 4 Fast)
+
+    Returns:
+        dict com estimativas detalhadas
+    """
+    try:
+        logger.info(f"Estimando custo de análise para falha {falha_id}")
+
+        # Buscar TODAS as fontes disponíveis (mesma lógica do endpoint principal)
+        resultados_pesquisa = await get_resultados_by_falha(falha_id)
+        fontes_salvas = await obter_fontes_por_falha(falha_id)
+
+        # Formatar fontes
+        fontes_formatadas = []
+
+        for resultado in resultados_pesquisa:
+            fontes_formatadas.append({
+                "id": resultado.get('id'),
+                "tipo": "resultado_pesquisa",
+                "titulo": resultado.get('titulo'),
+                "descricao": resultado.get('descricao'),
+                "url": resultado.get('fonte_url'),
+                "idioma": resultado.get('idioma'),
+                "pais_origem": resultado.get('pais_origem'),
+                "confidence_score": resultado.get('confidence_score', 0.5),
+                "criado_em": resultado.get('criado_em')
+            })
+
+        for fonte in fontes_salvas:
+            if fonte.get('fonte_tipo') == 'documento':
+                fontes_formatadas.append({
+                    "id": fonte.get('id'),
+                    "tipo": "documento",
+                    "titulo": fonte.get('fonte_titulo'),
+                    "descricao": fonte.get('fonte_descricao'),
+                    "url": fonte.get('fonte_url'),
+                    "idioma": None,
+                    "pais_origem": None,
+                    "confidence_score": 0.7,
+                    "criado_em": fonte.get('criado_em')
+                })
+
+        # ===== APLICAR MESMOS FILTROS DO ENDPOINT PRINCIPAL =====
+
+        tipos_fonte_selecionados = [t.strip() for t in tipo_fonte.split(',') if t.strip()]
+        regioes_selecionadas = [r.strip() for r in regiao.split(',') if r.strip()]
+        idiomas_selecionados = [i.strip() for i in idioma.split(',') if i.strip()]
+
+        def is_fonte_sebrae(fonte: dict) -> bool:
+            titulo = (fonte.get('titulo') or '').lower()
+            url = (fonte.get('url') or '').lower()
+            return 'sebrae' in titulo or 'sebrae' in url
+
+        # Aplicar filtros básicos
+        fontes_filtradas = []
+        for fonte in fontes_formatadas:
+            # Filtro de confiança
+            if fonte['confidence_score'] < confianca_minima:
+                continue
+
+            # Filtro de região
+            if regioes_selecionadas:
+                pais = (fonte.get('pais_origem') or '').lower()
+                paises_latam = ['argentina', 'chile', 'colombia', 'mexico', 'peru',
+                               'uruguay', 'venezuela', 'ecuador', 'bolivia', 'paraguay',
+                               'brasil', 'brazil']
+                aceitar_fonte = False
+                if 'brasil' in regioes_selecionadas and pais in ['brasil', 'brazil', 'br']:
+                    aceitar_fonte = True
+                if 'latam' in regioes_selecionadas and any(p in pais for p in paises_latam):
+                    aceitar_fonte = True
+                if 'global' in regioes_selecionadas:
+                    aceitar_fonte = True
+                if not aceitar_fonte:
+                    continue
+
+            # Filtro de idioma
+            if idiomas_selecionados:
+                fonte_idioma = (fonte.get('idioma') or '').lower()
+                if not any(idioma_sel.lower() in fonte_idioma or fonte_idioma in idioma_sel.lower()
+                          for idioma_sel in idiomas_selecionados):
+                    continue
+
+            # Filtro de período
+            if anos_publicacao != "todos":
+                from datetime import datetime, timedelta
+                try:
+                    anos = int(anos_publicacao)
+                    data_limite = datetime.now() - timedelta(days=anos*365)
+                    data_criacao = fonte.get('criado_em')
+                    if data_criacao and isinstance(data_criacao, str):
+                        try:
+                            data_obj = datetime.fromisoformat(data_criacao.replace('Z', '+00:00'))
+                            if data_obj < data_limite:
+                                continue
+                        except:
+                            pass
+                except:
+                    pass
+
+            fontes_filtradas.append(fonte)
+
+        total_fontes_apos_filtros = len(fontes_filtradas)
+
+        # ===== VERIFICAR QUAIS PRECISAM DE ANÁLISE LLM =====
+
+        # Só precisa de análise LLM se houver filtros avançados
+        precisa_llm = bool(tipos_fonte_selecionados or apenas_com_implementacao or apenas_com_metricas)
+
+        fontes_em_cache = 0
+        fontes_a_analisar = 0
+
+        if precisa_llm and fontes_filtradas:
+            # Gerar hashes
+            fonte_hashes = []
+            for fonte in fontes_filtradas:
+                hash_fonte = await gerar_hash_fonte(
+                    titulo=fonte.get('titulo', ''),
+                    descricao=fonte.get('descricao', ''),
+                    url=fonte.get('url', '')
+                )
+                fonte_hashes.append(hash_fonte)
+
+            # Verificar cache em lote
+            analises_cache = await obter_analises_fontes_lote(fonte_hashes)
+            fontes_em_cache = len(analises_cache)
+            fontes_a_analisar = len(fontes_filtradas) - fontes_em_cache
+
+        # ===== CALCULAR ESTIMATIVAS =====
+
+        # Tempo: Com semaphore de 5, processamos 5 análises em paralelo
+        # Cada análise leva ~2-3 segundos
+        tempo_por_lote = 2.5  # segundos (média)
+        if fontes_a_analisar > 0:
+            num_lotes = (fontes_a_analisar + 4) // 5  # Arredonda pra cima
+            tempo_estimado_segundos = num_lotes * tempo_por_lote
+        else:
+            tempo_estimado_segundos = 1  # Apenas busca em cache
+
+        # Custo: Grok 4 Fast é ~$0.0005 por 1K tokens
+        # Cada análise usa ~500 tokens (prompt + response)
+        # = ~$0.00025 por análise
+        custo_por_analise = 0.00025
+        custo_estimado_usd = fontes_a_analisar * custo_por_analise
+
+        # Formatar tempo de forma amigável
+        if tempo_estimado_segundos < 60:
+            tempo_formatado = f"~{int(tempo_estimado_segundos)} segundos"
+        else:
+            minutos = int(tempo_estimado_segundos // 60)
+            segundos = int(tempo_estimado_segundos % 60)
+            tempo_formatado = f"~{minutos}m {segundos}s"
+
+        return {
+            "falha_id": falha_id,
+            "total_fontes_disponiveis": len(fontes_formatadas),
+            "total_fontes_apos_filtros": total_fontes_apos_filtros,
+            "precisa_analise_llm": precisa_llm,
+            "fontes_em_cache": fontes_em_cache,
+            "fontes_a_analisar": fontes_a_analisar,
+            "tempo_estimado_segundos": tempo_estimado_segundos,
+            "tempo_estimado_formatado": tempo_formatado,
+            "custo_estimado_usd": round(custo_estimado_usd, 4),
+            "custo_estimado_formatado": f"${custo_estimado_usd:.4f} USD",
+            "detalhes": {
+                "filtros_ativos": {
+                    "confianca_minima": confianca_minima,
+                    "peso_sebrae": peso_sebrae,
+                    "tipos_fonte": tipos_fonte_selecionados,
+                    "regioes": regioes_selecionadas,
+                    "idiomas": idiomas_selecionados,
+                    "anos_publicacao": anos_publicacao,
+                    "apenas_implementacao": apenas_com_implementacao,
+                    "apenas_metricas": apenas_com_metricas
+                },
+                "modelo_llm": "xai/grok-4-fast",
+                "analises_paralelas": 5
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao estimar custo para falha {falha_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
