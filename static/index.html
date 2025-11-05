@@ -2179,6 +2179,8 @@
                 fontes_falha_fase1: {},  // { falha_id: [fontes] }
                 carregando_fontes_fase1: {},  // { falha_id: true/false }
                 paginacao_fontes_fase1: {},  // { falha_id: { page, total_pages, has_next, has_prev } }
+                progresso_falhas_fase1: {},  // { falha_id: { ativo: bool, percentual: 0-100, etapa: string } }
+                contagem_fontes_fase1: {},  // { falha_id: numero_fontes_apos_filtros }
                 // Modal e configurações de filtros
                 modal_filtros_fase1_aberto: false,
                 filtros_fase1: {
@@ -4829,7 +4831,7 @@
                         return;
                     }
 
-                    // Iniciar progresso
+                    // Iniciar progresso geral
                     this.progresso_lote_fase1 = {
                         ativo: true,
                         total: this.falhas_fase1.length,
@@ -4844,16 +4846,47 @@
                         for (let i = 0; i < this.falhas_fase1.length; i++) {
                             const falha = this.falhas_fase1[i];
 
+                            // Atualizar progresso geral
                             this.progresso_lote_fase1.falha_atual = `${falha.titulo} (${i + 1}/${this.falhas_fase1.length})`;
                             this.progresso_lote_fase1.etapa_atual = 'Carregando fontes...';
                             this.progresso_lote_fase1.percentual = Math.floor((i / this.falhas_fase1.length) * 100);
 
-                            // Expandir linha e carregar fontes
-                            this.linhas_expandidas_fase1[falha.falha_id] = true;
+                            // Marcar progresso individual para esta falha
+                            this.progresso_falhas_fase1[falha.falha_id] = {
+                                ativo: true,
+                                percentual: 0,
+                                etapa: 'Carregando fontes...'
+                            };
+                            this.renderizar_tabela_fase1();
+
+                            // Carregar fontes (SEM expandir a linha)
                             await this.carregar_fontes_fase1(falha.falha_id);
+
+                            // Atualizar contagem de fontes após carregar
+                            const paginacao = this.paginacao_fontes_fase1[falha.falha_id];
+                            if (paginacao) {
+                                this.contagem_fontes_fase1[falha.falha_id] = paginacao.total || 0;
+
+                                // Atualizar também o objeto da falha
+                                const falhaObj = this.falhas_fase1.find(f => f.falha_id === falha.falha_id);
+                                if (falhaObj) {
+                                    falhaObj.num_fontes = paginacao.total || 0;
+                                }
+                            }
+
+                            // Marcar como concluída
+                            this.progresso_falhas_fase1[falha.falha_id] = {
+                                ativo: true,
+                                percentual: 100,
+                                etapa: '✓ Concluído'
+                            };
 
                             this.progresso_lote_fase1.processadas = i + 1;
                             this.progresso_lote_fase1.percentual = Math.floor(((i + 1) / this.falhas_fase1.length) * 100);
+                            this.renderizar_tabela_fase1();
+
+                            // Aguardar 500ms antes de processar próxima (para UX)
+                            await new Promise(resolve => setTimeout(resolve, 500));
                         }
 
                         this.progresso_lote_fase1.etapa_atual = 'Concluído!';
@@ -4867,9 +4900,12 @@
                         console.error('Erro ao processar falhas:', e);
                         this.mostrar_notificacao('Erro ao processar algumas falhas: ' + e.message, 'erro');
                     } finally {
-                        // Aguardar 2 segundos antes de fechar o progresso
+                        // Aguardar 2 segundos antes de ocultar progresso individual
                         setTimeout(() => {
                             this.progresso_lote_fase1.ativo = false;
+                            // Limpar progressos individuais
+                            this.progresso_falhas_fase1 = {};
+                            this.renderizar_tabela_fase1();
                         }, 2000);
                     }
                 },
@@ -4998,6 +5034,12 @@
                         const isExpanded = this.linhas_expandidas_fase1[falha.falha_id];
                         const isLoading = this.carregando_fontes_fase1[falha.falha_id];
                         const fontes = this.fontes_falha_fase1[falha.falha_id] || [];
+                        const progresso = this.progresso_falhas_fase1[falha.falha_id];
+
+                        // Usar contagem atualizada se disponível
+                        const numFontes = this.contagem_fontes_fase1[falha.falha_id] !== undefined
+                            ? this.contagem_fontes_fase1[falha.falha_id]
+                            : falha.num_fontes;
 
                         // Linha principal
                         html += `
@@ -5019,11 +5061,32 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                        ${falha.num_fontes} fonte${falha.num_fontes !== 1 ? 's' : ''}
+                                        ${numFontes} fonte${numFontes !== 1 ? 's' : ''}
                                     </span>
                                 </td>
                             </tr>
                         `;
+
+                        // Linha de progresso individual (se ativo)
+                        if (progresso && progresso.ativo) {
+                            const progressoColor = progresso.percentual === 100 ? 'from-green-500 to-emerald-500' : 'from-purple-500 to-indigo-500';
+                            html += `
+                                <tr class="bg-gradient-to-r from-purple-50 to-indigo-50">
+                                    <td colspan="4" class="px-6 py-3">
+                                        <div class="space-y-2">
+                                            <div class="flex items-center justify-between text-xs">
+                                                <span class="font-medium text-gray-700">${progresso.etapa}</span>
+                                                <span class="font-semibold text-purple-600">${progresso.percentual}%</span>
+                                            </div>
+                                            <div class="overflow-hidden h-2 text-xs flex rounded-full bg-purple-200">
+                                                <div style="width: ${progresso.percentual}%"
+                                                     class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r ${progressoColor} transition-all duration-500"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        }
 
                         // Linha expandida com fontes
                         if (isExpanded) {
