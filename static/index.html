@@ -2053,8 +2053,16 @@
                                                     <span class="text-lg" x-text="obter_icone_fonte(fonte.fonte_tipo)"></span>
                                                     <span class="font-bold text-gray-800 text-sm" x-text="obter_titulo_fonte(fonte)"></span>
                                                 </div>
-                                                <span :class="`${obter_cor_tipo(fonte.fonte_tipo)} px-2 py-1 rounded text-xs font-medium`"
-                                                      x-text="obter_label_tipo(fonte.fonte_tipo)"></span>
+                                                <div class="flex items-center gap-2">
+                                                    <span :class="`${obter_cor_tipo(fonte.fonte_tipo)} px-2 py-1 rounded text-xs font-medium`"
+                                                          x-text="obter_label_tipo(fonte.fonte_tipo)"></span>
+                                                    <!-- Badge de Idioma -->
+                                                    <template x-if="fonte.idioma && fonte.idioma.toLowerCase() !== 'pt' && fonte.idioma.toLowerCase() !== 'português'">
+                                                        <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                                                            🌐 <span x-text="obter_nome_idioma(fonte.idioma)"></span>
+                                                        </span>
+                                                    </template>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -2062,6 +2070,28 @@
                                         <template x-if="fonte.fonte_conteudo || fonte.fonte_descricao">
                                             <div class="text-sm text-gray-700 mb-3 italic border-l-2 border-gray-300 pl-3">
                                                 <p x-text="obter_trecho_fonte(fonte)"></p>
+                                            </div>
+                                        </template>
+
+                                        <!-- Tradução Automática (para idiomas diferentes de português) -->
+                                        <template x-if="fonte.idioma && fonte.idioma.toLowerCase() !== 'pt' && fonte.idioma.toLowerCase() !== 'português' && (fonte.fonte_conteudo || fonte.fonte_descricao)">
+                                            <div class="mb-3">
+                                                <div x-data="{ mostrar_traducao: false, traducao: '', traduzindo: false }">
+                                                    <button @click="if (!traducao) { traduzindo = true; traduzir_texto(obter_trecho_fonte(fonte), fonte.idioma).then(t => { traducao = t; traduzindo = false; mostrar_traducao = true; }); } else { mostrar_traducao = !mostrar_traducao; }"
+                                                            class="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 mb-2">
+                                                        <span x-show="!traduzindo">🇧🇷</span>
+                                                        <span x-show="traduzindo">⏳</span>
+                                                        <span x-show="!traduzindo && !mostrar_traducao">Ver tradução em português</span>
+                                                        <span x-show="!traduzindo && mostrar_traducao">Ocultar tradução</span>
+                                                        <span x-show="traduzindo">Traduzindo...</span>
+                                                    </button>
+                                                    <div x-show="mostrar_traducao && traducao" class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700">
+                                                        <div class="flex items-start gap-2 mb-2">
+                                                            <span class="text-blue-600 text-xs font-semibold">🇧🇷 TRADUÇÃO:</span>
+                                                        </div>
+                                                        <p class="italic" x-text="traducao"></p>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </template>
 
@@ -4613,6 +4643,51 @@
                     return texto || 'Sem trecho disponível';
                 },
 
+                obter_nome_idioma(codigo) {
+                    const idiomas = {
+                        'en': 'Inglês',
+                        'es': 'Espanhol',
+                        'fr': 'Francês',
+                        'de': 'Alemão',
+                        'it': 'Italiano',
+                        'zh': 'Chinês',
+                        'ja': 'Japonês',
+                        'ko': 'Coreano',
+                        'ar': 'Árabe',
+                        'ru': 'Russo',
+                        'hi': 'Hindi',
+                        'pt': 'Português'
+                    };
+                    return idiomas[codigo.toLowerCase()] || codigo.toUpperCase();
+                },
+
+                async traduzir_texto(texto, idioma_origem) {
+                    try {
+                        // Usar a API Perplexity para traduzir o texto
+                        const response = await fetch('/api/traduzir', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                texto: texto,
+                                idioma_origem: idioma_origem,
+                                idioma_destino: 'pt'
+                            })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Erro ao traduzir texto');
+                        }
+
+                        const dados = await response.json();
+                        return dados.traducao || 'Tradução não disponível';
+                    } catch (error) {
+                        console.error('Erro na tradução:', error);
+                        return 'Erro ao traduzir. Por favor, tente novamente.';
+                    }
+                },
+
                 remover_documento(filename) {
                     console.log('remover_documento chamado para:', filename);
                     this.mostrar_confirmacao(`Remover "${filename}"?`, `Esta ação não pode ser desfeita.`, () => {
@@ -4993,6 +5068,9 @@
                             has_prev: dados.has_prev,
                             total: dados.total
                         };
+
+                        // Atualizar contagem de fontes filtradas para exibição "X de Y"
+                        this.contagem_fontes_fase1[falha_id] = dados.total || 0;
                     } catch (e) {
                         this.mostrar_notificacao('✗ Erro ao carregar fontes: ' + e.message, 'erro');
                         console.error('Erro:', e);
