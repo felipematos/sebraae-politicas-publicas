@@ -148,6 +148,30 @@ class Database:
             expires_at DATETIME DEFAULT (datetime('now', '+30 days'))
         );
 
+        -- Tabela de cache de análises de fontes (LLM)
+        CREATE TABLE IF NOT EXISTS fontes_analises_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            fonte_id INTEGER,
+            fonte_url TEXT,
+            fonte_hash TEXT NOT NULL UNIQUE,  -- Hash do título+descricao+url para identificação
+            tipo_fonte TEXT,  -- academica, governamental, tecnico, caso_sucesso
+            tem_implementacao BOOLEAN DEFAULT 0,  -- Se descreve casos de implementação
+            tem_metricas BOOLEAN DEFAULT 0,  -- Se possui métricas de impacto quantificáveis
+            analise_llm TEXT,  -- Análise completa do LLM em JSON
+            modelo_usado TEXT,  -- Modelo LLM usado na análise
+            analisado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+            expires_at DATETIME DEFAULT (datetime('now', '+90 days')),  -- Cache de 90 dias
+            UNIQUE(fonte_hash)
+        );
+
+        -- Índice para busca rápida por URL
+        CREATE INDEX IF NOT EXISTS idx_fontes_analises_url
+            ON fontes_analises_cache(fonte_url);
+
+        -- Índice para busca por tipo e filtros
+        CREATE INDEX IF NOT EXISTS idx_fontes_analises_filtros
+            ON fontes_analises_cache(tipo_fonte, tem_implementacao, tem_metricas);
+
         -- Tabela de boas práticas identificadas
         CREATE TABLE IF NOT EXISTS boas_praticas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1054,6 +1078,102 @@ async def salvar_conteudo_url_cache(url: str, content: str = None, title: str = 
         expires_at = datetime('now', '+30 days')
     """
     await db.execute(query, (url, content, title, error))
+
+
+# ===== CACHE DE ANÁLISES DE FONTES (LLM) =====
+
+async def gerar_hash_fonte(titulo: str, descricao: str, url: str) -> str:
+    """
+    Gera hash único para identificar uma fonte
+    Usa título + descrição + URL para criar identificador único
+    """
+    import hashlib
+    conteudo = f"{titulo or ''}|{descricao or ''}|{url or ''}"
+    return hashlib.sha256(conteudo.encode()).hexdigest()
+
+
+async def obter_analise_fonte_cache(fonte_hash: str) -> Optional[Dict[str, Any]]:
+    """
+    Obtém análise de fonte do cache
+    Retorna None se não existir ou estiver expirada
+    """
+    query = """
+    SELECT
+        id, fonte_id, fonte_url, fonte_hash,
+        tipo_fonte, tem_implementacao, tem_metricas,
+        analise_llm, modelo_usado, analisado_em
+    FROM fontes_analises_cache
+    WHERE fonte_hash = ? AND datetime('now') < expires_at
+    """
+    return await db.fetch_one(query, (fonte_hash,))
+
+
+async def salvar_analise_fonte_cache(
+    fonte_hash: str,
+    tipo_fonte: str = None,
+    tem_implementacao: bool = False,
+    tem_metricas: bool = False,
+    analise_llm: str = None,
+    modelo_usado: str = None,
+    fonte_id: int = None,
+    fonte_url: str = None
+):
+    """
+    Salva ou atualiza análise de fonte no cache
+
+    Args:
+        fonte_hash: Hash único da fonte
+        tipo_fonte: Tipo da fonte (academica, governamental, tecnico, caso_sucesso)
+        tem_implementacao: Se a fonte descreve casos de implementação
+        tem_metricas: Se a fonte possui métricas de impacto
+        analise_llm: Análise completa em JSON
+        modelo_usado: Nome do modelo LLM usado
+        fonte_id: ID da fonte (opcional)
+        fonte_url: URL da fonte (opcional)
+    """
+    query = """
+    INSERT INTO fontes_analises_cache (
+        fonte_hash, fonte_id, fonte_url,
+        tipo_fonte, tem_implementacao, tem_metricas,
+        analise_llm, modelo_usado
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(fonte_hash) DO UPDATE SET
+        tipo_fonte = excluded.tipo_fonte,
+        tem_implementacao = excluded.tem_implementacao,
+        tem_metricas = excluded.tem_metricas,
+        analise_llm = excluded.analise_llm,
+        modelo_usado = excluded.modelo_usado,
+        analisado_em = CURRENT_TIMESTAMP,
+        expires_at = datetime('now', '+90 days')
+    """
+    await db.execute(query, (
+        fonte_hash, fonte_id, fonte_url,
+        tipo_fonte, tem_implementacao, tem_metricas,
+        analise_llm, modelo_usado
+    ))
+
+
+async def obter_analises_fontes_lote(fonte_hashes: List[str]) -> Dict[str, Dict[str, Any]]:
+    """
+    Obtém análises de múltiplas fontes de uma vez
+    Retorna dict com hash como chave e análise como valor
+    """
+    if not fonte_hashes:
+        return {}
+
+    placeholders = ','.join(['?' for _ in fonte_hashes])
+    query = f"""
+    SELECT
+        fonte_hash, tipo_fonte, tem_implementacao, tem_metricas,
+        analise_llm, modelo_usado
+    FROM fontes_analises_cache
+    WHERE fonte_hash IN ({placeholders})
+    AND datetime('now') < expires_at
+    """
+
+    resultados = await db.fetch_all(query, tuple(fonte_hashes))
+    return {r['fonte_hash']: dict(r) for r in resultados}
 
 
 # ===== BOAS PRÁTICAS =====

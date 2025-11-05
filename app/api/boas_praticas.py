@@ -14,11 +14,17 @@ from app.database import (
     listar_boas_praticas_por_falha,
     salvar_boa_pratica,
     limpar_boas_praticas_fase,
-    get_resultados_by_falha
+    get_resultados_by_falha,
+    gerar_hash_fonte,
+    obter_analise_fonte_cache,
+    salvar_analise_fonte_cache,
+    obter_analises_fontes_lote
 )
 from app.agente.analisador_boas_praticas import AnalisadorBoasPraticas
 from app.utils.content_fetcher import enrich_sources_with_full_content
 from app.utils.logger import logger
+from app.integracao.openrouter_api import OpenRouterClient
+import asyncio
 
 router = APIRouter(
     prefix="/api/boas-praticas",
@@ -67,6 +73,107 @@ class AnalisarFase2Response(BaseModel):
     pilar: str
     praticas: List[BoaPratica]
     total_praticas: int
+
+
+# ===== FUNÇÕES AUXILIARES =====
+
+async def enriquecer_fontes_com_analises(fontes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Enriquece fontes com análises de LLM (usando cache quando possível)
+
+    Para cada fonte:
+    1. Gera hash único
+    2. Verifica se já existe análise em cache
+    3. Se não, chama LLM e salva no cache
+    4. Adiciona análise à fonte
+
+    Args:
+        fontes: Lista de fontes a enriquecer
+
+    Returns:
+        Fontes com campos adicionais: tipo_fonte_llm, tem_implementacao_llm, tem_metricas_llm
+    """
+    if not fontes:
+        return fontes
+
+    logger.info(f"Enriquecendo {len(fontes)} fontes com análises de LLM...")
+
+    # 1. Gerar hashes de todas as fontes
+    fonte_hashes = {}
+    for fonte in fontes:
+        hash_fonte = await gerar_hash_fonte(
+            titulo=fonte.get('titulo', ''),
+            descricao=fonte.get('descricao', ''),
+            url=fonte.get('url', '')
+        )
+        fonte_hashes[hash_fonte] = fonte
+        fonte['_hash'] = hash_fonte
+
+    # 2. Buscar análises em cache (batch)
+    analises_cache = await obter_analises_fontes_lote(list(fonte_hashes.keys()))
+    logger.info(f"Encontradas {len(analises_cache)} análises em cache")
+
+    # 3. Identificar fontes que precisam de análise
+    fontes_para_analisar = []
+    for hash_fonte, fonte in fonte_hashes.items():
+        if hash_fonte in analises_cache:
+            # Usar análise do cache
+            analise = analises_cache[hash_fonte]
+            fonte['tipo_fonte_llm'] = analise.get('tipo_fonte')
+            fonte['tem_implementacao_llm'] = bool(analise.get('tem_implementacao'))
+            fonte['tem_metricas_llm'] = bool(analise.get('tem_metricas'))
+        else:
+            # Precisa analisar
+            fontes_para_analisar.append(fonte)
+
+    # 4. Analisar fontes sem cache (em lote com limite de concorrência)
+    if fontes_para_analisar:
+        logger.info(f"Analisando {len(fontes_para_analisar)} fontes com LLM...")
+
+        async with OpenRouterClient() as client:
+            # Limitar concorrência para não sobrecarregar API
+            semaphore = asyncio.Semaphore(5)  # Máximo 5 análises simultâneas
+
+            async def analisar_e_cachear(fonte):
+                async with semaphore:
+                    try:
+                        analise = await client.analisar_fonte(
+                            titulo=fonte.get('titulo', ''),
+                            descricao=fonte.get('descricao', ''),
+                            url=fonte.get('url')
+                        )
+
+                        # Salvar no cache
+                        await salvar_analise_fonte_cache(
+                            fonte_hash=fonte['_hash'],
+                            tipo_fonte=analise.get('tipo_fonte'),
+                            tem_implementacao=analise.get('tem_implementacao', False),
+                            tem_metricas=analise.get('tem_metricas', False),
+                            analise_llm=json.dumps(analise),
+                            modelo_usado='xai/grok-4-fast',
+                            fonte_id=fonte.get('id'),
+                            fonte_url=fonte.get('url')
+                        )
+
+                        # Adicionar à fonte
+                        fonte['tipo_fonte_llm'] = analise.get('tipo_fonte')
+                        fonte['tem_implementacao_llm'] = analise.get('tem_implementacao', False)
+                        fonte['tem_metricas_llm'] = analise.get('tem_metricas', False)
+
+                        logger.info(f"✓ Análise: {fonte.get('titulo', '')[:50]} -> {analise.get('tipo_fonte')}")
+
+                    except Exception as e:
+                        logger.error(f"Erro ao analisar fonte: {str(e)}")
+                        # Fallback: deixar como desconhecido
+                        fonte['tipo_fonte_llm'] = 'desconhecido'
+                        fonte['tem_implementacao_llm'] = False
+                        fonte['tem_metricas_llm'] = False
+
+            # Executar análises em paralelo (com limite)
+            await asyncio.gather(*[analisar_e_cachear(f) for f in fontes_para_analisar])
+
+    logger.info(f"Enriquecimento concluído!")
+    return fontes
 
 
 @router.get("/fase1/listar", response_model=ListarFalhasFase1Response)

@@ -228,6 +228,142 @@ Text to translate:
         print(f"[TRADUÇÃO] ✗ Todas as tentativas falharam, retornando texto original")
         return texto
 
+    async def analisar_fonte(
+        self,
+        titulo: str,
+        descricao: str,
+        url: str = None
+    ) -> dict:
+        """
+        Analisa uma fonte para determinar tipo, se tem implementação e métricas
+
+        Args:
+            titulo: Título da fonte
+            descricao: Descrição/resumo da fonte
+            url: URL da fonte (opcional)
+
+        Returns:
+            dict com:
+                - tipo_fonte: str (academica, governamental, tecnico, caso_sucesso)
+                - tem_implementacao: bool
+                - tem_metricas: bool
+                - confianca: float (0.0-1.0)
+        """
+        if not self.api_key:
+            return {
+                "tipo_fonte": "desconhecido",
+                "tem_implementacao": False,
+                "tem_metricas": False,
+                "confianca": 0.0
+            }
+
+        # Truncar texto para não exceder limites
+        titulo_trunc = (titulo or '')[:200]
+        descricao_trunc = (descricao or '')[:800]
+        url_info = f"\nURL: {url}" if url else ""
+
+        prompt = f"""Analise o seguinte documento e classifique-o de acordo com os critérios abaixo.
+Retorne APENAS um objeto JSON válido, sem explicações adicionais.
+
+Documento:
+Título: {titulo_trunc}
+Descrição: {descricao_trunc}{url_info}
+
+Critérios de classificação:
+
+1. tipo_fonte (escolha APENAS UMA opção):
+   - "academica": Artigos científicos, pesquisas acadêmicas, estudos universitários
+   - "governamental": Leis, decretos, programas governamentais, políticas públicas oficiais
+   - "tecnico": Relatórios técnicos, white papers, estudos de mercado, análises
+   - "caso_sucesso": Casos de sucesso, histórias de implementação bem-sucedida
+
+2. tem_implementacao (true/false):
+   - true: Se descreve casos práticos de implementação, experiências reais, exemplos concretos
+   - false: Se é apenas teórico, conceitual ou propositivo
+
+3. tem_metricas (true/false):
+   - true: Se apresenta dados quantificáveis, métricas de impacto, números, resultados mensuráveis
+   - false: Se não possui dados quantitativos
+
+4. confianca (0.0 a 1.0):
+   - Seu nível de confiança na classificação (0.0 = incerto, 1.0 = muito confiante)
+
+Formato de resposta (JSON apenas):
+{{
+  "tipo_fonte": "academica|governamental|tecnico|caso_sucesso",
+  "tem_implementacao": true|false,
+  "tem_metricas": true|false,
+  "confianca": 0.0-1.0
+}}"""
+
+        try:
+            modelo = self.MODELOS_ESPECIALIZADOS.get("avaliacao", "xai/grok-4-fast")
+            resultado = await self._chamar_modelo(modelo, prompt)
+
+            if resultado:
+                # Tentar parsear JSON
+                import json
+                # Remover possíveis marcadores de código
+                resultado_limpo = resultado.strip()
+                if resultado_limpo.startswith("```"):
+                    resultado_limpo = resultado_limpo.split("```")[1]
+                    if resultado_limpo.startswith("json"):
+                        resultado_limpo = resultado_limpo[4:]
+                resultado_limpo = resultado_limpo.strip()
+
+                analise = json.loads(resultado_limpo)
+
+                # Validar campos
+                tipo_valido = analise.get("tipo_fonte") in [
+                    "academica", "governamental", "tecnico", "caso_sucesso"
+                ]
+
+                if tipo_valido:
+                    return {
+                        "tipo_fonte": analise.get("tipo_fonte", "desconhecido"),
+                        "tem_implementacao": bool(analise.get("tem_implementacao", False)),
+                        "tem_metricas": bool(analise.get("tem_metricas", False)),
+                        "confianca": float(analise.get("confianca", 0.5))
+                    }
+
+        except Exception as e:
+            print(f"[ANÁLISE] ✗ Erro ao analisar fonte: {str(e)[:100]}")
+
+        # Fallback: tentar classificar baseado em palavras-chave
+        return self._classificar_heuristico(titulo, descricao, url)
+
+    def _classificar_heuristico(self, titulo: str, descricao: str, url: str = None) -> dict:
+        """Classificação heurística básica baseada em palavras-chave"""
+        texto = f"{titulo or ''} {descricao or ''} {url or ''}".lower()
+
+        # Tipo de fonte
+        tipo_fonte = "tecnico"  # padrão
+        if any(palavra in texto for palavra in ["lei", "decreto", "portaria", "gov.br", "planalto", "programa nacional"]):
+            tipo_fonte = "governamental"
+        elif any(palavra in texto for palavra in ["universidade", "pesquisa", "estudo", "paper", "journal", "revista científica"]):
+            tipo_fonte = "academica"
+        elif any(palavra in texto for palavra in ["caso", "sucesso", "exemplo", "implementação bem-sucedida"]):
+            tipo_fonte = "caso_sucesso"
+
+        # Tem implementação
+        tem_implementacao = any(palavra in texto for palavra in [
+            "implementou", "implementação", "aplicou", "executou", "caso prático",
+            "experiência", "projeto piloto", "iniciativa"
+        ])
+
+        # Tem métricas
+        tem_metricas = any(palavra in texto for palavra in [
+            "%", "percentual", "crescimento", "aumento", "redução", "impacto mensurável",
+            "dados", "estatísticas", "resultados quantificáveis", "indicadores"
+        ])
+
+        return {
+            "tipo_fonte": tipo_fonte,
+            "tem_implementacao": tem_implementacao,
+            "tem_metricas": tem_metricas,
+            "confianca": 0.3  # Baixa confiança para classificação heurística
+        }
+
     async def _chamar_modelo(self, modelo: str, prompt: str) -> str:
         """
         Chama um modelo específico da OpenRouter
