@@ -5234,13 +5234,14 @@
 
                     try {
                         // Construir URL com parâmetros de filtro
+                        // Converter arrays em strings separadas por vírgula
                         const params = new URLSearchParams({
                             confianca_minima: this.filtros_fase1.confianca_minima,
                             peso_sebrae: this.filtros_fase1.peso_sebrae,
-                            tipo_fonte: this.filtros_fase1.tipo_fonte,
+                            tipo_fonte: this.filtros_fase1.tipo_fonte.join(','),
                             anos_publicacao: this.filtros_fase1.anos_publicacao,
-                            regiao: this.filtros_fase1.regiao,
-                            idioma: this.filtros_fase1.idioma,
+                            regiao: this.filtros_fase1.regiao.join(','),
+                            idioma: this.filtros_fase1.idioma.join(','),
                             apenas_com_implementacao: this.filtros_fase1.apenas_com_implementacao,
                             apenas_com_metricas: this.filtros_fase1.apenas_com_metricas
                         });

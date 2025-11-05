@@ -11,9 +11,11 @@ from app.integracao.openrouter_api import OpenRouterClient
 async def testar_acuracia_multilingue():
     """
     Testa se a análise de fontes tem acurácia consistente em diferentes idiomas
+    Valida todos os idiomas suportados: pt, en, es, fr, de, it, ja, ar, ko, he
     """
     print("=" * 80)
     print("TESTE DE ACURÁCIA MULTILÍNGUE - FILTROS DE FONTES")
+    print("Idiomas testados: pt, en, es, fr, de, it, ja, ar, ko, he")
     print("=" * 80)
     print()
 
@@ -47,6 +49,39 @@ async def testar_acuracia_multilingue():
             "descricao": "El programa gubernamental implementado en 2023 apoyó a 1.500 startups, "
                         "resultando en un crecimiento del 45% en los ingresos promedio y la creación de "
                         "3.200 empleos directos. Inversión total: R$ 250 millones.",
+            "titulo_pt": "Programa Nacional de Apoio à Inovação - Resultados 2024",
+            "descricao_pt": "O programa governamental implementado em 2023 apoiou 1.500 startups, "
+                           "resultando em crescimento de 45% no faturamento médio e criação de "
+                           "3.200 empregos diretos. Investimento total: R$ 250 milhões."
+        },
+        {
+            "idioma": "fr",
+            "titulo": "Programme National de Soutien à l'Innovation - Résultats 2024",
+            "descricao": "Le programme gouvernemental mis en œuvre en 2023 a soutenu 1 500 startups, "
+                        "résultant en une croissance de 45% du chiffre d'affaires moyen et la création de "
+                        "3 200 emplois directs. Investissement total: R$ 250 millions.",
+            "titulo_pt": "Programa Nacional de Apoio à Inovação - Resultados 2024",
+            "descricao_pt": "O programa governamental implementado em 2023 apoiou 1.500 startups, "
+                           "resultando em crescimento de 45% no faturamento médio e criação de "
+                           "3.200 empregos diretos. Investimento total: R$ 250 milhões."
+        },
+        {
+            "idioma": "de",
+            "titulo": "Nationales Innovationsförderungsprogramm - Ergebnisse 2024",
+            "descricao": "Das Regierungsprogramm, das 2023 umgesetzt wurde, unterstützte 1.500 Startups, "
+                        "was zu einem Wachstum von 45% beim durchschnittlichen Umsatz und der Schaffung von "
+                        "3.200 direkten Arbeitsplätzen führte. Gesamtinvestition: R$ 250 Millionen.",
+            "titulo_pt": "Programa Nacional de Apoio à Inovação - Resultados 2024",
+            "descricao_pt": "O programa governamental implementado em 2023 apoiou 1.500 startups, "
+                           "resultando em crescimento de 45% no faturamento médio e criação de "
+                           "3.200 empregos diretos. Investimento total: R$ 250 milhões."
+        },
+        {
+            "idioma": "it",
+            "titulo": "Programma Nazionale di Supporto all'Innovazione - Risultati 2024",
+            "descricao": "Il programma governamentale implementato nel 2023 ha supportato 1.500 startup, "
+                        "risultando in una crescita del 45% del fatturato medio e la creazione di "
+                        "3.200 posti di lavoro diretti. Investimento totale: R$ 250 milioni.",
             "titulo_pt": "Programa Nacional de Apoio à Inovação - Resultados 2024",
             "descricao_pt": "O programa governamental implementado em 2023 apoiou 1.500 startups, "
                            "resultando em crescimento de 45% no faturamento médio e criação de "

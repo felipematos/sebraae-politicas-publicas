@@ -214,17 +214,22 @@ async def listar_falhas_fase1(
 
         logger.info(f"Encontradas {len(priorizacoes)} falhas destacadas")
 
-        # Verificar se há filtros ativos
-        filtros_ativos = (
+        # Verificar se há filtros ativos (além dos defaults)
+        filtros_basicos_ativos = (
             confianca_minima > 0.0 or
             peso_sebrae != 1 or
-            tipo_fonte or
             anos_publicacao != "todos" or
             regiao or
-            idioma or
+            idioma
+        )
+
+        filtros_avancados_ativos = (
+            tipo_fonte or
             apenas_com_implementacao or
             apenas_com_metricas
         )
+
+        filtros_ativos = filtros_basicos_ativos or filtros_avancados_ativos
 
         # Parse de arrays de filtros
         tipos_fonte_selecionados = [t.strip() for t in tipo_fonte.split(',') if t.strip()]
@@ -297,6 +302,36 @@ async def listar_falhas_fase1(
                             continue
 
                     fontes_filtradas_list.append(fonte)
+
+                # 4. Aplicar filtros avançados com LLM (se necessário)
+                if filtros_avancados_ativos and fontes_filtradas_list:
+                    logger.info(f"Aplicando filtros avançados para falha {falha_id}...")
+
+                    # Enriquecer fontes com análises LLM (usa cache quando possível)
+                    fontes_filtradas_list = await enriquecer_fontes_com_analises(fontes_filtradas_list)
+
+                    # Aplicar filtros baseados nas análises
+                    fontes_filtradas_final = []
+                    for fonte in fontes_filtradas_list:
+                        # Filtro de tipo de fonte
+                        if tipos_fonte_selecionados:
+                            tipo_llm = fonte.get('tipo_fonte_llm', 'desconhecido')
+                            if tipo_llm not in tipos_fonte_selecionados:
+                                continue
+
+                        # Filtro de implementação
+                        if apenas_com_implementacao:
+                            if not fonte.get('tem_implementacao_llm', False):
+                                continue
+
+                        # Filtro de métricas
+                        if apenas_com_metricas:
+                            if not fonte.get('tem_metricas_llm', False):
+                                continue
+
+                        fontes_filtradas_final.append(fonte)
+
+                    fontes_filtradas_list = fontes_filtradas_final
 
                 num_fontes_filtradas = len(fontes_filtradas_list)
 

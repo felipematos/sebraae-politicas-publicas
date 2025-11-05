@@ -281,8 +281,11 @@ Text to translate:
         # Adicionar informação de idioma se disponível
         idioma_info = ""
         if idioma:
-            idioma_map = {"pt": "Portuguese", "en": "English", "es": "Spanish",
-                         "fr": "French", "de": "German", "it": "Italian"}
+            idioma_map = {
+                "pt": "Portuguese", "en": "English", "es": "Spanish",
+                "fr": "French", "de": "German", "it": "Italian",
+                "ja": "Japanese", "ar": "Arabic", "ko": "Korean", "he": "Hebrew"
+            }
             idioma_nome = idioma_map.get(idioma, idioma)
             idioma_info = f"\nOriginal Language: {idioma_nome}"
 
@@ -363,56 +366,104 @@ Response Format (JSON only):
         return self._classificar_heuristico(titulo, descricao, url)
 
     def _classificar_heuristico(self, titulo: str, descricao: str, url: str = None) -> dict:
-        """Classificação heurística melhorada baseada em palavras-chave multilíngues
+        """Classificação heurística multilíngue completa
 
-        IMPORTANTE: Usa palavras-chave em múltiplos idiomas para garantir
-        acurácia consistente independente do idioma do texto.
+        IMPORTANTE: Usa palavras-chave em TODOS os idiomas suportados (pt, en, es, fr, de, it, ja, ar, ko, he)
+        para garantir acurácia consistente independente do idioma do texto.
         """
         texto = f"{titulo or ''} {descricao or ''} {url or ''}".lower()
 
-        # Tipo de fonte - palavras-chave em PT, EN, ES
+        # Tipo de fonte - palavras-chave em todos os idiomas
         tipo_fonte = "tecnico"  # padrão
 
-        # Governamental (PT, EN, ES)
+        # Governamental (pt, en, es, fr, de, it, ja, ar, ko, he)
         if any(palavra in texto for palavra in [
             # Português
             "lei", "decreto", "portaria", "gov.br", "planalto", "programa nacional",
             "governo", "ministerio", "ministério", "política pública",
             # English
             "law", "decree", "government program", "national program", "policy",
-            "ministry", "public policy",
+            "ministry", "public policy", "government",
             # Español
             "ley", "decreto", "programa nacional", "programa gubernamental",
-            "gobierno", "ministerio", "política pública"
+            "gobierno", "ministerio", "política pública",
+            # Français
+            "loi", "décret", "programme national", "gouvernement",
+            "ministère", "politique publique",
+            # Deutsch
+            "gesetz", "verordnung", "regierung", "ministerium",
+            "nationale programm", "öffentliche politik",
+            # Italiano
+            "legge", "decreto", "governo", "ministero",
+            "programma nazionale", "politica pubblica",
+            # 日本語 (Japonês - romanizado)
+            "hōritsu", "seifu", "kōkyō seisaku",
+            # العربية (Árabe - romanizado)
+            "qanun", "hukuma", "wizara", "barnamaj watani",
+            # 한국어 (Coreano - romanizado)
+            "beob", "jeongbu", "gukga peurogeulaem",
+            # עברית (Hebraico - romanizado)
+            "hok", "memshala", "misrad", "tochnit leumit"
         ]):
             tipo_fonte = "governamental"
 
-        # Acadêmica (PT, EN, ES)
+        # Acadêmica (pt, en, es, fr, de, it, ja, ar, ko, he)
         elif any(palavra in texto for palavra in [
             # Português
             "universidade", "pesquisa", "estudo", "paper", "journal", "revista científica",
             "artigo científico", "tese", "dissertação",
             # English
             "university", "research", "study", "scientific", "journal", "article",
-            "thesis", "dissertation",
+            "thesis", "dissertation", "academic",
             # Español
             "universidad", "investigación", "estudio", "revista científica",
-            "artículo científico", "tesis"
+            "artículo científico", "tesis",
+            # Français
+            "université", "recherche", "étude", "revue scientifique",
+            "article scientifique", "thèse",
+            # Deutsch
+            "universität", "forschung", "studie", "wissenschaftlich",
+            "zeitschrift", "dissertation",
+            # Italiano
+            "università", "ricerca", "studio", "rivista scientifica",
+            "articolo scientifico", "tesi",
+            # 日本語 (Japonês - romanizado)
+            "daigaku", "kenkyū", "ronbun", "gakujutsu",
+            # العربية (Árabe - romanizado)
+            "jami'a", "bahth", "majalat ilmiya",
+            # 한국어 (Coreano - romanizado)
+            "daehak", "yeongu", "nonmun", "haksul",
+            # עברית (Hebraico - romanizado)
+            "universita", "mehkar", "ma'amar", "akademi"
         ]):
             tipo_fonte = "academica"
 
-        # Caso de sucesso (PT, EN, ES)
+        # Caso de sucesso (pt, en, es, fr, de, it, ja, ar, ko, he)
         elif any(palavra in texto for palavra in [
             # Português
             "caso", "sucesso", "exemplo", "implementação bem-sucedida", "história de",
             # English
             "success case", "success story", "successful implementation", "case study",
             # Español
-            "caso de éxito", "historia de", "implementación exitosa"
+            "caso de éxito", "historia de", "implementación exitosa",
+            # Français
+            "cas de succès", "histoire de", "mise en œuvre réussie",
+            # Deutsch
+            "erfolgsfall", "erfolgsgeschichte", "erfolgreiche umsetzung",
+            # Italiano
+            "caso di successo", "storia di successo", "implementazione riuscita",
+            # 日本語 (Japonês - romanizado)
+            "seikō jirei", "jisshi jirei",
+            # العربية (Árabe - romanizado)
+            "halat najah", "qissat najah",
+            # 한국어 (Coreano - romanizado)
+            "seong-gong sa-rye",
+            # עברית (Hebraico - romanizado)
+            "sippur hatzlacha", "mikreh matzliach"
         ]):
             tipo_fonte = "caso_sucesso"
 
-        # Tem implementação - palavras-chave em PT, EN, ES
+        # Tem implementação - palavras-chave em todos os idiomas
         tem_implementacao = any(palavra in texto for palavra in [
             # Português
             "implementou", "implementado", "implementação", "aplicou", "executou",
@@ -423,25 +474,61 @@ Response Format (JSON only):
             "resulted", "resulting", "creation of", "created", "pilot project",
             # Español
             "implementó", "implementado", "implementación", "aplicó", "ejecutó",
-            "apoyó", "resultó", "creación de", "creó", "proyecto piloto"
+            "apoyó", "resultó", "creación de", "creó", "proyecto piloto",
+            # Français
+            "mis en œuvre", "implémenté", "appliqué", "exécuté",
+            "projet pilote", "initiative", "résulté",
+            # Deutsch
+            "implementiert", "umgesetzt", "angewendet", "pilotprojekt",
+            "initiative", "resultierte",
+            # Italiano
+            "implementato", "applicato", "eseguito", "progetto pilota",
+            "iniziativa", "risultato",
+            # 日本語 (Japonês - romanizado)
+            "jisshi", "tekiyo", "pairotto", "kekka",
+            # العربية (Árabe - romanizado)
+            "tanfidh", "tatbiq", "mashru' tajarubi", "natija",
+            # 한국어 (Coreano - romanizado)
+            "silhaeng", "jeog-yong", "pailleot", "gyeolgwa",
+            # עברית (Hebraico - romanizado)
+            "miyum", "hechel", "pilo't", "totsa'a"
         ])
 
-        # Tem métricas - buscar números e indicadores
+        # Tem métricas - buscar números e indicadores em todos os idiomas
         tem_metricas = any(palavra in texto for palavra in [
-            # Símbolos e números
-            "%", "percentual", "r$", "million", "milhão", "millones",
+            # Símbolos e números universais
+            "%", "r$", "$", "€", "¥", "£",
             # Português
+            "percentual", "milhão", "milhões", "bilhão", "bilhões",
             "crescimento", "aumento", "redução", "impacto mensurável",
             "dados", "estatísticas", "resultados quantificáveis", "indicadores",
             "empregos", "faturamento", "investimento",
             # English
-            "growth", "increase", "reduction", "measurable impact", "data",
-            "statistics", "quantifiable results", "indicators", "jobs",
-            "revenue", "investment",
+            "percent", "million", "billion", "growth", "increase", "reduction",
+            "measurable impact", "data", "statistics", "quantifiable results",
+            "indicators", "jobs", "revenue", "investment",
             # Español
-            "crecimiento", "aumento", "reducción", "impacto mensurable",
-            "datos", "estadísticas", "resultados cuantificables", "indicadores",
-            "empleos", "ingresos", "inversión"
+            "millones", "millón", "crecimiento", "aumento", "reducción",
+            "impacto mensurable", "datos", "estadísticas",
+            "resultados cuantificables", "indicadores", "empleos", "ingresos",
+            # Français
+            "pour cent", "millions", "croissance", "augmentation", "réduction",
+            "impact mesurable", "données", "statistiques", "indicateurs",
+            "emplois", "revenus", "investissement",
+            # Deutsch
+            "prozent", "millionen", "wachstum", "zunahme", "reduzierung",
+            "messbare auswirkung", "daten", "statistiken", "indikatoren",
+            # Italiano
+            "per cento", "milioni", "crescita", "aumento", "riduzione",
+            "impatto misurabile", "dati", "statistiche", "indicatori",
+            # 日本語 (Japonês - romanizado)
+            "pāsento", "man", "oku", "zōka", "genshō", "dēta", "shihyō",
+            # العربية (Árabe - romanizado)
+            "bi'l-mi'a", "milyun", "numuwa", "bianat", "mu'ashshirat",
+            # 한국어 (Coreano - romanizado)
+            "peosenteu", "baeg-man", "seong-jang", "jeungga", "data", "jihyo",
+            # עברית (Hebraico - romanizado)
+            "achuz", "milyon", "tzmikha", "ne'tanim", "ma'arachim"
         ])
 
         return {

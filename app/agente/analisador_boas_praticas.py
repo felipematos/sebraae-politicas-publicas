@@ -96,8 +96,11 @@ class AnalisadorBoasPraticas:
             idioma = fonte.get('idioma', 'pt')
             idioma_flag = ""
             if idioma != 'pt' and (fonte.get('titulo_pt') or fonte.get('descricao_pt')):
-                idioma_map = {"en": "Inglês", "es": "Espanhol", "fr": "Francês",
-                             "de": "Alemão", "it": "Italiano"}
+                idioma_map = {
+                    "en": "Inglês", "es": "Espanhol", "fr": "Francês",
+                    "de": "Alemão", "it": "Italiano", "ja": "Japonês",
+                    "ar": "Árabe", "ko": "Coreano", "he": "Hebraico"
+                }
                 idioma_nome = idioma_map.get(idioma, idioma.upper())
                 idioma_flag = f" [TRADUZIDO DE {idioma_nome}]"
 
