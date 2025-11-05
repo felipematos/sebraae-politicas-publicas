@@ -379,7 +379,11 @@ async def obter_fontes_falha_fase1(
                 "idioma": resultado.get('idioma'),
                 "pais_origem": resultado.get('pais_origem'),
                 "confidence_score": resultado.get('confidence_score', 0.5),
-                "criado_em": resultado.get('criado_em')
+                "criado_em": resultado.get('criado_em'),
+                "titulo_pt": resultado.get('titulo_pt'),
+                "descricao_pt": resultado.get('descricao_pt'),
+                "titulo_en": resultado.get('titulo_en'),
+                "descricao_en": resultado.get('descricao_en')
             })
 
         # Adicionar documentos RAG salvos (score padrão 0.7 para documentos curados)
@@ -620,7 +624,11 @@ async def estimar_custo_analise_fase1(
                 "idioma": resultado.get('idioma'),
                 "pais_origem": resultado.get('pais_origem'),
                 "confidence_score": resultado.get('confidence_score', 0.5),
-                "criado_em": resultado.get('criado_em')
+                "criado_em": resultado.get('criado_em'),
+                "titulo_pt": resultado.get('titulo_pt'),
+                "descricao_pt": resultado.get('descricao_pt'),
+                "titulo_en": resultado.get('titulo_en'),
+                "descricao_en": resultado.get('descricao_en')
             })
 
         for fonte in fontes_salvas:

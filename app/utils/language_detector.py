@@ -72,12 +72,23 @@ GERMAN_KEYWORDS = {
     'deutsch', 'deutschland', 'berlin', 'münchen', 'hamburg',
 }
 
+# Palavras-chave em italiano
+ITALIAN_KEYWORDS = {
+    'di', 'il', 'che', 'e', 'la', 'per', 'un', 'in', 'è', 'una',
+    'con', 'del', 'da', 'non', 'si', 'della', 'dei', 'le', 'delle',
+    'dei', 'al', 'alla', 'sono', 'anche', 'degli', 'agli', 'alle',
+    'come', 'ma', 'più', 'nel', 'nella', 'essere', 'suo', 'sua',
+    'questo', 'hanno', 'aveva', 'loro', 'fare', 'può', 'quando',
+    'italia', 'italiano', 'italiana', 'roma', 'milano', 'venezia',
+}
+
 LANGUAGE_KEYWORDS = {
     'pt': PORTUGUESE_KEYWORDS,
     'en': ENGLISH_KEYWORDS,
     'es': SPANISH_KEYWORDS,
     'fr': FRENCH_KEYWORDS,
     'de': GERMAN_KEYWORDS,
+    'it': ITALIAN_KEYWORDS,
 }
 
 

@@ -123,6 +123,73 @@ async def pesquisa_customizada(pesquisa: PesquisaCustom):
     }
 
 
+@router.get("/stats")
+async def obter_estatisticas():
+    """
+    Obter estatísticas gerais do sistema
+    Usado pelo frontend na seção "1. Pesquisa"
+    """
+    try:
+        # Contar total de falhas
+        total_falhas_row = await db.fetch_one(
+            "SELECT COUNT(*) as total FROM falhas_mercado"
+        )
+        total_falhas = total_falhas_row["total"] if total_falhas_row else 0
+
+        # Contar total de resultados de pesquisa
+        total_resultados_row = await db.fetch_one(
+            "SELECT COUNT(*) as total FROM resultados_pesquisa"
+        )
+        total_resultados = total_resultados_row["total"] if total_resultados_row else 0
+
+        # Contar falhas com resultados (pesquisas concluídas)
+        pesquisas_concluidas_row = await db.fetch_one(
+            "SELECT COUNT(DISTINCT falha_id) as total FROM resultados_pesquisa"
+        )
+        pesquisas_concluidas = pesquisas_concluidas_row["total"] if pesquisas_concluidas_row else 0
+
+        # Contar pesquisas em andamento na fila
+        pendentes_row = await db.fetch_one(
+            "SELECT COUNT(*) as total FROM fila_pesquisas WHERE status = 'pendente'"
+        )
+        total_pendentes = pendentes_row["total"] if pendentes_row else 0
+
+        processando_row = await db.fetch_one(
+            "SELECT COUNT(*) as total FROM fila_pesquisas WHERE status = 'processando'"
+        )
+        total_processando = processando_row["total"] if processando_row else 0
+
+        completas_row = await db.fetch_one(
+            "SELECT COUNT(*) as total FROM fila_pesquisas WHERE status = 'completa'"
+        )
+        total_concluidas = completas_row["total"] if completas_row else 0
+
+        return {
+            "sucesso": True,
+            "dados": {
+                "total_falhas": total_falhas,
+                "total_resultados": total_resultados,
+                "pesquisas_concluidas": pesquisas_concluidas,
+                "total_pendentes": total_pendentes,
+                "total_processando": total_processando,
+                "total_concluidas": total_concluidas
+            }
+        }
+    except Exception as e:
+        return {
+            "sucesso": False,
+            "dados": {
+                "total_falhas": 0,
+                "total_resultados": 0,
+                "pesquisas_concluidas": 0,
+                "total_pendentes": 0,
+                "total_processando": 0,
+                "total_concluidas": 0
+            },
+            "erro": str(e)
+        }
+
+
 @router.get("/pesquisas/status", response_model=StatusPesquisa)
 async def status_pesquisa():
     """

@@ -2073,23 +2073,50 @@
                                             </div>
                                         </template>
 
-                                        <!-- Tradução Automática (para idiomas diferentes de português) -->
-                                        <template x-if="fonte.idioma && fonte.idioma.toLowerCase() !== 'pt' && fonte.idioma.toLowerCase() !== 'português' && (fonte.fonte_conteudo || fonte.fonte_descricao)">
+                                        <!-- Tradução (integrada com banco de dados) -->
+                                        <template x-if="fonte.idioma && fonte.idioma.toLowerCase() !== 'pt' && fonte.idioma.toLowerCase() !== 'português' && (fonte.fonte_conteudo || fonte.fonte_descricao || fonte.titulo_pt || fonte.descricao_pt)">
                                             <div class="mb-3">
-                                                <div x-data="{ mostrar_traducao: false, traducao: '', traduzindo: false }">
-                                                    <button @click="if (!traducao) { traduzindo = true; traduzir_texto(obter_trecho_fonte(fonte), fonte.idioma).then(t => { traducao = t; traduzindo = false; mostrar_traducao = true; }); } else { mostrar_traducao = !mostrar_traducao; }"
+                                                <div x-data="{
+                                                    mostrar_traducao: false,
+                                                    traducao_titulo: fonte.titulo_pt || '',
+                                                    traducao_descricao: fonte.descricao_pt || '',
+                                                    traduzindo: false,
+                                                    get tem_traducao_db() {
+                                                        return !!(fonte.titulo_pt || fonte.descricao_pt);
+                                                    }
+                                                }">
+                                                    <button @click="
+                                                        if (tem_traducao_db) {
+                                                            mostrar_traducao = !mostrar_traducao;
+                                                        } else if (!traducao_descricao) {
+                                                            traduzindo = true;
+                                                            traduzir_texto(obter_trecho_fonte(fonte), fonte.idioma).then(t => {
+                                                                traducao_descricao = t;
+                                                                traduzindo = false;
+                                                                mostrar_traducao = true;
+                                                            });
+                                                        } else {
+                                                            mostrar_traducao = !mostrar_traducao;
+                                                        }
+                                                    "
                                                             class="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 mb-2">
                                                         <span x-show="!traduzindo">🇧🇷</span>
                                                         <span x-show="traduzindo">⏳</span>
-                                                        <span x-show="!traduzindo && !mostrar_traducao">Ver tradução em português</span>
+                                                        <span x-show="!traduzindo && !mostrar_traducao">
+                                                            <span x-text="tem_traducao_db ? 'Ver tradução (banco de dados)' : 'Traduzir para português'"></span>
+                                                        </span>
                                                         <span x-show="!traduzindo && mostrar_traducao">Ocultar tradução</span>
                                                         <span x-show="traduzindo">Traduzindo...</span>
                                                     </button>
-                                                    <div x-show="mostrar_traducao && traducao" class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700">
+                                                    <div x-show="mostrar_traducao && (traducao_titulo || traducao_descricao)" class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700">
                                                         <div class="flex items-start gap-2 mb-2">
                                                             <span class="text-blue-600 text-xs font-semibold">🇧🇷 TRADUÇÃO:</span>
+                                                            <span x-show="tem_traducao_db" class="text-xs text-green-600 font-medium">(✓ do banco)</span>
                                                         </div>
-                                                        <p class="italic" x-text="traducao"></p>
+                                                        <div class="space-y-2">
+                                                            <p x-show="traducao_titulo" class="font-medium text-gray-800" x-text="traducao_titulo"></p>
+                                                            <p x-show="traducao_descricao" class="italic text-gray-700" x-text="traducao_descricao"></p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2433,6 +2460,17 @@
                                 this.stats.total_falhas = dados.total_falhas || 0;
                                 this.stats.total_resultados = dados.total_resultados || 0;
                                 this.stats.total_priorizadas = dados.pesquisas_concluidas || 0;
+                                this.stats.total_pendentes = dados.total_pendentes || 0;
+                                this.stats.total_processando = dados.total_processando || 0;
+                                this.stats.total_concluidas = dados.total_concluidas || 0;
+
+                                // Calcular percentual de processamento baseado em falhas com resultados
+                                if (this.stats.total_falhas > 0) {
+                                    this.percentual_processamento = (dados.pesquisas_concluidas / this.stats.total_falhas) * 100;
+                                } else {
+                                    this.percentual_processamento = 0;
+                                }
+
                                 console.log('✓ Stats carregadas:', this.stats);
                             }
                         } else {
@@ -2440,12 +2478,20 @@
                             this.stats.total_falhas = 0;
                             this.stats.total_resultados = 0;
                             this.stats.total_priorizadas = 0;
+                            this.stats.total_pendentes = 0;
+                            this.stats.total_processando = 0;
+                            this.stats.total_concluidas = 0;
+                            this.percentual_processamento = 0;
                         }
                     } catch (e) {
                         console.error('Erro ao carregar stats:', e);
                         this.stats.total_falhas = 0;
                         this.stats.total_resultados = 0;
                         this.stats.total_priorizadas = 0;
+                        this.stats.total_pendentes = 0;
+                        this.stats.total_processando = 0;
+                        this.stats.total_concluidas = 0;
+                        this.percentual_processamento = 0;
                     }
                 },
 
