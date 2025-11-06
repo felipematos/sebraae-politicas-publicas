@@ -435,7 +435,7 @@
                         <div>
                             <label class="text-sm font-medium text-gray-700 flex items-center justify-between">
                                 Taxa de Confiança Mínima
-                                <span class="text-indigo-600 font-mono" x-text="(filtros_fase1.confianca_minima * 100).toFixed(0) + '%'"></span>
+                                <span class="text-indigo-600 font-mono" x-text="(filtros_fase1.confianca_minima * 100).toFixed(0)"></span>
                             </label>
                             <input type="range" x-model.number="filtros_fase1.confianca_minima" @input="filtros_fase1_alterados = true" min="0" max="1" step="0.05" class="w-full">
                             <p class="text-xs text-gray-500 mt-1">Fontes com confiança abaixo deste valor serão filtradas</p>
@@ -738,7 +738,7 @@
                     <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
                         <p class="text-sm font-medium text-indigo-900 mb-2">📋 Resumo dos Filtros Ativos</p>
                         <div class="text-xs text-indigo-800 space-y-1">
-                            <p><span class="font-medium">Confiança Mínima:</span> <span x-text="(filtros_fase1.confianca_minima * 100).toFixed(0) + '%'"></span></p>
+                            <p><span class="font-medium">Confiança Mínima:</span> <span x-text="(filtros_fase1.confianca_minima * 100).toFixed(0)"></span></p>
                             <p><span class="font-medium">Peso Sebrae:</span> <span x-text="filtros_fase1.peso_sebrae + 'x'"></span></p>
                             <p><span class="font-medium">Tipo:</span> <span x-text="filtros_fase1.tipo_fonte.length > 0 ? filtros_fase1.tipo_fonte.join(', ') : 'Todos'"></span></p>
                             <p><span class="font-medium">Período:</span> <span x-text="filtros_fase1.anos_publicacao === 'todos' ? 'Sem limite' : 'Últimos ' + filtros_fase1.anos_publicacao + ' anos'"></span></p>
@@ -1055,25 +1055,86 @@
                                 <option value="pais">País (A → Z)</option>
                             </select>
                         </div>
-                        <!-- Filtrar por idioma -->
+                        <!-- Filtrar por idiomas (seleção múltipla) -->
                         <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Idioma</label>
-                            <select x-model="filtro_idioma_resultados" @change="aplicar_filtros_resultados()" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                                <option value="">Todos</option>
-                                <option value="pt">Português</option>
-                                <option value="en">Inglês</option>
-                                <option value="es">Espanhol</option>
-                            </select>
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Idiomas <span class="text-gray-500 font-normal" x-show="filtro_idiomas_resultados.length > 0" x-text="'(' + filtro_idiomas_resultados.length + ' selecionados)'"></span></label>
+                            <div class="space-y-1.5 max-h-48 overflow-y-auto">
+                                <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                                    <input type="checkbox" value="pt" x-model="filtro_idiomas_resultados" @change="aplicar_filtros_resultados()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm text-gray-700">🇧🇷 Português</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                                    <input type="checkbox" value="en" x-model="filtro_idiomas_resultados" @change="aplicar_filtros_resultados()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm text-gray-700">🇺🇸 Inglês</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                                    <input type="checkbox" value="es" x-model="filtro_idiomas_resultados" @change="aplicar_filtros_resultados()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm text-gray-700">🇪🇸 Espanhol</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                                    <input type="checkbox" value="fr" x-model="filtro_idiomas_resultados" @change="aplicar_filtros_resultados()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm text-gray-700">🇫🇷 Francês</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                                    <input type="checkbox" value="de" x-model="filtro_idiomas_resultados" @change="aplicar_filtros_resultados()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm text-gray-700">🇩🇪 Alemão</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                                    <input type="checkbox" value="it" x-model="filtro_idiomas_resultados" @change="aplicar_filtros_resultados()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm text-gray-700">🇮🇹 Italiano</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                                    <input type="checkbox" value="ja" x-model="filtro_idiomas_resultados" @change="aplicar_filtros_resultados()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm text-gray-700">🇯🇵 Japonês</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                                    <input type="checkbox" value="ar" x-model="filtro_idiomas_resultados" @change="aplicar_filtros_resultados()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm text-gray-700">🇸🇦 Árabe</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                                    <input type="checkbox" value="ko" x-model="filtro_idiomas_resultados" @change="aplicar_filtros_resultados()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm text-gray-700">🇰🇷 Coreano</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                                    <input type="checkbox" value="he" x-model="filtro_idiomas_resultados" @change="aplicar_filtros_resultados()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm text-gray-700">🇮🇱 Hebraico</span>
+                                </label>
+                            </div>
                         </div>
                         <!-- Filtrar por score mínimo -->
                         <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Score mínimo</label>
-                            <select x-model="filtro_score_minimo_resultados" @change="aplicar_filtros_resultados()" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                                <option value="0">Todos (0%+)</option>
-                                <option value="0.25">Amarelo/Verde (25%+)</option>
-                                <option value="0.5">Verde (50%+)</option>
-                                <option value="0.75">Muito alta (75%+)</option>
-                            </select>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">
+                                Range de Score
+                                <span class="text-gray-500 font-normal" x-text="`(${filtro_score_min_resultados}% - ${filtro_score_max_resultados}%)`"></span>
+                            </label>
+                            <div class="space-y-3">
+                                <!-- Score mínimo -->
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Mínimo: <span x-text="filtro_score_min_resultados + '%'" class="font-semibold"></span></label>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        step="5"
+                                        x-model.number="filtro_score_min_resultados"
+                                        @input="if (filtro_score_min_resultados > filtro_score_max_resultados) filtro_score_max_resultados = filtro_score_min_resultados; aplicar_filtros_resultados();"
+                                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                    >
+                                </div>
+                                <!-- Score máximo -->
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Máximo: <span x-text="filtro_score_max_resultados + '%'" class="font-semibold"></span></label>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        step="5"
+                                        x-model.number="filtro_score_max_resultados"
+                                        @input="if (filtro_score_max_resultados < filtro_score_min_resultados) filtro_score_min_resultados = filtro_score_max_resultados; aplicar_filtros_resultados();"
+                                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                    >
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1107,7 +1168,78 @@
                                 <div class="flex items-start justify-between gap-4 mb-3">
                                     <div class="flex-1">
                                         <!-- Título em português (se disponível) -->
-                                        <h4 class="font-semibold text-gray-900" x-show="resultado.titulo_pt" x-text="resultado.titulo_pt"></h4>
+                                        <div x-show="resultado.titulo_pt" class="relative">
+                                            <div x-data="{ menu_traducao_aberto: false, editando: false, titulo_editado: resultado.titulo_pt }">
+                                                <!-- Título traduzido - clicável se idioma != pt -->
+                                                <div class="flex items-center gap-2">
+                                                    <div x-show="!editando" class="flex-1">
+                                                        <h4
+                                                            class="font-semibold text-gray-900"
+                                                            :class="resultado.idioma !== 'pt' ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''"
+                                                            @click="if (resultado.idioma !== 'pt') menu_traducao_aberto = !menu_traducao_aberto"
+                                                            x-text="resultado.titulo_pt"
+                                                        ></h4>
+                                                        <!-- Ícone para indicar que é clicável -->
+                                                        <span x-show="resultado.idioma !== 'pt'" class="text-xs text-gray-400 italic">
+                                                            (clique para opções de tradução)
+                                                        </span>
+                                                    </div>
+
+                                                    <!-- Input de edição -->
+                                                    <div x-show="editando" class="flex-1 flex items-center gap-2">
+                                                        <input
+                                                            type="text"
+                                                            x-model="titulo_editado"
+                                                            class="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                                                            @keyup.enter="salvar_edicao_titulo(resultado, titulo_editado); editando = false"
+                                                            @keyup.escape="editando = false; titulo_editado = resultado.titulo_pt"
+                                                        >
+                                                        <button
+                                                            @click="salvar_edicao_titulo(resultado, titulo_editado); editando = false"
+                                                            class="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700">
+                                                            Salvar
+                                                        </button>
+                                                        <button
+                                                            @click="editando = false; titulo_editado = resultado.titulo_pt"
+                                                            class="px-2 py-1 text-xs bg-gray-400 text-white rounded hover:bg-gray-500">
+                                                            Cancelar
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Menu dropdown -->
+                                                <div
+                                                    x-show="menu_traducao_aberto && resultado.idioma !== 'pt'"
+                                                    x-transition:enter="transition ease-out duration-100"
+                                                    x-transition:enter-start="transform opacity-0 scale-95"
+                                                    x-transition:enter-end="transform opacity-100 scale-100"
+                                                    x-transition:leave="transition ease-in duration-75"
+                                                    x-transition:leave-start="transform opacity-100 scale-100"
+                                                    x-transition:leave-end="transform opacity-0 scale-95"
+                                                    class="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                                                    @click.away="menu_traducao_aberto = false"
+                                                >
+                                                    <div class="py-1">
+                                                        <button
+                                                            @click="refazer_traducao_resultado(resultado); menu_traducao_aberto = false"
+                                                            class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
+                                                            :disabled="resultado._retraduzindo"
+                                                        >
+                                                            <span>🤖</span>
+                                                            <span x-show="!resultado._retraduzindo">Refazer tradução (IA)</span>
+                                                            <span x-show="resultado._retraduzindo" class="text-gray-500">Retraduzindo...</span>
+                                                        </button>
+                                                        <button
+                                                            @click="editando = true; menu_traducao_aberto = false; titulo_editado = resultado.titulo_pt"
+                                                            class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
+                                                        >
+                                                            <span>✏️</span>
+                                                            <span>Editar tradução</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
 
                                         <!-- Título original (se não houver tradução PT) -->
                                         <div x-show="!resultado.titulo_pt">
@@ -1140,12 +1272,72 @@
                                         <span
                                             class="px-2 py-1 text-xs font-medium rounded"
                                             :class="{
-                                                'bg-green-100 text-green-800': resultado.confidence_score >= 0.5,
-                                                'bg-yellow-100 text-yellow-800': resultado.confidence_score >= 0.25 && resultado.confidence_score < 0.5,
+                                                'bg-green-100 text-green-800': resultado.confidence_score > 0.5,
+                                                'bg-yellow-100 text-yellow-800': resultado.confidence_score >= 0.25 && resultado.confidence_score <= 0.5,
                                                 'bg-red-100 text-red-800': resultado.confidence_score < 0.25
                                             }"
-                                            x-text="(resultado.confidence_score * 100).toFixed(0) + '%'"></span>
-                                        <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded" x-text="resultado.idioma?.toUpperCase()"></span>
+                                            x-text="(resultado.confidence_score * 100).toFixed(0)"></span>
+
+                                        <!-- Dropdown de idioma (clicável para corrigir) -->
+                                        <div class="relative" x-data="{ aberto: false }">
+                                            <button
+                                                @click="aberto = !aberto"
+                                                @click.away="aberto = false"
+                                                class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded hover:bg-gray-200 transition-colors cursor-pointer flex items-center gap-1"
+                                                :title="'Clique para corrigir o idioma'"
+                                            >
+                                                <span x-text="resultado.idioma?.toUpperCase()"></span>
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                                </svg>
+                                            </button>
+
+                                            <!-- Menu dropdown -->
+                                            <div
+                                                x-show="aberto"
+                                                x-transition:enter="transition ease-out duration-100"
+                                                x-transition:enter-start="transform opacity-0 scale-95"
+                                                x-transition:enter-end="transform opacity-100 scale-100"
+                                                x-transition:leave="transition ease-in duration-75"
+                                                x-transition:leave-start="transform opacity-100 scale-100"
+                                                x-transition:leave-end="transform opacity-0 scale-95"
+                                                class="absolute right-0 mt-2 w-44 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-64 overflow-y-auto"
+                                                @click.away="aberto = false"
+                                            >
+                                                <div class="py-1">
+                                                    <button @click="atualizar_idioma_resultado(resultado, 'pt'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                        <span>🇧🇷</span> <span>Português</span>
+                                                    </button>
+                                                    <button @click="atualizar_idioma_resultado(resultado, 'en'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                        <span>🇺🇸</span> <span>Inglês</span>
+                                                    </button>
+                                                    <button @click="atualizar_idioma_resultado(resultado, 'es'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                        <span>🇪🇸</span> <span>Espanhol</span>
+                                                    </button>
+                                                    <button @click="atualizar_idioma_resultado(resultado, 'fr'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                        <span>🇫🇷</span> <span>Francês</span>
+                                                    </button>
+                                                    <button @click="atualizar_idioma_resultado(resultado, 'de'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                        <span>🇩🇪</span> <span>Alemão</span>
+                                                    </button>
+                                                    <button @click="atualizar_idioma_resultado(resultado, 'it'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                        <span>🇮🇹</span> <span>Italiano</span>
+                                                    </button>
+                                                    <button @click="atualizar_idioma_resultado(resultado, 'ja'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                        <span>🇯🇵</span> <span>Japonês</span>
+                                                    </button>
+                                                    <button @click="atualizar_idioma_resultado(resultado, 'ar'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                        <span>🇸🇦</span> <span>Árabe</span>
+                                                    </button>
+                                                    <button @click="atualizar_idioma_resultado(resultado, 'ko'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                        <span>🇰🇷</span> <span>Coreano</span>
+                                                    </button>
+                                                    <button @click="atualizar_idioma_resultado(resultado, 'he'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                        <span>🇮🇱</span> <span>Hebraico</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1484,6 +1676,33 @@
                     <p x-show="criterios_mudaram && stats.total_resultados" class="text-sm text-blue-600 mt-3">
                         ℹ️ Os critérios de avaliação foram alterados. Clique em "Reanalisar Resultados" para aplicar as novas configurações às fontes existentes.
                     </p>
+
+                    <!-- Indicador de Progresso da Reanálise -->
+                    <div x-show="reanalisando" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                        <div class="flex items-center gap-3 mb-3">
+                            <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-blue-800" x-text="progresso_reanalisar.mensagem || 'Iniciando reanálise...'"></p>
+                                <p class="text-xs text-blue-600 mt-1">
+                                    <span x-show="progresso_reanalisar.total > 0">
+                                        Progresso: <strong x-text="progresso_reanalisar.processados"></strong>/<strong x-text="progresso_reanalisar.total"></strong> resultados
+                                        · <span x-text="progresso_reanalisar.scores_atualizados"></span> atualizados
+                                        <span x-show="progresso_reanalisar.erros > 0" class="text-red-600">
+                                            · <span x-text="progresso_reanalisar.erros"></span> erros
+                                        </span>
+                                    </span>
+                                </p>
+                            </div>
+                            <span class="text-lg font-bold text-blue-600" x-text="`${progresso_reanalisar.progresso || 0}%`"></span>
+                        </div>
+                        <!-- Barra de progresso -->
+                        <div class="w-full bg-blue-100 rounded-full h-2.5">
+                            <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" :style="`width: ${progresso_reanalisar.progresso || 0}%`"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Tabela de Falhas -->
@@ -1495,7 +1714,12 @@
                                 <th class="px-6 py-3 text-left text-sm font-medium">Falha</th>
                                 <th class="px-6 py-3 text-left text-sm font-medium">Pilar</th>
                                 <th class="px-6 py-3 text-left text-sm font-medium">Progresso</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium">Resultados</th>
+                                <th class="px-6 py-3 text-right text-sm font-medium">
+                                    <div class="flex items-center gap-2 justify-end">
+                                        <span>Resultados</span>
+                                        <span class="cursor-help" title="Score de confiança (mediana)&#10;🟢 Verde: >50 (alta)&#10;🟡 Amarelo: 25-50 (média)&#10;🔴 Vermelho: <25 (baixa)">ⓘ</span>
+                                    </div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody id="tabela-falhas">
@@ -2627,6 +2851,17 @@
                 modal_reanalisar_aberto: false,  // Modal de confirmação de reanálise
                 estimativa_reanalisar: null,  // { custo, tempo, modelo, num_fontes }
                 reanalisando: false,  // Se está executando reanálise
+                progresso_reanalisar: {  // Progresso da reanálise em background
+                    job_id: null,
+                    status: '',
+                    progresso: 0,
+                    total: 0,
+                    processados: 0,
+                    scores_atualizados: 0,
+                    erros: 0,
+                    mensagem: ''
+                },
+                intervalo_polling_reanalisar: null,  // Referência ao setInterval
                 // Fase II - Análise com IA
                 fase2_status: '',
                 falhas_fase2: [],
@@ -2682,8 +2917,9 @@
                 busca_resultados_pesquisa: '',
                 mostrar_filtros_resultados: true,
                 ordenacao_resultados: 'score_desc',
-                filtro_idioma_resultados: '',
-                filtro_score_minimo_resultados: 0,
+                filtro_idiomas_resultados: [],
+                filtro_score_min_resultados: 0,
+                filtro_score_max_resultados: 100,
 
                 mudar_fase(idx) {
                     this.fase_atual = idx;
@@ -2896,23 +3132,49 @@
                         const data = await res.json();
                         const tbody = document.getElementById('tabela-falhas');
                         if (data.dados && Array.isArray(data.dados)) {
-                            tbody.innerHTML = data.dados.map(falha => `
+                            tbody.innerHTML = data.dados.map(falha => {
+                                // Determinar cor do score tipo semáforo (traffic light)
+                                // Verde > 50, Amarelo 25-50, Vermelho < 25
+                                const score = falha.confidence_medio || 0;
+                                let scoreColor, scoreBg, scoreText;
+
+                                if (score === 0) {
+                                    scoreColor = 'text-gray-500';
+                                    scoreBg = 'bg-gray-100';
+                                    scoreText = 'N/A';
+                                } else if (score > 0.5) {
+                                    scoreColor = 'text-green-700';
+                                    scoreBg = 'bg-green-100';
+                                    scoreText = (score * 100).toFixed(0);
+                                } else if (score >= 0.25) {
+                                    scoreColor = 'text-yellow-700';
+                                    scoreBg = 'bg-yellow-100';
+                                    scoreText = (score * 100).toFixed(0);
+                                } else {
+                                    scoreColor = 'text-red-700';
+                                    scoreBg = 'bg-red-100';
+                                    scoreText = (score * 100).toFixed(0);
+                                }
+
+                                return `
                                 <tr class="border-b hover:bg-blue-50 cursor-pointer" onclick="app.abrir_modal_resultados_pesquisa(${falha.id}, '${falha.titulo.replace(/'/g, "\\'")}', '${falha.pilar}')">
                                     <td class="px-6 py-4 text-sm">${falha.id}</td>
                                     <td class="px-6 py-4 text-sm font-medium">${falha.titulo}</td>
                                     <td class="px-6 py-4 text-sm"><span class="bg-blue-100 text-blue-800 px-3 py-1 rounded">${falha.pilar}</span></td>
                                     <td class="px-6 py-4 text-sm">
-                                        <div class="flex items-center gap-3">
-                                            <div class="flex-1 max-w-xs">
-                                                <div class="w-16 bg-gray-200 rounded h-2">
-                                                    <div class="bg-blue-600 h-2 rounded" style="width: ${Math.min((falha.total_resultados || 0) / 10, 100)}%"></div>
-                                                </div>
-                                            </div>
+                                        <div class="w-full bg-gray-200 rounded h-2">
+                                            <div class="bg-blue-600 h-2 rounded" style="width: ${Math.min((falha.total_resultados || 0) / 10, 100)}%"></div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <div class="flex items-center gap-2 justify-end">
                                             <span class="font-medium whitespace-nowrap text-blue-600">${falha.total_resultados || 0}</span>
+                                            <span class="font-bold ${scoreColor} ${scoreBg} px-3 py-1 rounded-full text-xs whitespace-nowrap min-w-[50px] text-center">${scoreText}</span>
                                         </div>
                                     </td>
                                 </tr>
-                            `).join('');
+                            `;
+                            }).join('');
                         }
                     } catch (e) {
                         console.error('Erro ao carregar falhas', e);
@@ -2973,19 +3235,19 @@
                         });
                     }
 
-                    // 2. Filtro de idioma
-                    if (this.filtro_idioma_resultados) {
+                    // 2. Filtro de idiomas (múltiplos)
+                    if (this.filtro_idiomas_resultados.length > 0) {
                         resultados = resultados.filter(r =>
-                            r.idioma && r.idioma.toLowerCase() === this.filtro_idioma_resultados.toLowerCase()
+                            r.idioma && this.filtro_idiomas_resultados.includes(r.idioma.toLowerCase())
                         );
                     }
 
-                    // 3. Filtro de score mínimo
-                    if (this.filtro_score_minimo_resultados > 0) {
-                        resultados = resultados.filter(r =>
-                            r.confidence_score >= this.filtro_score_minimo_resultados
-                        );
-                    }
+                    // 3. Filtro de score (range)
+                    const score_min = this.filtro_score_min_resultados / 100;
+                    const score_max = this.filtro_score_max_resultados / 100;
+                    resultados = resultados.filter(r =>
+                        r.confidence_score >= score_min && r.confidence_score <= score_max
+                    );
 
                     // 4. Ordenação
                     switch (this.ordenacao_resultados) {
@@ -3008,8 +3270,9 @@
 
                 limpar_filtros_resultados() {
                     this.busca_resultados_pesquisa = '';
-                    this.filtro_idioma_resultados = '';
-                    this.filtro_score_minimo_resultados = 0;
+                    this.filtro_idiomas_resultados = [];
+                    this.filtro_score_min_resultados = 0;
+                    this.filtro_score_max_resultados = 100;
                     this.ordenacao_resultados = 'score_desc';
                     this.aplicar_filtros_resultados();
                 },
@@ -3034,8 +3297,9 @@
                     };
                     // Limpar filtros
                     this.busca_resultados_pesquisa = '';
-                    this.filtro_idioma_resultados = '';
-                    this.filtro_score_minimo_resultados = 0;
+                    this.filtro_idiomas_resultados = [];
+                    this.filtro_score_min_resultados = 0;
+                    this.filtro_score_max_resultados = 100;
                     this.ordenacao_resultados = 'score_desc';
                     this.mostrar_filtros_resultados = false;
                 },
@@ -3068,6 +3332,127 @@
                         console.error('Erro ao traduzir resultado:', erro);
                         alert('Erro ao traduzir resultado. Tente novamente.');
                         resultado._traduzindo = false;
+                    }
+                },
+
+                async atualizar_idioma_resultado(resultado, novo_idioma) {
+                    try {
+                        // Se já é o mesmo idioma, não faz nada
+                        if (resultado.idioma === novo_idioma) {
+                            return;
+                        }
+
+                        // Chamar endpoint para atualizar idioma
+                        const response = await fetch(`/resultados/${resultado.id}/idioma?idioma=${novo_idioma}`, {
+                            method: 'PATCH'
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Erro ao atualizar idioma');
+                        }
+
+                        const data = await response.json();
+
+                        // Atualizar resultado localmente
+                        resultado.idioma = data.idioma;
+
+                        // Reaplica filtros para atualizar a exibição
+                        this.aplicar_filtros_resultados();
+
+                        // Mostrar mensagem de sucesso
+                        console.log(`Idioma atualizado para ${novo_idioma.toUpperCase()}`);
+
+                    } catch (erro) {
+                        console.error('Erro ao atualizar idioma:', erro);
+                        alert('Erro ao atualizar idioma. Tente novamente.');
+                    }
+                },
+
+                async refazer_traducao_resultado(resultado) {
+                    try {
+                        // Marcar como retraduzindo
+                        resultado._retraduzindo = true;
+
+                        // Limpar traduções anteriores localmente
+                        resultado.titulo_pt = null;
+                        resultado.descricao_pt = null;
+
+                        // Limpar traduções no banco para forçar nova tradução
+                        const clearResponse = await fetch(`/api/resultados/${resultado.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                titulo_pt: '',
+                                descricao_pt: ''
+                            })
+                        });
+
+                        if (!clearResponse.ok) {
+                            throw new Error('Erro ao limpar traduções anteriores');
+                        }
+
+                        // Aguardar um momento para garantir que o banco foi atualizado
+                        await new Promise(resolve => setTimeout(resolve, 200));
+
+                        // Chamar endpoint de tradução novamente
+                        const response = await fetch(`/api/resultados/${resultado.id}/traduzir`, {
+                            method: 'POST'
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Erro ao refazer tradução');
+                        }
+
+                        const data = await response.json();
+
+                        // Atualizar resultado com novas traduções
+                        resultado.titulo_pt = data.titulo_pt;
+                        resultado.descricao_pt = data.descricao_pt;
+                        resultado._retraduzindo = false;
+
+                        // Reaplica filtros para atualizar a exibição
+                        this.aplicar_filtros_resultados();
+
+                        console.log('Tradução refeita com sucesso');
+
+                    } catch (erro) {
+                        console.error('Erro ao refazer tradução:', erro);
+                        alert('Erro ao refazer tradução. Tente novamente.');
+                        resultado._retraduzindo = false;
+                    }
+                },
+
+                async salvar_edicao_titulo(resultado, titulo_editado) {
+                    try {
+                        if (!titulo_editado || titulo_editado.trim() === '') {
+                            alert('O título não pode estar vazio');
+                            return;
+                        }
+
+                        // Atualizar no backend
+                        const response = await fetch(`/resultados/${resultado.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                titulo_pt: titulo_editado.trim()
+                            })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Erro ao salvar edição');
+                        }
+
+                        // Atualizar localmente
+                        resultado.titulo_pt = titulo_editado.trim();
+
+                        // Reaplica filtros
+                        this.aplicar_filtros_resultados();
+
+                        console.log('Edição salva com sucesso');
+
+                    } catch (erro) {
+                        console.error('Erro ao salvar edição:', erro);
+                        alert('Erro ao salvar edição. Tente novamente.');
                     }
                 },
 
@@ -3823,6 +4208,7 @@
                     this.reanalisando = true;
 
                     try {
+                        // Iniciar reanálise em background
                         const response = await fetch('/api/analise/reanalisar', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -3835,22 +4221,88 @@
                         if (!response.ok) throw new Error('Erro ao iniciar reanálise');
 
                         const resultado = await response.json();
+                        this.progresso_reanalisar.job_id = resultado.job_id;
+                        this.progresso_reanalisar.status = 'iniciado';
+                        this.progresso_reanalisar.mensagem = 'Iniciando reanálise...';
 
-                        this.mostrar_notificacao(
-                            `✓ Reanálise concluída! ${resultado.total_reanalisadas || 0} fontes reanalisadas.`,
-                            'sucesso'
-                        );
+                        // Iniciar polling do progresso
+                        this.iniciar_polling_reanalisar();
 
-                        // Resetar flag de critérios mudados
-                        this.criterios_mudaram = false;
-
-                        // Recarregar stats
-                        await this.carregar_stats();
                     } catch (e) {
-                        this.mostrar_notificacao('✗ Erro na reanálise: ' + e.message, 'erro');
-                    } finally {
+                        this.mostrar_notificacao('✗ Erro ao iniciar reanálise: ' + e.message, 'erro');
                         this.reanalisando = false;
                     }
+                },
+
+                async iniciar_polling_reanalisar() {
+                    // Limpar intervalo anterior se existir
+                    if (this.intervalo_polling_reanalisar) {
+                        clearInterval(this.intervalo_polling_reanalisar);
+                    }
+
+                    // Fazer polling a cada 1 segundo
+                    this.intervalo_polling_reanalisar = setInterval(async () => {
+                        try {
+                            const response = await fetch(`/api/analise/reanalisar/status/${this.progresso_reanalisar.job_id}`);
+
+                            if (!response.ok) {
+                                throw new Error('Erro ao obter status da reanálise');
+                            }
+
+                            const status = await response.json();
+
+                            // Atualizar progresso
+                            this.progresso_reanalisar.status = status.status;
+                            this.progresso_reanalisar.progresso = status.progresso || 0;
+                            this.progresso_reanalisar.total = status.total || 0;
+                            this.progresso_reanalisar.processados = status.processados || 0;
+                            this.progresso_reanalisar.scores_atualizados = status.scores_atualizados || 0;
+                            this.progresso_reanalisar.erros = status.erros || 0;
+
+                            // Atualizar mensagem
+                            if (status.status === 'processando') {
+                                this.progresso_reanalisar.mensagem = `Processando... ${status.processados}/${status.total} resultados`;
+                            } else if (status.status === 'concluido') {
+                                this.progresso_reanalisar.mensagem = status.mensagem || 'Reanálise concluída!';
+                            } else if (status.status === 'erro') {
+                                this.progresso_reanalisar.mensagem = 'Erro na reanálise: ' + (status.erro || 'Erro desconhecido');
+                            }
+
+                            // Se concluído ou erro, parar polling
+                            if (status.status === 'concluido' || status.status === 'erro') {
+                                clearInterval(this.intervalo_polling_reanalisar);
+                                this.intervalo_polling_reanalisar = null;
+                                this.reanalisando = false;
+
+                                if (status.status === 'concluido') {
+                                    this.mostrar_notificacao(
+                                        `✓ Reanálise concluída! ${status.scores_atualizados} scores atualizados, ${status.erros} erros.`,
+                                        'sucesso'
+                                    );
+
+                                    // Resetar flag de critérios mudados
+                                    this.criterios_mudaram = false;
+
+                                    // Recarregar stats após 2 segundos
+                                    setTimeout(() => {
+                                        this.carregar_stats();
+                                    }, 2000);
+                                } else {
+                                    this.mostrar_notificacao(
+                                        '✗ Erro na reanálise: ' + (status.erro || 'Erro desconhecido'),
+                                        'erro'
+                                    );
+                                }
+                            }
+
+                        } catch (e) {
+                            console.error('Erro no polling de reanálise:', e);
+                            clearInterval(this.intervalo_polling_reanalisar);
+                            this.intervalo_polling_reanalisar = null;
+                            this.reanalisando = false;
+                            this.mostrar_notificacao('✗ Erro ao acompanhar progresso da reanálise', 'erro');
+                        }
+                    }, 1000); // Poll a cada 1 segundo
                 },
 
                 async reiniciar_pesquisas_executar() {
@@ -5871,9 +6323,9 @@
                                     // Score de confiança formatado
                                     const score = fonte.confidence_score || 0.5;
                                     const scorePercent = Math.round(score * 100);
-                                    const scoreColor = score >= 0.7 ? 'text-green-700 bg-green-50' :
-                                                      score >= 0.5 ? 'text-yellow-700 bg-yellow-50' :
-                                                      'text-orange-700 bg-orange-50';
+                                    const scoreColor = score > 0.5 ? 'text-green-700 bg-green-100' :
+                                                      score >= 0.25 ? 'text-yellow-700 bg-yellow-100' :
+                                                      'text-red-700 bg-red-100';
 
                                     // Flags e nomes de idiomas
                                     const idiomaInfo = {
@@ -5896,7 +6348,7 @@
                                                     <div class="flex items-center gap-2 mb-1 flex-wrap">
                                                         <span class="text-xs font-medium text-gray-500">${tipoLabel}</span>
                                                         <span class="text-xs ${scoreColor} px-2 py-0.5 rounded font-semibold" title="Score de Confiança">
-                                                            ⭐ ${scorePercent}%
+                                                            ⭐ ${scorePercent}
                                                         </span>
                                                         ${idioma ? `
                                                             <span class="text-xs text-gray-400">•</span>

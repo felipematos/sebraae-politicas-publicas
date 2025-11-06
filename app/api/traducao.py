@@ -2,11 +2,12 @@
 """
 Router FastAPI para endpoint de tradução
 """
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from app.integracao.openrouter_api import OpenRouterClient
 from app.utils.logger import logger
+from app.database import db
 
 router = APIRouter()
 
@@ -109,28 +110,26 @@ async def traduzir_resultado(resultado_id: int):
         Dict com título_pt e descricao_pt traduzidos
     """
     try:
-        # Importar dependências aqui para evitar erro de módulo
-        from sqlalchemy.orm import Session
-        from app.database import get_db
-        from app.models import Resultado
-
-        # Criar sessão do banco
-        db = next(get_db())
-
         # Buscar resultado no banco
-        resultado = db.query(Resultado).filter(Resultado.id == resultado_id).first()
+        resultado = await db.fetch_one(
+            "SELECT * FROM resultados_pesquisa WHERE id = ?",
+            (resultado_id,)
+        )
 
         if not resultado:
             raise HTTPException(status_code=404, detail="Resultado não encontrado")
 
-        # Se já tem tradução, retornar as traduções existentes
-        if resultado.titulo_pt and resultado.descricao_pt:
+        # Se já tem tradução (e não está vazia), retornar as traduções existentes
+        titulo_pt = resultado.get('titulo_pt')
+        descricao_pt = resultado.get('descricao_pt')
+
+        if titulo_pt and titulo_pt.strip() and descricao_pt and descricao_pt.strip():
             logger.info(f"Resultado {resultado_id} já possui traduções")
             return {
                 "id": resultado_id,
-                "titulo_pt": resultado.titulo_pt,
-                "descricao_pt": resultado.descricao_pt,
-                "idioma": resultado.idioma,
+                "titulo_pt": resultado['titulo_pt'],
+                "descricao_pt": resultado['descricao_pt'],
+                "idioma": resultado.get('idioma', 'en'),
                 "ja_traduzido": True
             }
 
@@ -150,64 +149,38 @@ async def traduzir_resultado(resultado_id: int):
             'hi': 'hindi'
         }
 
-        idioma_origem = resultado.idioma or 'en'
+        idioma_origem = resultado.get('idioma') or 'en'
         idioma_origem_nome = idiomas_map.get(idioma_origem.lower(), idioma_origem)
 
         logger.info(f"Traduzindo resultado {resultado_id} de {idioma_origem} para português")
 
-        # Traduzir título
-        prompt_titulo = f"""Traduza o seguinte título de {idioma_origem_nome} para português.
+        # Traduzir título e descrição usando OpenRouterClient
+        async with OpenRouterClient() as client:
+            titulo_pt = await client.traduzir_texto(
+                texto=resultado['titulo'],
+                idioma_alvo="pt",
+                idioma_origem=idioma_origem
+            )
 
-Regras:
-1. Mantenha o tom e o estilo do texto original
-2. Preserve termos técnicos quando apropriado
-3. Retorne APENAS a tradução, sem explicações adicionais
-4. Mantenha a formatação do texto original
+            if not titulo_pt:
+                # Se falhou completamente, usar original
+                titulo_pt = resultado['titulo']
 
-Texto para traduzir:
-{resultado.titulo}
+            descricao_pt = await client.traduzir_texto(
+                texto=resultado['descricao'],
+                idioma_alvo="pt",
+                idioma_origem=idioma_origem
+            )
 
-Tradução em português:"""
-
-        client = OpenRouterClient()
-        titulo_pt = await client.gerar_texto(
-            prompt=prompt_titulo,
-            modelo="anthropic/claude-3.5-sonnet",
-            temperatura=0.3,
-            max_tokens=500
-        )
-
-        if not titulo_pt:
-            raise HTTPException(status_code=500, detail="Erro ao gerar tradução do título")
-
-        # Traduzir descrição
-        prompt_descricao = f"""Traduza a seguinte descrição de {idioma_origem_nome} para português.
-
-Regras:
-1. Mantenha o tom e o estilo do texto original
-2. Preserve termos técnicos quando apropriado
-3. Retorne APENAS a tradução, sem explicações adicionais
-4. Mantenha a formatação do texto original
-
-Texto para traduzir:
-{resultado.descricao}
-
-Tradução em português:"""
-
-        descricao_pt = await client.gerar_texto(
-            prompt=prompt_descricao,
-            modelo="anthropic/claude-3.5-sonnet",
-            temperatura=0.3,
-            max_tokens=2000
-        )
-
-        if not descricao_pt:
-            raise HTTPException(status_code=500, detail="Erro ao gerar tradução da descrição")
+            if not descricao_pt:
+                # Se falhou completamente, usar original
+                descricao_pt = resultado['descricao']
 
         # Atualizar resultado no banco
-        resultado.titulo_pt = titulo_pt.strip()
-        resultado.descricao_pt = descricao_pt.strip()
-        db.commit()
+        await db.execute(
+            "UPDATE resultados_pesquisa SET titulo_pt = ?, descricao_pt = ? WHERE id = ?",
+            (titulo_pt.strip(), descricao_pt.strip(), resultado_id)
+        )
 
         logger.info(f"Tradução do resultado {resultado_id} concluída e salva no banco")
 
@@ -215,7 +188,7 @@ Tradução em português:"""
             "id": resultado_id,
             "titulo_pt": titulo_pt.strip(),
             "descricao_pt": descricao_pt.strip(),
-            "idioma": resultado.idioma,
+            "idioma": resultado.get('idioma', 'en'),
             "ja_traduzido": False
         }
 
@@ -223,5 +196,4 @@ Tradução em português:"""
         raise
     except Exception as e:
         logger.error(f"Erro ao traduzir resultado {resultado_id}: {e}")
-        db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro ao traduzir resultado: {str(e)}")

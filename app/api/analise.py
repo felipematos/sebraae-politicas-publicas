@@ -2,14 +2,21 @@
 """
 Endpoints para análise e reanálise de resultados
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict
+import asyncio
+import uuid
+from datetime import datetime
 
 from app.database import db
 from app.agente.avaliador import Avaliador
+from app.utils.logger import logger
 
 router = APIRouter(tags=["Análise"])
+
+# Dicionário global para rastrear jobs de reanálise em background
+reanalisar_jobs: Dict[str, dict] = {}
 
 
 class ReanalisarRequest(BaseModel):
@@ -66,18 +73,17 @@ async def estimar_custo_tempo(
     }
 
 
-@router.post("/api/analise/reanalisar")
-async def reanalisar_resultados(request: ReanalisarRequest):
+async def processar_reanalisar_background(
+    job_id: str,
+    avaliar_profundamente: bool,
+    modo_avaliacao: str
+):
     """
-    Reanalisa todos os resultados existentes recalculando os confidence scores
-
-    Args:
-        request: Configurações de reanálise
-
-    Returns:
-        Estatísticas da reanálise realizada
+    Processa reanálise em background com atualização de progresso
     """
     try:
+        logger.info(f"[JOB {job_id}] Iniciando reanálise em background")
+
         # Buscar todos os resultados
         query = """
         SELECT
@@ -97,67 +103,177 @@ async def reanalisar_resultados(request: ReanalisarRequest):
         """
 
         resultados = await db.fetch_all(query)
+        total = len(resultados)
 
-        if not resultados:
-            return {
+        if total == 0:
+            reanalisar_jobs[job_id].update({
+                "status": "concluido",
+                "progresso": 100,
                 "total_reanalisadas": 0,
                 "scores_atualizados": 0,
-                "modo_utilizado": request.modo_avaliacao,
-                "mensagem": "Nenhum resultado encontrado para reanalisar"
-            }
+                "mensagem": "Nenhum resultado encontrado",
+                "concluido_em": datetime.now().isoformat()
+            })
+            return
+
+        # Atualizar status
+        reanalisar_jobs[job_id].update({
+            "status": "processando",
+            "total": total,
+            "processados": 0,
+            "progresso": 0
+        })
 
         # Inicializar avaliador
         avaliador = Avaliador()
-
         scores_atualizados = 0
+        erros = 0
 
         # Processar cada resultado
-        for resultado in resultados:
-            # Converter para dicionário
-            resultado_dict = dict(resultado)
+        for i, resultado in enumerate(resultados, 1):
+            try:
+                # Converter para dicionário
+                resultado_dict = dict(resultado)
 
-            # Calcular novo score
-            if request.avaliar_profundamente and request.modo_avaliacao != "gratuito":
-                # TODO: Implementar avaliação profunda com LLM
-                # Por enquanto, usar avaliação heurística
-                novo_score = await avaliador.avaliar(
-                    resultado=resultado_dict,
-                    query=resultado_dict.get("query", ""),
-                    num_ocorrencias=resultado_dict.get("num_ocorrencias", 1),
-                    usar_rag=False
-                )
+                # Calcular novo score
+                if avaliar_profundamente and modo_avaliacao != "gratuito":
+                    # Avaliação profunda com LLM
+                    novo_score = await avaliador.avaliar(
+                        resultado=resultado_dict,
+                        query=resultado_dict.get("query", ""),
+                        num_ocorrencias=resultado_dict.get("num_ocorrencias", 1),
+                        usar_rag=True,  # Usar RAG para avaliação profunda
+                        usar_llm=True   # Ativar LLM
+                    )
+                else:
+                    # Avaliação heurística padrão (gratuita)
+                    novo_score = await avaliador.avaliar(
+                        resultado=resultado_dict,
+                        query=resultado_dict.get("query", ""),
+                        num_ocorrencias=resultado_dict.get("num_ocorrencias", 1),
+                        usar_rag=False
+                    )
+
+                # Atualizar score no banco se mudou significativamente (diferença > 0.01)
+                score_anterior = resultado_dict.get("score_anterior", 0.0)
+                if abs(novo_score - score_anterior) > 0.01:
+                    await db.execute(
+                        """
+                        UPDATE resultados_pesquisa
+                        SET confidence_score = ?,
+                            atualizado_em = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                        """,
+                        (novo_score, resultado_dict["id"])
+                    )
+                    scores_atualizados += 1
+
+            except Exception as e:
+                erros += 1
+                logger.error(f"[JOB {job_id}] Erro ao processar resultado {resultado_dict.get('id')}: {e}")
+
+            # Atualizar progresso a cada resultado
+            progresso = int((i / total) * 100)
+            reanalisar_jobs[job_id].update({
+                "processados": i,
+                "progresso": progresso,
+                "scores_atualizados": scores_atualizados,
+                "erros": erros
+            })
+
+            # Pequeno delay para não sobrecarregar o sistema
+            if avaliar_profundamente and modo_avaliacao != "gratuito":
+                await asyncio.sleep(0.5)  # Delay maior para LLM
             else:
-                # Avaliação heurística padrão (gratuita)
-                novo_score = await avaliador.avaliar(
-                    resultado=resultado_dict,
-                    query=resultado_dict.get("query", ""),
-                    num_ocorrencias=resultado_dict.get("num_ocorrencias", 1),
-                    usar_rag=False
-                )
+                await asyncio.sleep(0.01)  # Delay mínimo para heurística
 
-            # Atualizar score no banco se mudou significativamente (diferença > 0.01)
-            score_anterior = resultado_dict.get("score_anterior", 0.0)
-            if abs(novo_score - score_anterior) > 0.01:
-                await db.execute(
-                    """
-                    UPDATE resultados_pesquisa
-                    SET confidence_score = ?,
-                        atualizado_em = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                    """,
-                    (novo_score, resultado_dict["id"])
-                )
-                scores_atualizados += 1
+        # Finalizar job
+        reanalisar_jobs[job_id].update({
+            "status": "concluido",
+            "progresso": 100,
+            "total_reanalisadas": total,
+            "scores_atualizados": scores_atualizados,
+            "erros": erros,
+            "mensagem": f"Reanálise concluída! {scores_atualizados} scores atualizados, {erros} erros.",
+            "concluido_em": datetime.now().isoformat()
+        })
+
+        logger.info(f"[JOB {job_id}] Reanálise concluída: {scores_atualizados}/{total} scores atualizados")
+
+    except Exception as e:
+        logger.error(f"[JOB {job_id}] Erro fatal na reanálise: {e}")
+        reanalisar_jobs[job_id].update({
+            "status": "erro",
+            "erro": str(e),
+            "concluido_em": datetime.now().isoformat()
+        })
+
+
+@router.post("/api/analise/reanalisar")
+async def reanalisar_resultados(request: ReanalisarRequest, background_tasks: BackgroundTasks):
+    """
+    Inicia reanálise de todos os resultados em background
+
+    Args:
+        request: Configurações de reanálise
+        background_tasks: FastAPI background tasks
+
+    Returns:
+        Job ID para acompanhamento do progresso
+    """
+    try:
+        # Gerar job ID único
+        job_id = str(uuid.uuid4())
+
+        # Criar registro do job
+        reanalisar_jobs[job_id] = {
+            "job_id": job_id,
+            "status": "iniciado",
+            "progresso": 0,
+            "total": 0,
+            "processados": 0,
+            "scores_atualizados": 0,
+            "erros": 0,
+            "modo_avaliacao": request.modo_avaliacao,
+            "avaliar_profundamente": request.avaliar_profundamente,
+            "iniciado_em": datetime.now().isoformat()
+        }
+
+        # Adicionar tarefa em background
+        background_tasks.add_task(
+            processar_reanalisar_background,
+            job_id,
+            request.avaliar_profundamente,
+            request.modo_avaliacao
+        )
+
+        logger.info(f"[JOB {job_id}] Reanálise iniciada em background")
 
         return {
-            "total_reanalisadas": len(resultados),
-            "scores_atualizados": scores_atualizados,
-            "modo_utilizado": request.modo_avaliacao,
-            "mensagem": f"Reanálise concluída com sucesso! {scores_atualizados} scores foram atualizados."
+            "job_id": job_id,
+            "status": "iniciado",
+            "mensagem": "Reanálise iniciada. Use o job_id para acompanhar o progresso."
         }
 
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Erro ao reanalisar resultados: {str(e)}"
+            detail=f"Erro ao iniciar reanálise: {str(e)}"
         )
+
+
+@router.get("/api/analise/reanalisar/status/{job_id}")
+async def obter_status_reanalisar(job_id: str):
+    """
+    Obtém o status de um job de reanálise
+
+    Args:
+        job_id: ID do job de reanálise
+
+    Returns:
+        Status atual do job
+    """
+    if job_id not in reanalisar_jobs:
+        raise HTTPException(status_code=404, detail="Job não encontrado")
+
+    return reanalisar_jobs[job_id]

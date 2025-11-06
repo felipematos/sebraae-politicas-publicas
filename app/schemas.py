@@ -25,6 +25,8 @@ class ResultadoUpdate(BaseModel):
     """Schema para atualizar um resultado"""
     titulo: Optional[str] = None
     descricao: Optional[str] = None
+    titulo_pt: Optional[str] = None
+    descricao_pt: Optional[str] = None
     confidence_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
     fonte_tipo: Optional[str] = None
     pais_origem: Optional[str] = None

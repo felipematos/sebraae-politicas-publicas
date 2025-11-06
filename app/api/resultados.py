@@ -151,6 +151,12 @@ async def atualizar_resultado(resultado_id: int, atualizacoes: ResultadoUpdate):
     if atualizacoes.descricao is not None:
         updates["descricao"] = atualizacoes.descricao
 
+    if atualizacoes.titulo_pt is not None:
+        updates["titulo_pt"] = atualizacoes.titulo_pt
+
+    if atualizacoes.descricao_pt is not None:
+        updates["descricao_pt"] = atualizacoes.descricao_pt
+
     if atualizacoes.confidence_score is not None:
         updates["confidence_score"] = atualizacoes.confidence_score
 
@@ -222,3 +228,45 @@ async def validar_urls_endpoint():
         "deletadas": resultado['deletadas'],
         "mensagem": f"Validação concluída: {resultado['invalidas_encontradas']} URLs inválidas encontradas, {resultado['deletadas']} resultados deletados e fila restaurada."
     }
+
+
+@router.patch("/resultados/{resultado_id}/idioma", status_code=200)
+async def atualizar_idioma(resultado_id: int, idioma: str = Query(..., min_length=2, max_length=2)):
+    """
+    Atualiza o idioma de um resultado específico
+
+    Args:
+        resultado_id: ID do resultado
+        idioma: Código ISO 639-1 do idioma (pt, en, es, fr, de, it, ja, ar, ko, he)
+
+    Returns:
+        Resultado atualizado
+    """
+    # Verificar se existe
+    resultado = await db.fetch_one(
+        "SELECT * FROM resultados_pesquisa WHERE id = ?",
+        (resultado_id,)
+    )
+
+    if not resultado:
+        raise HTTPException(status_code=404, detail="Resultado não encontrado")
+
+    # Validar idioma
+    idiomas_validos = ['pt', 'en', 'es', 'fr', 'de', 'it', 'ja', 'ar', 'ko', 'he']
+    if idioma.lower() not in idiomas_validos:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Idioma inválido. Use um dos seguintes: {', '.join(idiomas_validos)}"
+        )
+
+    # Atualizar idioma
+    await db.execute(
+        "UPDATE resultados_pesquisa SET idioma = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?",
+        (idioma.lower(), resultado_id)
+    )
+
+    # Retornar resultado atualizado
+    return await db.fetch_one(
+        "SELECT * FROM resultados_pesquisa WHERE id = ?",
+        (resultado_id,)
+    )

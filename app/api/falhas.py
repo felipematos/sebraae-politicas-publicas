@@ -33,7 +33,7 @@ async def listar_falhas(
     Retorna um objeto com 'dados' contendo array de falhas com:
     - id, titulo, pilar, descricao, dica_busca
     - total_resultados: quantidade de resultados encontrados
-    - confidence_medio: score medio dos resultados
+    - confidence_medio: score mediano dos resultados (mais robusto que média)
     - searches_completed: numero de buscas completadas ou com erro
     - searches_in_progress: numero de buscas em processamento
     - searches_pending: numero de buscas pendentes
@@ -45,6 +45,7 @@ async def listar_falhas(
       (0 para falhas nao iniciadas, cresce conforme buscas sao executadas)
     """
     from app.config import settings
+    import statistics
 
     query = """
     SELECT
@@ -54,7 +55,6 @@ async def listar_falhas(
         f.descricao,
         f.dica_busca,
         COUNT(DISTINCT r.id) as total_resultados,
-        COALESCE(AVG(r.confidence_score), 0.0) as confidence_medio,
         COALESCE(SUM(CASE WHEN fp.status IN ('completa', 'erro') THEN 1 ELSE 0 END), 0) as searches_completed,
         COALESCE(SUM(CASE WHEN fp.status = 'processando' THEN 1 ELSE 0 END), 0) as searches_in_progress,
         COALESCE(SUM(CASE WHEN fp.status = 'pendente' THEN 1 ELSE 0 END), 0) as searches_pending,
@@ -79,11 +79,27 @@ async def listar_falhas(
 
     falhas = await db.fetch_all(query)
 
-    # Adicionar max_searches a cada falha
+    # Calcular mediana de confidence_score para cada falha
     result = []
     for falha in falhas:
         falha_dict = dict(falha)
         falha_dict['max_searches'] = settings.MAX_BUSCAS_POR_FALHA
+
+        # Buscar scores para calcular mediana
+        scores_query = """
+        SELECT confidence_score
+        FROM resultados_pesquisa
+        WHERE falha_id = ?
+        AND confidence_score IS NOT NULL
+        """
+        scores_result = await db.fetch_all(scores_query, (falha['id'],))
+
+        if scores_result and len(scores_result) > 0:
+            scores = [float(row['confidence_score']) for row in scores_result]
+            falha_dict['confidence_medio'] = round(statistics.median(scores), 3)
+        else:
+            falha_dict['confidence_medio'] = 0.0
+
         result.append(falha_dict)
 
     # Retornar wrapped em "dados" para compatibilidade com frontend
