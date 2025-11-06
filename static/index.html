@@ -1202,22 +1202,27 @@
                     </div>
 
                     <!-- Resultados -->
-                    <div x-show="!carregando_resultados_pesquisa && resultados_pesquisa_filtrados.length > 0" class="space-y-4">
+                    <div x-show="!carregando_resultados_pesquisa && paginacao_local.total_filtrados > 0" class="space-y-4">
                         <!-- Info do total -->
                         <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
                             <p class="text-sm text-blue-800">
-                                <span class="font-semibold" x-text="resultados_pesquisa_filtrados.length"></span> resultado(s)
-                                <span x-show="resultados_pesquisa_filtrados.length !== paginacao_resultados_pesquisa.total">
-                                    filtrado(s) de <span class="font-semibold" x-text="paginacao_resultados_pesquisa.total"></span>
+                                <span class="font-semibold">Exibindo
+                                    <span x-text="Math.min(paginacao_local.page_size, paginacao_local.total_filtrados - ((paginacao_local.page - 1) * paginacao_local.page_size))"></span>
                                 </span>
-                                <span x-show="resultados_pesquisa_filtrados.length === paginacao_resultados_pesquisa.total">
-                                    encontrado(s)
+                                resultado(s)
+                                <span x-show="paginacao_local.total_filtrados !== paginacao_resultados_pesquisa.total">
+                                    de <span class="font-semibold" x-text="paginacao_local.total_filtrados"></span> filtrado(s):
+                                    <span class="font-semibold" x-text="Math.round((paginacao_local.total_filtrados / paginacao_resultados_pesquisa.total) * 100)"></span>%
+                                    do total de <span class="font-semibold" x-text="paginacao_resultados_pesquisa.total"></span>
+                                </span>
+                                <span x-show="paginacao_local.total_filtrados === paginacao_resultados_pesquisa.total">
+                                    de <span class="font-semibold" x-text="paginacao_resultados_pesquisa.total"></span> total
                                 </span>
                             </p>
                         </div>
 
                         <!-- Lista de resultados -->
-                        <template x-for="resultado in resultados_pesquisa_filtrados" :key="resultado.id">
+                        <template x-for="resultado in resultados_pesquisa_paginados" :key="resultado.id">
                             <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                                 <div class="flex items-start justify-between gap-4 mb-3">
                                     <div class="flex-1">
@@ -1405,19 +1410,37 @@
                                 </div>
 
                                 <div class="flex items-center justify-between text-xs text-gray-500">
-                                    <div class="flex items-center gap-3">
+                                    <div class="flex items-center gap-3 flex-1">
                                         <span x-show="resultado.pais_origem">
                                             🌍 <span x-text="resultado.pais_origem"></span>
                                         </span>
                                         <span x-show="resultado.fonte_tipo">
                                             📑 <span x-text="resultado.fonte_tipo"></span>
                                         </span>
-                                        <span x-show="resultado.ferramenta_origem">
+                                        <span x-show="resultado.ferramenta_origem" x-data="{ expandido: false }" class="flex items-center gap-1">
                                             🔍 <span x-text="resultado.ferramenta_origem"></span>
+                                            <span x-show="resultado.query" class="text-gray-400">|</span>
+                                            <span x-show="resultado.query" class="flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                                </svg>
+                                                <span
+                                                    x-show="!expandido && resultado.query && resultado.query.length > 50"
+                                                    @click="expandido = true"
+                                                    class="cursor-pointer hover:text-blue-600"
+                                                    x-text="resultado.query.substring(0, 50) + '...'">
+                                                </span>
+                                                <span
+                                                    x-show="expandido || !resultado.query || resultado.query.length <= 50"
+                                                    @click="if (resultado.query && resultado.query.length > 50) expandido = false"
+                                                    :class="resultado.query && resultado.query.length > 50 ? 'cursor-pointer hover:text-blue-600' : ''"
+                                                    x-text="resultado.query">
+                                                </span>
+                                            </span>
                                         </span>
                                     </div>
                                     <a :href="resultado.fonte_url" target="_blank" rel="noopener noreferrer"
-                                       class="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                                       class="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 flex-shrink-0 ml-2">
                                         Ver fonte
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
@@ -1429,7 +1452,7 @@
                     </div>
 
                     <!-- Mensagem quando não há resultados -->
-                    <div x-show="!carregando_resultados_pesquisa && resultados_pesquisa_filtrados.length === 0 && paginacao_resultados_pesquisa.total > 0" class="text-center py-12">
+                    <div x-show="!carregando_resultados_pesquisa && paginacao_local.total_filtrados === 0 && paginacao_resultados_pesquisa.total > 0" class="text-center py-12">
                         <div class="text-6xl mb-4">🔍</div>
                         <p class="text-gray-500 text-lg">Nenhum resultado encontrado com os filtros aplicados</p>
                         <button @click="limpar_filtros_resultados()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
@@ -1444,23 +1467,23 @@
                 </div>
 
                 <!-- Paginação -->
-                <div x-show="!carregando_resultados_pesquisa && paginacao_resultados_pesquisa.total_pages > 1" class="p-6 border-t bg-gray-50 rounded-b-lg">
+                <div x-show="!carregando_resultados_pesquisa && paginacao_local.total_pages > 1" class="p-6 border-t bg-gray-50 rounded-b-lg">
                     <div class="flex items-center justify-between">
-                        <button @click="mudar_pagina_resultados_pesquisa(paginacao_resultados_pesquisa.page - 1)"
-                                :disabled="!paginacao_resultados_pesquisa.has_prev"
-                                :class="paginacao_resultados_pesquisa.has_prev ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'"
+                        <button @click="mudar_pagina_local(paginacao_local.page - 1)"
+                                :disabled="!paginacao_local.has_prev"
+                                :class="paginacao_local.has_prev ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'"
                                 class="px-4 py-2 rounded-lg font-medium transition-colors">
                             ← Anterior
                         </button>
 
                         <span class="text-sm text-gray-600">
-                            Página <span class="font-semibold" x-text="paginacao_resultados_pesquisa.page"></span> de
-                            <span class="font-semibold" x-text="paginacao_resultados_pesquisa.total_pages"></span>
+                            Página <span class="font-semibold" x-text="paginacao_local.page"></span> de
+                            <span class="font-semibold" x-text="paginacao_local.total_pages"></span>
                         </span>
 
-                        <button @click="mudar_pagina_resultados_pesquisa(paginacao_resultados_pesquisa.page + 1)"
-                                :disabled="!paginacao_resultados_pesquisa.has_next"
-                                :class="paginacao_resultados_pesquisa.has_next ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'"
+                        <button @click="mudar_pagina_local(paginacao_local.page + 1)"
+                                :disabled="!paginacao_local.has_next"
+                                :class="paginacao_local.has_next ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'"
                                 class="px-4 py-2 rounded-lg font-medium transition-colors">
                             Próxima →
                         </button>
@@ -2959,11 +2982,20 @@
                 falha_selecionada_resultados: null,
                 resultados_pesquisa: [],
                 resultados_pesquisa_filtrados: [],
+                resultados_pesquisa_paginados: [],
                 carregando_resultados_pesquisa: false,
                 paginacao_resultados_pesquisa: {
                     page: 1,
                     total_pages: 1,
                     total: 0,
+                    has_next: false,
+                    has_prev: false
+                },
+                paginacao_local: {
+                    page: 1,
+                    page_size: 20,
+                    total_filtrados: 0,
+                    total_pages: 1,
                     has_next: false,
                     has_prev: false
                 },
@@ -3326,6 +3358,27 @@
                     }
 
                     this.resultados_pesquisa_filtrados = resultados;
+
+                    // Calcular paginação local
+                    this.paginacao_local.total_filtrados = resultados.length;
+                    this.paginacao_local.total_pages = Math.ceil(resultados.length / this.paginacao_local.page_size);
+
+                    // Ajustar página atual se necessário
+                    if (this.paginacao_local.page > this.paginacao_local.total_pages && this.paginacao_local.total_pages > 0) {
+                        this.paginacao_local.page = this.paginacao_local.total_pages;
+                    }
+                    if (this.paginacao_local.page < 1) {
+                        this.paginacao_local.page = 1;
+                    }
+
+                    // Calcular has_next e has_prev
+                    this.paginacao_local.has_next = this.paginacao_local.page < this.paginacao_local.total_pages;
+                    this.paginacao_local.has_prev = this.paginacao_local.page > 1;
+
+                    // Paginar resultados
+                    const inicio = (this.paginacao_local.page - 1) * this.paginacao_local.page_size;
+                    const fim = inicio + this.paginacao_local.page_size;
+                    this.resultados_pesquisa_paginados = resultados.slice(inicio, fim);
                 },
 
                 limpar_filtros_resultados() {
@@ -3334,7 +3387,15 @@
                     this.filtro_score_min_resultados = 0;
                     this.filtro_score_max_resultados = 100;
                     this.ordenacao_resultados = 'score_desc';
+                    this.paginacao_local.page = 1;
                     this.aplicar_filtros_resultados();
+                },
+
+                mudar_pagina_local(nova_pagina) {
+                    if (nova_pagina >= 1 && nova_pagina <= this.paginacao_local.total_pages) {
+                        this.paginacao_local.page = nova_pagina;
+                        this.aplicar_filtros_resultados();
+                    }
                 },
 
                 async mudar_pagina_resultados_pesquisa(nova_pagina) {
@@ -3348,10 +3409,19 @@
                     this.falha_selecionada_resultados = null;
                     this.resultados_pesquisa = [];
                     this.resultados_pesquisa_filtrados = [];
+                    this.resultados_pesquisa_paginados = [];
                     this.paginacao_resultados_pesquisa = {
                         page: 1,
                         total_pages: 1,
                         total: 0,
+                        has_next: false,
+                        has_prev: false
+                    };
+                    this.paginacao_local = {
+                        page: 1,
+                        page_size: 20,
+                        total_filtrados: 0,
+                        total_pages: 1,
                         has_next: false,
                         has_prev: false
                     };

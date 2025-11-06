@@ -159,6 +159,7 @@ async def obter_resultados_falha(
         fonte_tipo,
         pais_origem,
         idioma,
+        query,
         confidence_score,
         num_ocorrencias,
         ferramenta_origem,
