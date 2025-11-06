@@ -1275,7 +1275,7 @@
                                                 >
                                                     <div class="py-1">
                                                         <button
-                                                            @click="app.refazer_traducao_resultado(resultado); menu_traducao_aberto = false"
+                                                            @click="refazer_traducao_resultado(resultado); menu_traducao_aberto = false"
                                                             class="w-full text-left px-4 py-2 text-sm text-gray-900 hover:bg-gray-50 flex items-center gap-2"
                                                             :disabled="resultado._retraduzindo"
                                                         >
@@ -1701,7 +1701,8 @@
                                 <div class="bg-blue-600 h-3 rounded-full transition-all" :style="`width: ${percentual_processamento}%`"></div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-4 gap-4">
+                        <!-- Estatísticas de Buscas -->
+                        <div class="grid grid-cols-4 gap-4 mb-4">
                             <div>
                                 <p class="text-xs text-gray-600">Pendentes</p>
                                 <p class="text-2xl font-bold text-yellow-700" x-text="stats.total_pendentes">0</p>
@@ -1715,8 +1716,41 @@
                                 <p class="text-2xl font-bold text-green-700" x-text="stats.total_concluidas">0</p>
                             </div>
                             <div>
-                                <p class="text-xs text-gray-600">Resultados</p>
+                                <p class="text-xs text-gray-600">Total</p>
                                 <p class="text-2xl font-bold text-purple-700" x-text="stats.total_resultados">0</p>
+                            </div>
+                        </div>
+
+                        <!-- Estatísticas de Traduções -->
+                        <div class="border-t pt-4">
+                            <p class="text-sm font-medium text-gray-700 mb-3">📝 Traduções</p>
+                            <div class="grid grid-cols-3 gap-4">
+                                <div>
+                                    <p class="text-xs text-gray-600">Resultados em Português</p>
+                                    <p class="text-2xl font-bold text-green-700" x-text="stats.resultados_pt || 0">0</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-600">Resultados Internacionais</p>
+                                    <p class="text-2xl font-bold text-blue-700">
+                                        <span x-text="stats.resultados_internacionais || 0">0</span>
+                                        <span class="text-sm" :class="(stats.percentual_traduzidos || 0) < 100 ? 'text-orange-600' : 'text-green-600'" x-text="`(${(stats.percentual_traduzidos || 0).toFixed(1)}% traduzidos)`"></span>
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-600">Total Geral</p>
+                                    <p class="text-2xl font-bold text-purple-700" x-text="stats.total_resultados || 0">0</p>
+                                </div>
+                            </div>
+                            <!-- Botão Completar Traduções -->
+                            <div x-show="(stats.resultados_internacionais || 0) > 0 && (stats.percentual_traduzidos || 0) < 100" class="mt-3">
+                                <button @click="completar_traducoes()" :disabled="completando_traducoes"
+                                        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-all">
+                                    <span x-show="!completando_traducoes">🌐 Completar Traduções</span>
+                                    <span x-show="completando_traducoes">⟳ Traduzindo...</span>
+                                </button>
+                                <p x-show="completando_traducoes" class="text-xs text-blue-600 mt-2 text-center">
+                                    Traduzindo <span x-text="progresso_traducao.processados || 0">0</span>/<span x-text="progresso_traducao.total || 0">0</span> resultados...
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -2934,6 +2968,12 @@
                     mensagem: ''
                 },
                 intervalo_polling_reanalisar: null,  // Referência ao setInterval
+                // Traduções
+                completando_traducoes: false,  // Se está traduzindo resultados
+                progresso_traducao: {  // Progresso da tradução
+                    total: 0,
+                    processados: 0
+                },
                 // Fase II - Análise com IA
                 fase2_status: '',
                 falhas_fase2: [],
@@ -4310,6 +4350,51 @@
                         this.mostrar_notificacao('✓ Pesquisa pausada', 'sucesso');
                     } catch (e) {
                         this.mostrar_notificacao('✗ Erro: ' + e.message, 'erro');
+                    }
+                },
+
+                async completar_traducoes() {
+                    try {
+                        this.completando_traducoes = true;
+                        this.progresso_traducao = { total: 0, processados: 0 };
+
+                        // Buscar resultados sem tradução
+                        const response = await fetch('/api/resultados/sem-traducao');
+                        if (!response.ok) throw new Error('Erro ao buscar resultados sem tradução');
+
+                        const data = await response.json();
+                        const resultados = data.resultados || [];
+
+                        this.progresso_traducao.total = resultados.length;
+
+                        if (resultados.length === 0) {
+                            this.mostrar_notificacao('✓ Todos os resultados já estão traduzidos!', 'sucesso');
+                            return;
+                        }
+
+                        // Traduzir cada resultado
+                        for (const resultado of resultados) {
+                            try {
+                                const tradResponse = await fetch(`/api/resultados/${resultado.id}/traduzir`, {
+                                    method: 'POST'
+                                });
+
+                                if (tradResponse.ok) {
+                                    this.progresso_traducao.processados++;
+                                }
+                            } catch (e) {
+                                console.error(`Erro ao traduzir resultado ${resultado.id}:`, e);
+                            }
+                        }
+
+                        // Atualizar stats
+                        await this.carregar_stats();
+
+                        this.mostrar_notificacao(`✓ ${this.progresso_traducao.processados} resultados traduzidos!`, 'sucesso');
+                    } catch (e) {
+                        this.mostrar_notificacao('✗ Erro ao completar traduções: ' + e.message, 'erro');
+                    } finally {
+                        this.completando_traducoes = false;
                     }
                 },
 

@@ -164,6 +164,24 @@ async def obter_estatisticas():
         )
         total_concluidas = completas_row["total"] if completas_row else 0
 
+        # Estatísticas de tradução
+        resultados_pt_row = await db.fetch_one(
+            "SELECT COUNT(*) as total FROM resultados_pesquisa WHERE idioma = 'pt'"
+        )
+        resultados_pt = resultados_pt_row["total"] if resultados_pt_row else 0
+
+        resultados_internacionais_row = await db.fetch_one(
+            "SELECT COUNT(*) as total FROM resultados_pesquisa WHERE idioma != 'pt'"
+        )
+        resultados_internacionais = resultados_internacionais_row["total"] if resultados_internacionais_row else 0
+
+        resultados_traduzidos_row = await db.fetch_one(
+            "SELECT COUNT(*) as total FROM resultados_pesquisa WHERE idioma != 'pt' AND titulo_pt IS NOT NULL AND titulo_pt != ''"
+        )
+        resultados_traduzidos = resultados_traduzidos_row["total"] if resultados_traduzidos_row else 0
+
+        percentual_traduzidos = round((resultados_traduzidos / resultados_internacionais) * 100, 1) if resultados_internacionais > 0 else 100.0
+
         return {
             "sucesso": True,
             "dados": {
@@ -172,7 +190,11 @@ async def obter_estatisticas():
                 "pesquisas_concluidas": pesquisas_concluidas,
                 "total_pendentes": total_pendentes,
                 "total_processando": total_processando,
-                "total_concluidas": total_concluidas
+                "total_concluidas": total_concluidas,
+                "resultados_pt": resultados_pt,
+                "resultados_internacionais": resultados_internacionais,
+                "resultados_traduzidos": resultados_traduzidos,
+                "percentual_traduzidos": percentual_traduzidos
             }
         }
     except Exception as e:

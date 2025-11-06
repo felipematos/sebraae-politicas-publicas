@@ -182,6 +182,28 @@ async def atualizar_resultado(resultado_id: int, atualizacoes: ResultadoUpdate):
     )
 
 
+@router.get("/resultados/sem-traducao")
+async def listar_resultados_sem_traducao():
+    """
+    Listar todos os resultados internacionais que ainda não foram traduzidos
+    Retorna resultados onde idioma != 'pt' e (titulo_pt IS NULL OU titulo_pt = '')
+    """
+    query = """
+    SELECT id, falha_id, titulo, idioma, fonte_url
+    FROM resultados_pesquisa
+    WHERE idioma != 'pt'
+    AND (titulo_pt IS NULL OR titulo_pt = '')
+    ORDER BY id
+    """
+
+    resultados = await db.fetch_all(query)
+
+    return {
+        "total": len(resultados),
+        "resultados": [dict(r) for r in resultados]
+    }
+
+
 @router.delete("/resultados/{resultado_id}", status_code=200)
 async def deletar_resultado_endpoint(resultado_id: int):
     """
