@@ -21,6 +21,13 @@ class OpenRouterClient:
         "qwen/qwen-2-72b-instruct:free",  # Qwen 2 72B - rápido e eficiente
     ]
 
+    # Modelos para tradução (baratos e confiáveis - usados quando gratuitos falham)
+    MODELOS_TRADUCAO = [
+        "google/gemini-flash-1.5",  # ~$0.000075/1K tokens - MUITO barato
+        "anthropic/claude-3-haiku",  # ~$0.00025/1K tokens - Rápido e barato
+        "openai/gpt-4o-mini",  # ~$0.00015/1K tokens - Barato e confiável
+    ]
+
     # Modelos especializados para tarefas específicas
     MODELOS_ESPECIALIZADOS = {
         "avaliacao": "xai/grok-4-fast",  # Avaliação de qualidade (rápido e preciso)
@@ -224,6 +231,47 @@ Respond in JSON format (no markdown):
                 "motivo": f"Erro: {str(e)[:50]}"
             }
 
+    def _detectar_portugues_heuristica(self, texto: str) -> bool:
+        """
+        Detecta se um texto está em português usando heurística de palavras comuns
+
+        Esta heurística é mais confiável do que LLMs para detectar PT,
+        especialmente para evitar confusão com ES.
+
+        Args:
+            texto: Texto para detectar
+
+        Returns:
+            True se o texto parece estar em português
+        """
+        if not texto or len(texto.strip()) < 10:
+            return False
+
+        texto_lower = texto.lower()
+
+        # Palavras que são únicas do português (não existem em espanhol)
+        palavras_pt = [
+            " de ", " da ", " do ", " das ", " dos ",  # Artigos contraídos
+            " com ", " para ", " que ", " em ", " na ", " no ",
+            " uma ", " um ", " à ", " ao ",
+            "ção", "ões", "mente", "dade",  # Sufixos comuns
+            "também", "não", "são", "você", "está",
+            "português", "brasil"
+        ]
+
+        # Contar ocorrências
+        ocorrencias = sum(1 for palavra in palavras_pt if palavra in texto_lower)
+
+        # Se tem 3+ marcadores de PT, é portugês
+        if ocorrencias >= 3:
+            return True
+
+        # Caracteres especiais do português
+        if any(c in texto for c in ['ã', 'õ', 'ç', 'ê', 'ô']):
+            return True
+
+        return False
+
     async def traduzir_texto_com_deteccao(
         self,
         texto: str,
@@ -231,10 +279,12 @@ Respond in JSON format (no markdown):
         idioma_origem: str = "pt"
     ) -> dict:
         """
-        Traduz texto E detecta o idioma real usando LLM gratuito
+        Traduz texto E detecta o idioma real usando heurística + LLM
 
-        IMPORTANTE: O LLM tem maior confiança na detecção de idioma do que heurísticas,
-        então sempre retorna o idioma detectado para atualização no banco.
+        PRIORIDADE DE DETECÇÃO:
+        1. Heurística de português (mais confiável)
+        2. LLM para outros idiomas
+        3. Fallback para idioma_origem
 
         Args:
             texto: Texto a traduzir
@@ -244,11 +294,21 @@ Respond in JSON format (no markdown):
         Returns:
             Dict com:
                 - traducao: str (texto traduzido)
-                - idioma_real: str (idioma real detectado pelo LLM)
+                - idioma_real: str (idioma real detectado)
         """
         if not self.api_key:
             print("[WARN] OPENROUTER_API_KEY não configurada, usando fallback")
             return {"traducao": texto, "idioma_real": idioma_origem}
+
+        # PASSO 1: Detectar se é português usando heurística
+        if self._detectar_portugues_heuristica(texto):
+            print(f"[DETECÇÃO HEURÍSTICA] ✓ Texto detectado como PORTUGUÊS")
+            # Se já está em português e queremos traduzir para português, retornar original
+            if idioma_alvo == "pt":
+                return {"traducao": texto, "idioma_real": "pt"}
+            # Se não, precisamos traduzir PT para outro idioma (raro, mas possível)
+            idioma_origem = "pt"
+
 
         # Mapear código de idioma para nome completo
         nomes_idiomas = {
@@ -279,8 +339,8 @@ IMPORTANT INSTRUCTIONS:
 Text to analyze and translate:
 {texto}"""
 
-        # Tentar com cada modelo (fallback automático)
-        for tentativa, modelo in enumerate(self.MODELOS_GRATUITOS):
+        # PASSO 2: Tentar traduzir com LLM (com detecção de idioma)
+        for tentativa, modelo in enumerate(self.MODELOS_TRADUCAO):
             try:
                 resultado = await self._chamar_modelo(modelo, prompt)
                 if resultado and resultado.strip():
@@ -300,7 +360,13 @@ Text to analyze and translate:
                         # Validar campos
                         if "traducao" in dados and "idioma_real" in dados:
                             idioma_detectado = dados["idioma_real"].lower()[:2]
-                            print(f"[TRADUÇÃO+DETECÇÃO] ✓ Modelo: {modelo} | Idioma detectado: {idioma_detectado}")
+
+                            # VALIDAÇÃO: Se heurística detectou PT mas LLM diz outra coisa, confiar na heurística
+                            if self._detectar_portugues_heuristica(texto) and idioma_detectado != "pt":
+                                print(f"[CORREÇÃO] Heurística detectou PT, mas LLM disse {idioma_detectado}. Corrigindo para PT.")
+                                idioma_detectado = "pt"
+
+                            print(f"[TRADUÇÃO+DETECÇÃO] ✓ Modelo: {modelo} | Idioma: {idioma_detectado}")
                             return {
                                 "traducao": dados["traducao"].strip(),
                                 "idioma_real": idioma_detectado
@@ -312,15 +378,20 @@ Text to analyze and translate:
 
             except Exception as e:
                 print(
-                    f"[TRADUÇÃO+DETECÇÃO] ✗ Tentativa {tentativa + 1}/{len(self.MODELOS_GRATUITOS)} "
+                    f"[TRADUÇÃO+DETECÇÃO] ✗ Tentativa {tentativa + 1}/{len(self.MODELOS_TRADUCAO)} "
                     f"com {modelo}: {str(e)[:100]}"
                 )
-                if tentativa < len(self.MODELOS_GRATUITOS) - 1:
+                if tentativa < len(self.MODELOS_TRADUCAO) - 1:
                     await asyncio.sleep(1.0)
                 continue
 
-        # Se todas as tentativas falharem, retornar original com idioma estimado
-        print(f"[TRADUÇÃO+DETECÇÃO] ✗ Todas as tentativas falharam, retornando texto original")
+        # PASSO 3: Se todas as tentativas falharem, retornar original
+        # Se detectou PT por heurística, retornar como PT
+        if self._detectar_portugues_heuristica(texto):
+            print(f"[FALLBACK] Usando detecção heurística: PT")
+            return {"traducao": texto, "idioma_real": "pt"}
+
+        print(f"[FALLBACK] Todas as tentativas falharam, assumindo idioma original: {idioma_origem}")
         return {"traducao": texto, "idioma_real": idioma_origem}
 
     async def traduzir_texto(
