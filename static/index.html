@@ -2967,9 +2967,13 @@
                 intervalo_polling_reanalisar: null,  // Referência ao setInterval
                 // Traduções
                 completando_traducoes: false,  // Se está traduzindo resultados
+                job_id_traducao: null,  // ID do job de tradução em lote
+                intervalo_polling_traducao: null,  // Referência ao setInterval para polling
                 progresso_traducao: {  // Progresso da tradução
                     total: 0,
-                    processados: 0
+                    processados: 0,
+                    traduzidas: 0,
+                    erros: 0
                 },
                 // Fase II - Análise com IA
                 fase2_status: '',
@@ -4358,47 +4362,92 @@
 
                 async completar_traducoes() {
                     try {
-                        this.completando_traducoes = true;
-                        this.progresso_traducao = { total: 0, processados: 0 };
+                        // Iniciar tradução em lote via background job
+                        const response = await fetch('/api/traducao/lote/iniciar', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                max_concurrent: 10  // 10 traduções simultâneas
+                            })
+                        });
 
-                        // Buscar resultados sem tradução
-                        const response = await fetch('/api/resultados/sem-traducao');
-                        if (!response.ok) throw new Error('Erro ao buscar resultados sem tradução');
+                        if (!response.ok) {
+                            throw new Error('Erro ao iniciar tradução em lote');
+                        }
 
                         const data = await response.json();
-                        const resultados = data.resultados || [];
+                        this.job_id_traducao = data.job_id;
+                        this.completando_traducoes = true;
+                        this.progresso_traducao = { total: 0, processados: 0, traduzidas: 0, erros: 0 };
 
-                        this.progresso_traducao.total = resultados.length;
+                        this.mostrar_notificacao('🌐 Tradução em lote iniciada! Acompanhe o progresso...', 'sucesso');
 
-                        if (resultados.length === 0) {
-                            this.mostrar_notificacao('✓ Todos os resultados já estão traduzidos!', 'sucesso');
-                            return;
-                        }
+                        // Iniciar polling do progresso
+                        this.iniciar_polling_traducao();
 
-                        // Traduzir cada resultado
-                        for (const resultado of resultados) {
-                            try {
-                                const tradResponse = await fetch(`/api/resultados/${resultado.id}/traduzir`, {
-                                    method: 'POST'
-                                });
-
-                                if (tradResponse.ok) {
-                                    this.progresso_traducao.processados++;
-                                }
-                            } catch (e) {
-                                console.error(`Erro ao traduzir resultado ${resultado.id}:`, e);
-                            }
-                        }
-
-                        // Atualizar stats
-                        await this.carregar_stats();
-
-                        this.mostrar_notificacao(`✓ ${this.progresso_traducao.processados} resultados traduzidos!`, 'sucesso');
                     } catch (e) {
                         this.mostrar_notificacao('✗ Erro ao completar traduções: ' + e.message, 'erro');
-                    } finally {
                         this.completando_traducoes = false;
                     }
+                },
+
+                iniciar_polling_traducao() {
+                    // Limpar intervalo anterior se existir
+                    if (this.intervalo_polling_traducao) {
+                        clearInterval(this.intervalo_polling_traducao);
+                    }
+
+                    // Polling a cada 1 segundo
+                    this.intervalo_polling_traducao = setInterval(async () => {
+                        try {
+                            const response = await fetch(`/api/traducao/lote/status/${this.job_id_traducao}`);
+
+                            if (!response.ok) {
+                                throw new Error('Erro ao obter status da tradução');
+                            }
+
+                            const status = await response.json();
+
+                            // Atualizar progresso
+                            this.progresso_traducao = {
+                                total: status.total || 0,
+                                processados: status.processados || 0,
+                                traduzidas: status.traduzidas || 0,
+                                erros: status.erros || 0
+                            };
+
+                            // Verificar se terminou
+                            if (status.status === 'concluido') {
+                                clearInterval(this.intervalo_polling_traducao);
+                                this.intervalo_polling_traducao = null;
+                                this.completando_traducoes = false;
+
+                                // Atualizar stats
+                                await this.carregar_stats();
+
+                                this.mostrar_notificacao(
+                                    `✓ ${status.total_traduzidas || 0} resultados traduzidos! ${status.total_erros > 0 ? `(${status.total_erros} erros)` : ''}`,
+                                    'sucesso'
+                                );
+                            } else if (status.status === 'erro') {
+                                clearInterval(this.intervalo_polling_traducao);
+                                this.intervalo_polling_traducao = null;
+                                this.completando_traducoes = false;
+
+                                this.mostrar_notificacao(
+                                    '✗ Erro na tradução: ' + (status.erro || 'Erro desconhecido'),
+                                    'erro'
+                                );
+                            }
+
+                        } catch (e) {
+                            console.error('Erro no polling de tradução:', e);
+                            clearInterval(this.intervalo_polling_traducao);
+                            this.intervalo_polling_traducao = null;
+                            this.completando_traducoes = false;
+                            this.mostrar_notificacao('✗ Erro ao acompanhar progresso da tradução', 'erro');
+                        }
+                    }, 1000); // Poll a cada 1 segundo
                 },
 
                 async abrir_modal_reanalisar() {

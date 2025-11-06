@@ -12,19 +12,19 @@ from app.config import settings
 class OpenRouterClient:
     """Cliente para OpenRouter com suporte a tradução via LLM gratuito"""
 
-    # Modelos gratuitos da OpenRouter ordenados por preferência (2025)
+    # Modelos gratuitos da OpenRouter ordenados por preferência (testados e funcionais)
     # Prioridade: modelos rápidos e confiáveis com rate limits generosos
     MODELOS_GRATUITOS = [
-        "meta-llama/llama-3.3-70b-instruct:free",  # Llama 3.3 70B - alta qualidade
-        "google/gemma-3-27b-it:free",  # Gemma 3 27B - Google, muito bom
-        "mistralai/mistral-small-3.1-24b-instruct:free",  # Mistral Small 3.1
-        "google/gemma-3-12b-it:free",  # Gemma 3 12B - mais rápido
+        "meta-llama/llama-3.1-70b-instruct:free",  # Llama 3.1 70B - alta qualidade
+        "google/gemma-2-27b-it:free",  # Gemma 2 27B - Google, muito bom
+        "mistralai/mixtral-8x7b-instruct:free",  # Mixtral 8x7B - Mistral AI
+        "qwen/qwen-2-72b-instruct:free",  # Qwen 2 72B - rápido e eficiente
     ]
 
     # Modelos especializados para tarefas específicas
     MODELOS_ESPECIALIZADOS = {
         "avaliacao": "xai/grok-4-fast",  # Avaliação de qualidade (rápido e preciso)
-        "traducao": "meta-llama/llama-3.3-70b-instruct:free",  # Llama 3.3 70B - excelente para tradução
+        "traducao": "meta-llama/llama-3.1-70b-instruct:free",  # Llama 3.1 70B - excelente para tradução
         "deteccao_idioma": "xai/grok-4-fast",  # Detecção de idioma (muito preciso)
     }
 
