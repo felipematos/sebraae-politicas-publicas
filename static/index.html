@@ -1218,11 +1218,81 @@
 
                         <!-- Lista de resultados -->
                         <template x-for="resultado in resultados_pesquisa_paginados" :key="resultado.id">
-                            <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                <div class="flex items-start justify-between gap-4 mb-3">
+                            <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow relative">
+                                <div class="absolute top-4 right-4 flex items-center gap-2 z-20">
+                                    <span
+                                        class="px-2 py-1 text-xs font-medium rounded"
+                                        :class="{
+                                            'bg-green-100 text-green-800': resultado.confidence_score > 0.5,
+                                            'bg-yellow-100 text-yellow-800': resultado.confidence_score >= 0.25 && resultado.confidence_score <= 0.5,
+                                            'bg-red-100 text-red-800': resultado.confidence_score < 0.25
+                                        }"
+                                        x-text="((resultado.confidence_score ?? 0) * 100).toFixed(0)"
+                                    ></span>
+                                    <div class="relative" x-data="{ aberto: false }">
+                                        <button
+                                            @click="aberto = !aberto"
+                                            @click.away="aberto = false"
+                                            class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded hover:bg-gray-200 transition-colors cursor-pointer flex items-center gap-1"
+                                            :title="'Clique para corrigir o idioma'"
+                                        >
+                                            <span x-text="resultado.idioma?.toUpperCase()"></span>
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                            </svg>
+                                        </button>
+
+                                        <!-- Menu dropdown -->
+                                        <div
+                                            x-show="aberto"
+                                            x-transition:enter="transition ease-out duration-100"
+                                            x-transition:enter-start="transform opacity-0 scale-95"
+                                            x-transition:enter-end="transform opacity-100 scale-100"
+                                            x-transition:leave="transition ease-in duration-75"
+                                            x-transition:leave-start="transform opacity-100 scale-100"
+                                            x-transition:leave-end="transform opacity-0 scale-95"
+                                            class="absolute right-0 mt-2 w-44 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-64 overflow-y-auto"
+                                            @click.away="aberto = false"
+                                        >
+                                            <div class="py-1">
+                                                <button @click="atualizar_idioma_resultado(resultado, 'pt'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                    <span>🇧🇷</span> <span>Português</span>
+                                                </button>
+                                                <button @click="atualizar_idioma_resultado(resultado, 'en'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                    <span>🇺🇸</span> <span>Inglês</span>
+                                                </button>
+                                                <button @click="atualizar_idioma_resultado(resultado, 'es'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                    <span>🇪🇸</span> <span>Espanhol</span>
+                                                </button>
+                                                <button @click="atualizar_idioma_resultado(resultado, 'fr'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                    <span>🇫🇷</span> <span>Francês</span>
+                                                </button>
+                                                <button @click="atualizar_idioma_resultado(resultado, 'de'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                    <span>🇩🇪</span> <span>Alemão</span>
+                                                </button>
+                                                <button @click="atualizar_idioma_resultado(resultado, 'it'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                    <span>🇮🇹</span> <span>Italiano</span>
+                                                </button>
+                                                <button @click="atualizar_idioma_resultado(resultado, 'ja'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                    <span>🇯🇵</span> <span>Japonês</span>
+                                                </button>
+                                                <button @click="atualizar_idioma_resultado(resultado, 'ar'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                    <span>🇸🇦</span> <span>Árabe</span>
+                                                </button>
+                                                <button @click="atualizar_idioma_resultado(resultado, 'ko'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                    <span>🇰🇷</span> <span>Coreano</span>
+                                                </button>
+                                                <button @click="atualizar_idioma_resultado(resultado, 'he'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                    <span>🇮🇱</span> <span>Hebraico</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start justify-between gap-4 mb-3 pr-28">
                                     <div class="flex-1">
                                         <!-- Título (sempre exibe traduzido se disponível) -->
-                                        <div class="relative" x-data="{ menu_traducao_aberto: false, editando: false, titulo_editado: resultado.titulo_pt || resultado.titulo }">
+                                        <div class="relative" x-data="{ menu_traducao_aberto: false, editando: false, titulo_editado: (resultado.titulo_pt && resultado.titulo_pt.trim()) ? resultado.titulo_pt.trim() : resultado.titulo }">
                                             <!-- Título - clicável se idioma != pt -->
                                             <div class="flex items-center gap-2">
                                                 <div x-show="!editando" class="flex-1">
@@ -1230,7 +1300,7 @@
                                                         class="font-semibold text-gray-900"
                                                         :class="resultado.idioma !== 'pt' ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''"
                                                         @click="if (resultado.idioma !== 'pt') menu_traducao_aberto = !menu_traducao_aberto"
-                                                        x-text="(resultado.titulo_pt && resultado.titulo_pt.trim()) ? resultado.titulo_pt : resultado.titulo"
+                                                        x-text="obter_titulo_portugues(resultado)"
                                                     ></h4>
                                                     <!-- Ícone para indicar que é clicável -->
                                                     <span x-show="resultado.idioma !== 'pt' && resultado.titulo_pt && resultado.titulo_pt.trim()" class="text-xs text-gray-400 italic">
@@ -1245,7 +1315,7 @@
                                                             x-model="titulo_editado"
                                                             class="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                                                             @keyup.enter="salvar_edicao_titulo(resultado, titulo_editado); editando = false"
-                                                            @keyup.escape="editando = false; titulo_editado = resultado.titulo_pt || resultado.titulo"
+                                                            @keyup.escape="editando = false; titulo_editado = (resultado.titulo_pt && resultado.titulo_pt.trim()) ? resultado.titulo_pt.trim() : resultado.titulo"
                                                         >
                                                         <button
                                                             @click="salvar_edicao_titulo(resultado, titulo_editado); editando = false"
@@ -1253,7 +1323,7 @@
                                                             Salvar
                                                         </button>
                                                         <button
-                                                            @click="editando = false; titulo_editado = resultado.titulo_pt || resultado.titulo"
+                                                            @click="editando = false; titulo_editado = (resultado.titulo_pt && resultado.titulo_pt.trim()) ? resultado.titulo_pt.trim() : resultado.titulo"
                                                             class="px-2 py-1 text-xs bg-gray-400 text-white rounded hover:bg-gray-500">
                                                             Cancelar
                                                         </button>
@@ -1283,7 +1353,7 @@
                                                             <span x-show="resultado._retraduzindo" class="text-gray-500">Retraduzindo...</span>
                                                         </button>
                                                         <button
-                                                            @click="editando = true; menu_traducao_aberto = false; titulo_editado = resultado.titulo_pt || resultado.titulo"
+                                                            @click="editando = true; menu_traducao_aberto = false; titulo_editado = (resultado.titulo_pt && resultado.titulo_pt.trim()) ? resultado.titulo_pt.trim() : resultado.titulo"
                                                             class="w-full text-left px-4 py-2 text-sm text-gray-900 hover:bg-gray-50 flex items-center gap-2"
                                                         >
                                                             <span>✏️</span>
@@ -1319,77 +1389,8 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="flex items-center gap-2 flex-shrink-0">
-                                        <!-- Score com cores tipo semáforo -->
-                                        <span
-                                            class="px-2 py-1 text-xs font-medium rounded"
-                                            :class="{
-                                                'bg-green-100 text-green-800': resultado.confidence_score > 0.5,
-                                                'bg-yellow-100 text-yellow-800': resultado.confidence_score >= 0.25 && resultado.confidence_score <= 0.5,
-                                                'bg-red-100 text-red-800': resultado.confidence_score < 0.25
-                                            }"
-                                            x-text="(resultado.confidence_score * 100).toFixed(0)"></span>
-
-                                        <!-- Dropdown de idioma (clicável para corrigir) -->
-                                        <div class="relative" x-data="{ aberto: false }">
-                                            <button
-                                                @click="aberto = !aberto"
-                                                @click.away="aberto = false"
-                                                class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded hover:bg-gray-200 transition-colors cursor-pointer flex items-center gap-1"
-                                                :title="'Clique para corrigir o idioma'"
-                                            >
-                                                <span x-text="resultado.idioma?.toUpperCase()"></span>
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                                </svg>
-                                            </button>
-
-                                            <!-- Menu dropdown -->
-                                            <div
-                                                x-show="aberto"
-                                                x-transition:enter="transition ease-out duration-100"
-                                                x-transition:enter-start="transform opacity-0 scale-95"
-                                                x-transition:enter-end="transform opacity-100 scale-100"
-                                                x-transition:leave="transition ease-in duration-75"
-                                                x-transition:leave-start="transform opacity-100 scale-100"
-                                                x-transition:leave-end="transform opacity-0 scale-95"
-                                                class="absolute right-0 mt-2 w-44 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-64 overflow-y-auto"
-                                                @click.away="aberto = false"
-                                            >
-                                                <div class="py-1">
-                                                    <button @click="atualizar_idioma_resultado(resultado, 'pt'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
-                                                        <span>🇧🇷</span> <span>Português</span>
-                                                    </button>
-                                                    <button @click="atualizar_idioma_resultado(resultado, 'en'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
-                                                        <span>🇺🇸</span> <span>Inglês</span>
-                                                    </button>
-                                                    <button @click="atualizar_idioma_resultado(resultado, 'es'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
-                                                        <span>🇪🇸</span> <span>Espanhol</span>
-                                                    </button>
-                                                    <button @click="atualizar_idioma_resultado(resultado, 'fr'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
-                                                        <span>🇫🇷</span> <span>Francês</span>
-                                                    </button>
-                                                    <button @click="atualizar_idioma_resultado(resultado, 'de'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
-                                                        <span>🇩🇪</span> <span>Alemão</span>
-                                                    </button>
-                                                    <button @click="atualizar_idioma_resultado(resultado, 'it'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
-                                                        <span>🇮🇹</span> <span>Italiano</span>
-                                                    </button>
-                                                    <button @click="atualizar_idioma_resultado(resultado, 'ja'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
-                                                        <span>🇯🇵</span> <span>Japonês</span>
-                                                    </button>
-                                                    <button @click="atualizar_idioma_resultado(resultado, 'ar'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
-                                                        <span>🇸🇦</span> <span>Árabe</span>
-                                                    </button>
-                                                    <button @click="atualizar_idioma_resultado(resultado, 'ko'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
-                                                        <span>🇰🇷</span> <span>Coreano</span>
-                                                    </button>
-                                                    <button @click="atualizar_idioma_resultado(resultado, 'he'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
-                                                        <span>🇮🇱</span> <span>Hebraico</span>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
+                                    <div class="flex-shrink-0 max-w-xs text-sm text-gray-600 leading-snug"
+                                         x-text="obter_primeira_linha_pt(resultado)">
                                     </div>
                                 </div>
 
@@ -1738,15 +1739,36 @@
                                     <p class="text-2xl font-bold text-purple-700" x-text="stats.total_resultados || 0">0</p>
                                 </div>
                             </div>
-                            <!-- Botão Completar Traduções -->
-                            <div x-show="(stats.resultados_internacionais || 0) > 0 && (stats.percentual_traduzidos || 0) < 100" class="mt-3">
-                                <button @click="completar_traducoes()" :disabled="completando_traducoes"
-                                        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-all">
-                                    <span x-show="!completando_traducoes">🌐 Completar Traduções</span>
-                                    <span x-show="completando_traducoes">⟳ Traduzindo...</span>
-                                </button>
-                                <p x-show="completando_traducoes" class="text-xs text-blue-600 mt-2 text-center">
-                                    Traduzindo <span x-text="progresso_traducao.processados || 0">0</span>/<span x-text="progresso_traducao.total || 0">0</span> resultados...
+                            <!-- Botões de Tradução -->
+                            <div x-show="(stats.resultados_internacionais || 0) > 0" class="mt-3 space-y-2">
+                                <!-- Botão Completar Traduções (apenas se < 100%) -->
+                                <div x-show="(stats.percentual_traduzidos || 0) < 100">
+                                    <button @click="completar_traducoes()" :disabled="completando_traducoes"
+                                            class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-all">
+                                        <span x-show="!completando_traducoes">🌐 Completar Traduções</span>
+                                        <span x-show="completando_traducoes">⟳ Traduzindo...</span>
+                                    </button>
+                                </div>
+
+                                <!-- Botão Refazer Todas as Traduções (sempre visível se há resultados internacionais) -->
+                                <div>
+                                    <button @click="refazer_todas_traducoes()" :disabled="refazendo_traducoes"
+                                            class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-all">
+                                        <span x-show="!refazendo_traducoes">🔄 Refazer Todas as Traduções</span>
+                                        <span x-show="refazendo_traducoes">⟳ Refazendo...</span>
+                                    </button>
+                                    <p class="text-xs text-gray-500 mt-1 text-center">
+                                        Refaz todas as traduções e corrige idiomas detectados incorretamente
+                                    </p>
+                                </div>
+
+                                <!-- Progresso (compartilhado entre os dois botões) -->
+                                <p x-show="completando_traducoes || refazendo_traducoes" class="text-xs text-blue-600 mt-2 text-center">
+                                    <span x-text="refazendo_traducoes ? 'Refazendo' : 'Traduzindo'"></span>
+                                    <span x-text="progresso_traducao.processados || 0">0</span>/<span x-text="progresso_traducao.total || 0">0</span> resultados...
+                                    <span x-show="refazendo_traducoes && (progresso_traducao.idiomas_corrigidos || 0) > 0" class="text-purple-600">
+                                        (<span x-text="progresso_traducao.idiomas_corrigidos || 0">0</span> idiomas corrigidos)
+                                    </span>
                                 </p>
                             </div>
                         </div>
@@ -2967,13 +2989,15 @@
                 intervalo_polling_reanalisar: null,  // Referência ao setInterval
                 // Traduções
                 completando_traducoes: false,  // Se está traduzindo resultados
+                refazendo_traducoes: false,  // Se está refazendo TODAS as traduções
                 job_id_traducao: null,  // ID do job de tradução em lote
                 intervalo_polling_traducao: null,  // Referência ao setInterval para polling
                 progresso_traducao: {  // Progresso da tradução
                     total: 0,
                     processados: 0,
                     traduzidas: 0,
-                    erros: 0
+                    erros: 0,
+                    idiomas_corrigidos: 0  // Contador de idiomas corrigidos
                 },
                 // Fase II - Análise com IA
                 fase2_status: '',
@@ -3042,6 +3066,61 @@
                 filtro_idiomas_resultados: [],
                 filtro_score_min_resultados: 0,
                 filtro_score_max_resultados: 100,
+
+                obter_titulo_portugues(resultado) {
+                    if (!resultado) return '';
+                    const tituloPt = (resultado.titulo_pt || '').trim();
+                    if (tituloPt) {
+                        return tituloPt;
+                    }
+
+                    if ((resultado.idioma || '').toLowerCase() !== 'pt') {
+                        const descricaoTraduzida = (resultado.descricao_pt || '').trim();
+                        const linhaDescricao = this.extrair_primeira_linha(descricaoTraduzida);
+                        if (linhaDescricao) {
+                            return linhaDescricao;
+                        }
+                    }
+
+                    const tituloOriginal = (resultado.titulo || '').trim();
+                    return tituloOriginal || 'Título não disponível';
+                },
+
+                obter_primeira_linha_pt(resultado) {
+                    if (!resultado) return '';
+
+                    const descricaoTraduzida = (resultado.descricao_pt || '').trim();
+                    if (descricaoTraduzida) {
+                        const linha = this.extrair_primeira_linha(descricaoTraduzida);
+                        if (linha) {
+                            return linha;
+                        }
+                    }
+
+                    if ((resultado.idioma || '').toLowerCase() === 'pt') {
+                        const descricaoOriginal = (resultado.descricao || '').trim();
+                        const linhaPt = this.extrair_primeira_linha(descricaoOriginal);
+                        if (linhaPt) {
+                            return linhaPt;
+                        }
+                    }
+
+                    return (resultado.idioma && resultado.idioma.toLowerCase() !== 'pt')
+                        ? 'Tradução da descrição indisponível.'
+                        : 'Descrição não disponível.';
+                },
+
+                extrair_primeira_linha(texto) {
+                    if (!texto) return '';
+                    const linhas = texto
+                        .split(/\r?\n/)
+                        .map(linha => linha.trim())
+                        .filter(Boolean);
+
+                    if (!linhas.length) return '';
+                    const primeira = linhas[0];
+                    return primeira.length > 180 ? `${primeira.slice(0, 177)}...` : primeira;
+                },
 
                 mudar_fase(idx) {
                     this.fase_atual = idx;
@@ -4378,7 +4457,7 @@
                         const data = await response.json();
                         this.job_id_traducao = data.job_id;
                         this.completando_traducoes = true;
-                        this.progresso_traducao = { total: 0, processados: 0, traduzidas: 0, erros: 0 };
+                        this.progresso_traducao = { total: 0, processados: 0, traduzidas: 0, erros: 0, idiomas_corrigidos: 0 };
 
                         this.mostrar_notificacao('🌐 Tradução em lote iniciada! Acompanhe o progresso...', 'sucesso');
 
@@ -4388,6 +4467,44 @@
                     } catch (e) {
                         this.mostrar_notificacao('✗ Erro ao completar traduções: ' + e.message, 'erro');
                         this.completando_traducoes = false;
+                    }
+                },
+
+                async refazer_todas_traducoes() {
+                    try {
+                        // Confirmar ação (TODAS as traduções serão refeitas)
+                        if (!confirm('🔄 Refazer TODAS as traduções?\n\n' +
+                            'Esta ação irá:\n' +
+                            '• Retraduzir TODOS os resultados internacionais\n' +
+                            '• Detectar e corrigir idiomas identificados incorretamente\n' +
+                            '• Usar LLMs gratuitos (pode levar alguns minutos)\n\n' +
+                            'Deseja continuar?')) {
+                            return;
+                        }
+
+                        // Iniciar refazimento via background job
+                        const response = await fetch('/api/traducao/lote/refazer_todas', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Erro ao iniciar refazimento de traduções');
+                        }
+
+                        const data = await response.json();
+                        this.job_id_traducao = data.job_id;
+                        this.refazendo_traducoes = true;
+                        this.progresso_traducao = { total: 0, processados: 0, traduzidas: 0, erros: 0, idiomas_corrigidos: 0 };
+
+                        this.mostrar_notificacao('🔄 Refazendo todas as traduções! Acompanhe o progresso...', 'sucesso');
+
+                        // Iniciar polling do progresso
+                        this.iniciar_polling_traducao();
+
+                    } catch (e) {
+                        this.mostrar_notificacao('✗ Erro ao refazer traduções: ' + e.message, 'erro');
+                        this.refazendo_traducoes = false;
                     }
                 },
 
@@ -4413,26 +4530,39 @@
                                 total: status.total || 0,
                                 processados: status.processados || 0,
                                 traduzidas: status.traduzidas || 0,
-                                erros: status.erros || 0
+                                erros: status.erros || 0,
+                                idiomas_corrigidos: status.idiomas_corrigidos || 0
                             };
 
                             // Verificar se terminou
                             if (status.status === 'concluido') {
                                 clearInterval(this.intervalo_polling_traducao);
                                 this.intervalo_polling_traducao = null;
+
+                                const era_refazimento = this.refazendo_traducoes;
                                 this.completando_traducoes = false;
+                                this.refazendo_traducoes = false;
 
                                 // Atualizar stats
                                 await this.carregar_stats();
 
-                                this.mostrar_notificacao(
-                                    `✓ ${status.total_traduzidas || 0} resultados traduzidos! ${status.total_erros > 0 ? `(${status.total_erros} erros)` : ''}`,
-                                    'sucesso'
-                                );
+                                // Mensagem customizada para refazimento ou tradução normal
+                                let mensagem = `✓ ${status.total_traduzidas || 0} resultados traduzidos!`;
+
+                                if (era_refazimento && status.total_idiomas_corrigidos > 0) {
+                                    mensagem += ` ${status.total_idiomas_corrigidos} idiomas corrigidos!`;
+                                }
+
+                                if (status.total_erros > 0) {
+                                    mensagem += ` (${status.total_erros} erros)`;
+                                }
+
+                                this.mostrar_notificacao(mensagem, 'sucesso');
                             } else if (status.status === 'erro') {
                                 clearInterval(this.intervalo_polling_traducao);
                                 this.intervalo_polling_traducao = null;
                                 this.completando_traducoes = false;
+                                this.refazendo_traducoes = false;
 
                                 this.mostrar_notificacao(
                                     '✗ Erro na tradução: ' + (status.erro || 'Erro desconhecido'),

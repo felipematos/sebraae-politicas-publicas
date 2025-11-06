@@ -224,6 +224,105 @@ Respond in JSON format (no markdown):
                 "motivo": f"Erro: {str(e)[:50]}"
             }
 
+    async def traduzir_texto_com_deteccao(
+        self,
+        texto: str,
+        idioma_alvo: str,
+        idioma_origem: str = "pt"
+    ) -> dict:
+        """
+        Traduz texto E detecta o idioma real usando LLM gratuito
+
+        IMPORTANTE: O LLM tem maior confiança na detecção de idioma do que heurísticas,
+        então sempre retorna o idioma detectado para atualização no banco.
+
+        Args:
+            texto: Texto a traduzir
+            idioma_alvo: Código do idioma alvo (en, es, it, ja, etc)
+            idioma_origem: Código do idioma origem estimado (padrão: pt)
+
+        Returns:
+            Dict com:
+                - traducao: str (texto traduzido)
+                - idioma_real: str (idioma real detectado pelo LLM)
+        """
+        if not self.api_key:
+            print("[WARN] OPENROUTER_API_KEY não configurada, usando fallback")
+            return {"traducao": texto, "idioma_real": idioma_origem}
+
+        # Mapear código de idioma para nome completo
+        nomes_idiomas = {
+            "pt": "Portuguese",
+            "en": "English",
+            "es": "Spanish",
+            "fr": "French",
+            "de": "German",
+            "it": "Italian",
+            "ar": "Arabic",
+            "ja": "Japanese",
+            "ko": "Korean",
+            "he": "Hebrew",
+        }
+
+        idioma_alvo_nome = nomes_idiomas.get(idioma_alvo, idioma_alvo)
+
+        prompt = f"""Analyze and translate the following text to {idioma_alvo_nome}.
+
+IMPORTANT INSTRUCTIONS:
+1. First, detect the ACTUAL language of the source text (it might be different from what was assumed)
+2. Translate to {idioma_alvo_nome}
+3. Preserve original capitalization, formatting, and structure
+4. Return ONLY in this exact JSON format (no markdown, no explanation):
+
+{{"idioma_real": "<2-letter ISO code like pt, en, es, it, fr, de>", "traducao": "<translated text>"}}
+
+Text to analyze and translate:
+{texto}"""
+
+        # Tentar com cada modelo (fallback automático)
+        for tentativa, modelo in enumerate(self.MODELOS_GRATUITOS):
+            try:
+                resultado = await self._chamar_modelo(modelo, prompt)
+                if resultado and resultado.strip():
+                    # Tentar parsear JSON
+                    import json
+                    try:
+                        # Limpar possíveis marcadores de código
+                        resultado_limpo = resultado.strip()
+                        if resultado_limpo.startswith("```"):
+                            resultado_limpo = resultado_limpo.split("```")[1]
+                            if resultado_limpo.startswith("json"):
+                                resultado_limpo = resultado_limpo[4:]
+                        resultado_limpo = resultado_limpo.strip()
+
+                        dados = json.loads(resultado_limpo)
+
+                        # Validar campos
+                        if "traducao" in dados and "idioma_real" in dados:
+                            idioma_detectado = dados["idioma_real"].lower()[:2]
+                            print(f"[TRADUÇÃO+DETECÇÃO] ✓ Modelo: {modelo} | Idioma detectado: {idioma_detectado}")
+                            return {
+                                "traducao": dados["traducao"].strip(),
+                                "idioma_real": idioma_detectado
+                            }
+                    except json.JSONDecodeError:
+                        # Se falhar o parse, tentar próximo modelo
+                        print(f"[TRADUÇÃO+DETECÇÃO] ✗ Falha ao parsear JSON do modelo {modelo}")
+                        continue
+
+            except Exception as e:
+                print(
+                    f"[TRADUÇÃO+DETECÇÃO] ✗ Tentativa {tentativa + 1}/{len(self.MODELOS_GRATUITOS)} "
+                    f"com {modelo}: {str(e)[:100]}"
+                )
+                if tentativa < len(self.MODELOS_GRATUITOS) - 1:
+                    await asyncio.sleep(1.0)
+                continue
+
+        # Se todas as tentativas falharem, retornar original com idioma estimado
+        print(f"[TRADUÇÃO+DETECÇÃO] ✗ Todas as tentativas falharam, retornando texto original")
+        return {"traducao": texto, "idioma_real": idioma_origem}
+
     async def traduzir_texto(
         self,
         texto: str,
