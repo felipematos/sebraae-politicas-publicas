@@ -1221,23 +1221,22 @@
                             <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                                 <div class="flex items-start justify-between gap-4 mb-3">
                                     <div class="flex-1">
-                                        <!-- Título em português (se disponível e não vazio) -->
-                                        <div x-show="resultado.titulo_pt && resultado.titulo_pt.trim()" class="relative">
-                                            <div x-data="{ menu_traducao_aberto: false, editando: false, titulo_editado: resultado.titulo_pt }">
-                                                <!-- Título traduzido - clicável se idioma != pt -->
-                                                <div class="flex items-center gap-2">
-                                                    <div x-show="!editando" class="flex-1">
-                                                        <h4
-                                                            class="font-semibold text-gray-900"
-                                                            :class="resultado.idioma !== 'pt' ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''"
-                                                            @click="if (resultado.idioma !== 'pt') menu_traducao_aberto = !menu_traducao_aberto"
-                                                            x-text="resultado.titulo_pt"
-                                                        ></h4>
-                                                        <!-- Ícone para indicar que é clicável -->
-                                                        <span x-show="resultado.idioma !== 'pt'" class="text-xs text-gray-400 italic">
-                                                            (clique para opções de tradução)
-                                                        </span>
-                                                    </div>
+                                        <!-- Título (sempre exibe traduzido se disponível) -->
+                                        <div class="relative" x-data="{ menu_traducao_aberto: false, editando: false, titulo_editado: resultado.titulo_pt || resultado.titulo }">
+                                            <!-- Título - clicável se idioma != pt -->
+                                            <div class="flex items-center gap-2">
+                                                <div x-show="!editando" class="flex-1">
+                                                    <h4
+                                                        class="font-semibold text-gray-900"
+                                                        :class="resultado.idioma !== 'pt' ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''"
+                                                        @click="if (resultado.idioma !== 'pt') menu_traducao_aberto = !menu_traducao_aberto"
+                                                        x-text="(resultado.titulo_pt && resultado.titulo_pt.trim()) ? resultado.titulo_pt : resultado.titulo"
+                                                    ></h4>
+                                                    <!-- Ícone para indicar que é clicável -->
+                                                    <span x-show="resultado.idioma !== 'pt' && resultado.titulo_pt && resultado.titulo_pt.trim()" class="text-xs text-gray-400 italic">
+                                                        (clique para opções de tradução)
+                                                    </span>
+                                                </div>
 
                                                     <!-- Input de edição -->
                                                     <div x-show="editando" class="flex-1 flex items-center gap-2">
@@ -1246,7 +1245,7 @@
                                                             x-model="titulo_editado"
                                                             class="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                                                             @keyup.enter="salvar_edicao_titulo(resultado, titulo_editado); editando = false"
-                                                            @keyup.escape="editando = false; titulo_editado = resultado.titulo_pt"
+                                                            @keyup.escape="editando = false; titulo_editado = resultado.titulo_pt || resultado.titulo"
                                                         >
                                                         <button
                                                             @click="salvar_edicao_titulo(resultado, titulo_editado); editando = false"
@@ -1254,7 +1253,7 @@
                                                             Salvar
                                                         </button>
                                                         <button
-                                                            @click="editando = false; titulo_editado = resultado.titulo_pt"
+                                                            @click="editando = false; titulo_editado = resultado.titulo_pt || resultado.titulo"
                                                             class="px-2 py-1 text-xs bg-gray-400 text-white rounded hover:bg-gray-500">
                                                             Cancelar
                                                         </button>
@@ -1284,7 +1283,7 @@
                                                             <span x-show="resultado._retraduzindo" class="text-gray-500">Retraduzindo...</span>
                                                         </button>
                                                         <button
-                                                            @click="editando = true; menu_traducao_aberto = false; titulo_editado = resultado.titulo_pt"
+                                                            @click="editando = true; menu_traducao_aberto = false; titulo_editado = resultado.titulo_pt || resultado.titulo"
                                                             class="w-full text-left px-4 py-2 text-sm text-gray-900 hover:bg-gray-50 flex items-center gap-2"
                                                         >
                                                             <span>✏️</span>
@@ -1292,34 +1291,33 @@
                                                         </button>
                                                     </div>
                                                 </div>
+
+                                                <!-- Avisos quando não há tradução -->
+                                                <div x-show="!resultado.titulo_pt || !resultado.titulo_pt.trim()">
+                                                    <div class="flex items-center gap-2 mt-2">
+                                                        <button
+                                                            x-show="resultado.idioma !== 'pt' && !resultado._traduzindo"
+                                                            @click="app.traduzir_resultado(resultado)"
+                                                            class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                                                            Traduzir agora
+                                                        </button>
+                                                        <span
+                                                            x-show="resultado._traduzindo"
+                                                            class="px-2 py-1 text-xs bg-gray-300 text-gray-600 rounded">
+                                                            Traduzindo...
+                                                        </span>
+                                                    </div>
+                                                    <p class="text-xs text-amber-600 italic mt-1" x-show="resultado.idioma !== 'pt' && !resultado._traduzindo">
+                                                        ⚠️ Tradução do título em português não disponível
+                                                    </p>
+                                                </div>
+
+                                                <!-- Mostrar original em itálico se houver tradução e idioma != pt -->
+                                                <p class="text-xs text-gray-500 italic mt-1"
+                                                   x-show="resultado.titulo_pt && resultado.titulo_pt.trim() && resultado.idioma !== 'pt'"
+                                                   x-text="`Original (${resultado.idioma?.toUpperCase()}): ${resultado.titulo}`"></p>
                                             </div>
                                         </div>
-
-                                        <!-- Título original (se não houver tradução PT ou tradução estiver vazia) -->
-                                        <div x-show="!resultado.titulo_pt || !resultado.titulo_pt.trim()">
-                                            <div class="flex items-center gap-2">
-                                                <h4 class="font-semibold text-gray-900" x-text="resultado.titulo"></h4>
-                                                <button
-                                                    x-show="resultado.idioma !== 'pt' && !resultado._traduzindo"
-                                                    @click="app.traduzir_resultado(resultado)"
-                                                    class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
-                                                    Traduzir agora
-                                                </button>
-                                                <span
-                                                    x-show="resultado._traduzindo"
-                                                    class="px-2 py-1 text-xs bg-gray-300 text-gray-600 rounded">
-                                                    Traduzindo...
-                                                </span>
-                                            </div>
-                                            <p class="text-xs text-amber-600 italic mt-1" x-show="resultado.idioma !== 'pt' && !resultado._traduzindo">
-                                                ⚠️ Tradução do título em português não disponível
-                                            </p>
-                                        </div>
-
-                                        <!-- Mostrar original em itálico se houver tradução e idioma != pt -->
-                                        <p class="text-xs text-gray-500 italic mt-1"
-                                           x-show="resultado.titulo_pt && resultado.idioma !== 'pt'"
-                                           x-text="`Original (${resultado.idioma?.toUpperCase()}): ${resultado.titulo}`"></p>
                                     </div>
                                     <div class="flex items-center gap-2 flex-shrink-0">
                                         <!-- Score com cores tipo semáforo -->
@@ -1395,14 +1393,13 @@
                                     </div>
                                 </div>
 
-                                <!-- Descrição em português (se disponível) -->
-                                <p class="text-sm text-gray-600 mb-3" x-show="resultado.descricao_pt" x-text="resultado.descricao_pt"></p>
+                                <!-- Descrição (sempre exibe traduzida se disponível) -->
+                                <p class="text-sm text-gray-600 mb-2" x-text="(resultado.descricao_pt && resultado.descricao_pt.trim()) ? resultado.descricao_pt : resultado.descricao"></p>
 
-                                <!-- Descrição original (se não houver tradução) -->
-                                <div x-show="!resultado.descricao_pt">
-                                    <p class="text-sm text-gray-600 mb-2" x-text="resultado.descricao"></p>
-                                    <p class="text-xs text-amber-600 italic" x-show="resultado.idioma !== 'pt'">⚠️ Tradução da descrição em português não disponível</p>
-                                </div>
+                                <!-- Aviso quando não há tradução da descrição -->
+                                <p class="text-xs text-amber-600 italic mb-2" x-show="resultado.idioma !== 'pt' && (!resultado.descricao_pt || !resultado.descricao_pt.trim())">
+                                    ⚠️ Tradução da descrição em português não disponível
+                                </p>
 
                                 <div class="flex items-center justify-between text-xs text-gray-500">
                                     <div class="flex items-center gap-3 flex-1">
