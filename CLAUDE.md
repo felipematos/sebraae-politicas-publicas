@@ -119,6 +119,54 @@ git push origin main
 - Perplexity AI: Research and policy analysis
 - API keys stored in `.env` file (never commit)
 
+### Claude Code Best Practices
+
+#### UI/UX Guidelines
+- **NEVER** create UI elements with insufficient text contrast
+- Always ensure readable contrast ratios between text color and background color
+- Follow WCAG accessibility guidelines (minimum 4.5:1 for normal text, 3:1 for large text)
+- Test color combinations before implementing
+
+#### Documentation Maintenance
+- **ALWAYS** update README.md when making significant changes to:
+  - Project structure
+  - Dependencies or technical stack
+  - API integrations
+  - Database schema
+  - Key features or workflows
+- Keep CLAUDE.md updated with new patterns, commands, or guidelines discovered during development
+- Document architectural decisions and their rationale
+
+#### Testing & Verification
+- **ALWAYS** test changes before considering them complete, especially for:
+  - Large or complex modifications
+  - Changes affecting multiple files or components
+  - Database migrations or schema changes
+  - API integrations
+  - UI/UX modifications
+- Verify that changes don't break existing functionality
+- Run relevant test commands or manual verification steps
+- Check console for errors after making frontend changes
+
+#### Error Resolution Strategy
+- When encountering errors, **ALWAYS**:
+  - Review recent changes made in the current session
+  - Consider how recent modifications might have caused the issue
+  - Check if new dependencies or configurations are missing
+  - Verify file paths and references are still valid
+- Maintain context awareness of the change history during debugging
+- Document solutions to non-obvious errors for future reference
+
+#### LLM Model Selection
+- **ALWAYS** use the intelligent model manager system (`app/llm/gerenciador_modelos.py`) when calling LLMs
+- The system automatically selects appropriate models based on:
+  - Task requirements (context length, capabilities)
+  - Cost optimization (prices from OpenRouter API)
+  - Model availability and performance characteristics
+- Data source: `app/llm/modelos_openrouter.json` (contains pricing and features)
+- Use `chamador_llm_inteligente.py` for smart model routing
+- Never hardcode model selection - let the manager choose optimally
+
 ## Project Phases Reference
 
 1. **Levantamento** (Data Collection) - ✅ COMPLETED
