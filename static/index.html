@@ -1202,22 +1202,17 @@
                     </div>
 
                     <!-- Resultados -->
-                    <div x-show="!carregando_resultados_pesquisa && paginacao_local.total_filtrados > 0" class="space-y-4">
+                    <div x-show="!carregando_resultados_pesquisa && paginacao_resultados_pesquisa.total > 0" class="space-y-4">
                         <!-- Info do total -->
                         <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
                             <p class="text-sm text-blue-800">
                                 <span class="font-semibold">Exibindo
-                                    <span x-text="Math.min(paginacao_local.page_size, paginacao_local.total_filtrados - ((paginacao_local.page - 1) * paginacao_local.page_size))"></span>
+                                    <span x-text="resultados_pesquisa_paginados.length"></span>
                                 </span>
                                 resultado(s)
-                                <span x-show="paginacao_local.total_filtrados !== paginacao_resultados_pesquisa.total">
-                                    de <span class="font-semibold" x-text="paginacao_local.total_filtrados"></span> filtrado(s):
-                                    <span class="font-semibold" x-text="Math.round((paginacao_local.total_filtrados / paginacao_resultados_pesquisa.total) * 100)"></span>%
-                                    do total de <span class="font-semibold" x-text="paginacao_resultados_pesquisa.total"></span>
-                                </span>
-                                <span x-show="paginacao_local.total_filtrados === paginacao_resultados_pesquisa.total">
-                                    de <span class="font-semibold" x-text="paginacao_resultados_pesquisa.total"></span> total
-                                </span>
+                                de <span class="font-semibold" x-text="paginacao_local.total_filtrados"></span> filtrado(s):
+                                <span class="font-semibold" x-text="Math.round((paginacao_local.total_filtrados / paginacao_resultados_pesquisa.total) * 100)"></span>%
+                                do total de <span class="font-semibold" x-text="paginacao_resultados_pesquisa.total"></span>
                             </p>
                         </div>
 

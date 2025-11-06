@@ -123,13 +123,13 @@ async def obter_falha(falha_id: int):
 async def obter_resultados_falha(
     falha_id: int,
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100)
+    page_size: int = Query(20, ge=1, le=10000)
 ):
     """
     Obter resultados de pesquisa para uma falha com paginação
 
     - **page**: Número da página (começa em 1)
-    - **page_size**: Quantidade de resultados por página (default: 20, max: 100)
+    - **page_size**: Quantidade de resultados por página (default: 20, max: 10000)
     """
     # Verificar se falha existe
     falha = await get_falha_by_id(falha_id)

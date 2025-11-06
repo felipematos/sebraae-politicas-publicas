@@ -15,16 +15,16 @@ class OpenRouterClient:
     # Modelos gratuitos da OpenRouter ordenados por preferência
     # Prioridade: modelos rápidos e confiáveis com rate limits generosos
     MODELOS_GRATUITOS = [
-        "mistralai/mistral-7b-instruct",  # Bom custo-benefício
-        "microsoft/phi-3-mini",  # Muito rápido
-        "openchat/openchat-3.5",  # Bom para tarefas simples
-        "gpt-3.5-turbo",  # Fallback mais confiável (rate limit generoso)
+        "meta-llama/llama-3.2-3b-instruct:free",  # Rápido e gratuito
+        "mistralai/mistral-7b-instruct:free",  # Bom custo-benefício
+        "google/gemma-2-9b-it:free",  # Google Gemma gratuito
+        "microsoft/phi-3-mini-128k-instruct:free",  # Muito rápido
     ]
 
     # Modelos especializados para tarefas específicas
     MODELOS_ESPECIALIZADOS = {
         "avaliacao": "xai/grok-4-fast",  # Avaliação de qualidade (rápido e preciso)
-        "traducao": "mistralai/mistral-7b-instruct",  # Tradução
+        "traducao": "meta-llama/llama-3.2-3b-instruct:free",  # Tradução rápida e gratuita
         "deteccao_idioma": "xai/grok-4-fast",  # Detecção de idioma (muito preciso)
     }
 
