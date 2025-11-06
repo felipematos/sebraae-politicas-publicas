@@ -181,6 +181,58 @@
             </div>
         </div>
 
+        <!-- Modal de Confirmação de Refazer Traduções -->
+        <div id="refazer-traducoes-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="fechar_modal_traducao()" x-show="modal_confirmar_traducao_aberto" x-cloak>
+            <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4" @click.stop>
+                <h3 class="text-xl font-bold mb-3 text-purple-600">🔄 Refazer Todas as Traduções</h3>
+                <p class="text-gray-700 mb-4">
+                    Esta ação irá <strong>retraduzir TODOS</strong> os resultados internacionais e <strong>corrigir idiomas</strong> detectados incorretamente.
+                </p>
+
+                <!-- Loading de estimativa -->
+                <div x-show="estimativa_traducao_carregando" class="text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-600 mb-3"></div>
+                    <p class="text-gray-600 text-sm">Calculando estimativas...</p>
+                </div>
+
+                <!-- Estimativas -->
+                <div x-show="!estimativa_traducao_carregando && estimativa_traducao" class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4 space-y-2">
+                    <p class="font-semibold text-gray-900">📊 Estimativas:</p>
+                    <div class="space-y-1 text-sm">
+                        <p><strong>Resultados:</strong> <span x-text="estimativa_traducao?.total || 0"></span> resultados serão retraduzidos</p>
+                        <p><strong>Modo:</strong> <span x-text="estimativa_traducao?.modo_nome || 'N/A'"></span></p>
+                        <p><strong>Tempo estimado:</strong>
+                            <span x-text="estimativa_traducao ? Math.ceil(estimativa_traducao.tempo_estimado_segundos / 60) : 0"></span> minutos
+                        </p>
+                        <p x-show="estimativa_traducao && estimativa_traducao.custo_estimado > 0">
+                            <strong>Custo estimado:</strong>
+                            R$ <span x-text="estimativa_traducao?.custo_estimado.toFixed(2) || '0.00'"></span>
+                        </p>
+                        <p x-show="estimativa_traducao && estimativa_traducao.custo_estimado === 0" class="text-green-600 font-medium">
+                            ✅ Gratuito (sem custo)
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Aviso -->
+                <div x-show="!estimativa_traducao_carregando" class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
+                    <p class="text-sm text-yellow-800">
+                        <strong>⚠️ Atenção:</strong> Esta operação pode levar alguns minutos. O processo rodará em segundo plano e você poderá acompanhar o progresso.
+                    </p>
+                </div>
+
+                <!-- Botões -->
+                <div x-show="!estimativa_traducao_carregando" class="flex gap-3 justify-end">
+                    <button @click="fechar_modal_traducao()" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded font-medium">
+                        Cancelar
+                    </button>
+                    <button @click="refazer_todas_traducoes()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded font-medium">
+                        Confirmar e Refazer
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal de Análise Individual -->
         <div id="analise-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="fechar_modal_analise()" x-show="modal_analise_aberto" x-cloak>
             <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" @click.stop>
@@ -1679,6 +1731,58 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Modelo de Tradução -->
+                            <div class="border-t pt-6">
+                                <div class="flex items-center justify-between mb-3">
+                                    <label class="font-semibold text-gray-900">Modelo de Tradução</label>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-4">Selecione o modelo usado para traduzir resultados internacionais</p>
+
+                                <div class="space-y-2">
+                                    <label class="flex items-center p-3 bg-white border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition"
+                                           :class="modo_traducao === 'gratuito' ? 'border-purple-500 bg-purple-50' : 'border-gray-200'">
+                                        <input type="radio" name="modo_traducao" value="gratuito"
+                                               x-model="modo_traducao"
+                                               class="h-4 w-4 text-purple-600">
+                                        <div class="ml-3 flex-1">
+                                            <span class="font-medium text-gray-900">Gratuito (Recomendado)</span>
+                                            <p class="text-sm text-gray-600">Rotaciona entre modelos gratuitos: Llama 3.1 70B, Gemma 2 27B, Mixtral 8x7B, Qwen 2 72B</p>
+                                            <p class="text-xs text-green-600 font-medium">Custo: R$ 0,00 | Velocidade: ~3-5s por tradução</p>
+                                        </div>
+                                    </label>
+
+                                    <label class="flex items-center p-3 bg-white border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition"
+                                           :class="modo_traducao === 'economico' ? 'border-purple-500 bg-purple-50' : 'border-gray-200'">
+                                        <input type="radio" name="modo_traducao" value="economico"
+                                               x-model="modo_traducao"
+                                               class="h-4 w-4 text-purple-600">
+                                        <div class="ml-3 flex-1">
+                                            <span class="font-medium text-gray-900">Econômico</span>
+                                            <p class="text-sm text-gray-600">Modelos baratos e rápidos: Google Gemini Flash, Claude Haiku</p>
+                                            <p class="text-xs text-blue-600 font-medium">Custo: ~R$ 0,002 por tradução | Velocidade: ~1-2s</p>
+                                        </div>
+                                    </label>
+
+                                    <label class="flex items-center p-3 bg-white border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition"
+                                           :class="modo_traducao === 'qualidade' ? 'border-purple-500 bg-purple-50' : 'border-gray-200'">
+                                        <input type="radio" name="modo_traducao" value="qualidade"
+                                               x-model="modo_traducao"
+                                               class="h-4 w-4 text-purple-600">
+                                        <div class="ml-3 flex-1">
+                                            <span class="font-medium text-gray-900">Alta Qualidade</span>
+                                            <p class="text-sm text-gray-600">Modelos de melhor qualidade: GPT-4o Mini, Claude Sonnet</p>
+                                            <p class="text-xs text-yellow-600 font-medium">Custo: ~R$ 0,01 por tradução | Velocidade: ~2-4s</p>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div class="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                                    <p class="text-sm text-purple-800">
+                                        <strong>ℹ️ Nota:</strong> A configuração é aplicada ao usar "Completar Traduções" ou "Refazer Todas as Traduções".
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1752,7 +1856,7 @@
 
                                 <!-- Botão Refazer Todas as Traduções (sempre visível se há resultados internacionais) -->
                                 <div>
-                                    <button @click="refazer_todas_traducoes()" :disabled="refazendo_traducoes"
+                                    <button @click="solicitar_refazer_traducoes()" :disabled="refazendo_traducoes"
                                             class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-all">
                                         <span x-show="!refazendo_traducoes">🔄 Refazer Todas as Traduções</span>
                                         <span x-show="refazendo_traducoes">⟳ Refazendo...</span>
@@ -2972,6 +3076,7 @@
                 config_avaliacao_profunda_aberta: false,  // Painel de configurações aberto/fechado
                 avaliacao_profunda_ativa: false,  // Se avaliação profunda está ativada
                 modo_avaliacao_profunda: 'gratuito',  // premium, balanceado, gratuito
+                modo_traducao: 'gratuito',  // gratuito, economico, qualidade - modo de tradução
                 criterios_mudaram: false,  // Se critérios mudaram desde última análise
                 modal_reanalisar_aberto: false,  // Modal de confirmação de reanálise
                 estimativa_reanalisar: null,  // { custo, tempo, modelo, num_fontes }
@@ -2999,6 +3104,9 @@
                     erros: 0,
                     idiomas_corrigidos: 0  // Contador de idiomas corrigidos
                 },
+                modal_confirmar_traducao_aberto: false,  // Modal de confirmação de tradução
+                estimativa_traducao: null,  // { custo, tempo, modo, total }
+                estimativa_traducao_carregando: false,  // Se está carregando estimativa
                 // Fase II - Análise com IA
                 fase2_status: '',
                 falhas_fase2: [],
@@ -4470,22 +4578,53 @@
                     }
                 },
 
+                async solicitar_refazer_traducoes() {
+                    try {
+                        this.estimativa_traducao_carregando = true;
+                        this.modal_confirmar_traducao_aberto = true;
+
+                        // Solicitar estimativa do backend
+                        const response = await fetch('/api/traducao/lote/estimar', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                modo: this.modo_traducao,
+                                refazer_todas: true
+                            })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Erro ao obter estimativa');
+                        }
+
+                        const estimativa = await response.json();
+                        this.estimativa_traducao = estimativa;
+
+                    } catch (e) {
+                        this.mostrar_notificacao('✗ Erro ao calcular estimativa: ' + e.message, 'erro');
+                        this.modal_confirmar_traducao_aberto = false;
+                    } finally {
+                        this.estimativa_traducao_carregando = false;
+                    }
+                },
+
+                fechar_modal_traducao() {
+                    this.modal_confirmar_traducao_aberto = false;
+                    this.estimativa_traducao = null;
+                },
+
                 async refazer_todas_traducoes() {
                     try {
-                        // Confirmar ação (TODAS as traduções serão refeitas)
-                        if (!confirm('🔄 Refazer TODAS as traduções?\n\n' +
-                            'Esta ação irá:\n' +
-                            '• Retraduzir TODOS os resultados internacionais\n' +
-                            '• Detectar e corrigir idiomas identificados incorretamente\n' +
-                            '• Usar LLMs gratuitos (pode levar alguns minutos)\n\n' +
-                            'Deseja continuar?')) {
-                            return;
-                        }
+                        // Fechar modal
+                        this.fechar_modal_traducao();
 
                         // Iniciar refazimento via background job
                         const response = await fetch('/api/traducao/lote/refazer_todas', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' }
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                modo: this.modo_traducao
+                            })
                         });
 
                         if (!response.ok) {

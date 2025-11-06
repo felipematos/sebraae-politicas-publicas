@@ -219,6 +219,79 @@ async def obter_status_traducao(job_id: str):
     return traducao_jobs[job_id]
 
 
+class EstimarTraducaoRequest(BaseModel):
+    """Schema para solicitar estimativa de tradução"""
+    modo: str = "gratuito"  # gratuito, economico, qualidade
+    refazer_todas: bool = True
+
+
+@router.post("/api/traducao/lote/estimar")
+async def estimar_traducao_lote(request: EstimarTraducaoRequest):
+    """
+    Calcula estimativa de tempo e custo para tradução em lote
+
+    Args:
+        request: Configurações da tradução (modo e se é para refazer todas)
+
+    Returns:
+        Estimativa com tempo, custo, total de resultados
+    """
+    try:
+        # Contar resultados que serão traduzidos
+        if request.refazer_todas:
+            # Todos os resultados não-PT
+            query = "SELECT COUNT(*) as total FROM resultados_pesquisa WHERE idioma != 'pt'"
+        else:
+            # Apenas os sem tradução
+            query = """
+            SELECT COUNT(*) as total FROM resultados_pesquisa
+            WHERE idioma != 'pt' AND (titulo_pt IS NULL OR titulo_pt = '')
+            """
+
+        result = await db.fetch_one(query)
+        total_resultados = result['total'] if result else 0
+
+        # Configurações de tempo e custo por modo
+        configs_modo = {
+            "gratuito": {
+                "nome": "Gratuito (Llama 3.1 70B, Gemma 2 27B, Mixtral, Qwen)",
+                "tempo_por_traducao": 4,  # segundos
+                "custo_por_traducao": 0.0  # R$
+            },
+            "economico": {
+                "nome": "Econômico (Gemini Flash, Claude Haiku)",
+                "tempo_por_traducao": 1.5,  # segundos
+                "custo_por_traducao": 0.002  # R$
+            },
+            "qualidade": {
+                "nome": "Alta Qualidade (GPT-4o Mini, Claude Sonnet)",
+                "tempo_por_traducao": 3,  # segundos
+                "custo_por_traducao": 0.01  # R$
+            }
+        }
+
+        config = configs_modo.get(request.modo, configs_modo["gratuito"])
+
+        # Calcular estimativas (2 traduções por resultado: título + descrição)
+        total_traducoes = total_resultados * 2
+        tempo_estimado_segundos = int(total_traducoes * config["tempo_por_traducao"])
+        custo_estimado = total_traducoes * config["custo_por_traducao"]
+
+        return {
+            "total": total_resultados,
+            "modo": request.modo,
+            "modo_nome": config["nome"],
+            "tempo_estimado_segundos": tempo_estimado_segundos,
+            "custo_estimado": round(custo_estimado, 2)
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao calcular estimativa: {str(e)}"
+        )
+
+
 @router.post("/api/traducao/lote/refazer_todas")
 async def refazer_todas_traducoes(background_tasks: BackgroundTasks):
     """
