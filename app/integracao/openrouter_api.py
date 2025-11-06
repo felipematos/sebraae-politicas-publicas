@@ -99,7 +99,7 @@ class OpenRouterClient:
         }
     ]
 
-    BASE_URL = "https://openrouter.io/api/v1"
+    BASE_URL = "https://openrouter.ai/api/v1"  # Correto: .ai não .io
 
     def __init__(self, api_key: Optional[str] = None):
         """
