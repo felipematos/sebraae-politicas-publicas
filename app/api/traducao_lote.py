@@ -217,3 +217,176 @@ async def obter_status_traducao(job_id: str):
         raise HTTPException(status_code=404, detail="Job não encontrado")
 
     return traducao_jobs[job_id]
+
+
+@router.post("/api/traducao/lote/reprocessar")
+async def reprocessar_traducoes(background_tasks: BackgroundTasks):
+    """
+    Reprocessa todas as traduções existentes que estão em lowercase
+    para corrigir problemas de capitalização.
+
+    Returns:
+        Job ID para acompanhamento do progresso
+    """
+    try:
+        # Gerar job ID único
+        job_id = str(uuid.uuid4())
+
+        # Criar registro do job
+        traducao_jobs[job_id] = {
+            "job_id": job_id,
+            "status": "iniciado",
+            "progresso": 0,
+            "total": 0,
+            "processados": 0,
+            "traduzidas": 0,
+            "erros": 0,
+            "max_concurrent": 5,
+            "iniciado_em": datetime.now().isoformat()
+        }
+
+        # Adicionar tarefa em background
+        background_tasks.add_task(
+            reprocessar_traducoes_background,
+            job_id
+        )
+
+        logger.info(f"[JOB {job_id}] Reprocessamento de traduções iniciado")
+
+        return {
+            "job_id": job_id,
+            "status": "iniciado",
+            "mensagem": "Reprocessamento de traduções iniciado. Use o job_id para acompanhar o progresso."
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao iniciar reprocessamento: {str(e)}"
+        )
+
+
+async def reprocessar_traducoes_background(job_id: str):
+    """
+    Reprocessa traduções em background para corrigir capitalização
+    """
+    try:
+        logger.info(f"[JOB {job_id}] Iniciando reprocessamento de traduções")
+
+        # Buscar resultados com traduções em lowercase (heurística: sem maiúsculas)
+        query = """
+        SELECT id, falha_id, titulo, descricao, idioma, titulo_pt, descricao_pt
+        FROM resultados_pesquisa
+        WHERE idioma != 'pt'
+        AND titulo_pt IS NOT NULL
+        AND titulo_pt != ''
+        AND titulo_pt = LOWER(titulo_pt)
+        ORDER BY id
+        """
+
+        resultados = await db.fetch_all(query)
+        total = len(resultados)
+
+        if total == 0:
+            traducao_jobs[job_id].update({
+                "status": "concluido",
+                "progresso": 100,
+                "total_traduzidas": 0,
+                "erros": 0,
+                "mensagem": "Nenhuma tradução para reprocessar",
+                "concluido_em": datetime.now().isoformat()
+            })
+            return
+
+        # Atualizar status
+        traducao_jobs[job_id].update({
+            "status": "processando",
+            "total": total,
+            "processados": 0,
+            "progresso": 0,
+            "traduzidas": 0,
+            "erros": 0
+        })
+
+        traduzidas = 0
+        erros = 0
+        processados = 0
+
+        # Criar semáforo para controlar concorrência
+        semaphore = asyncio.Semaphore(5)  # Mais conservador para reprocessamento
+
+        async def retraduzir_um_resultado(resultado):
+            """Retraduz um resultado individualmente"""
+            nonlocal traduzidas, erros, processados
+
+            async with semaphore:
+                try:
+                    resultado_dict = dict(resultado)
+                    idioma_origem = resultado_dict.get('idioma', 'en')
+
+                    # Retraduzir com OpenRouterClient (agora com prompt corrigido)
+                    async with OpenRouterClient() as client:
+                        titulo_pt = await client.traduzir_texto(
+                            texto=resultado_dict['titulo'],
+                            idioma_alvo="pt",
+                            idioma_origem=idioma_origem
+                        )
+
+                        descricao_pt = await client.traduzir_texto(
+                            texto=resultado_dict['descricao'],
+                            idioma_alvo="pt",
+                            idioma_origem=idioma_origem
+                        )
+
+                    # Atualizar no banco
+                    if titulo_pt and descricao_pt:
+                        await db.execute(
+                            """
+                            UPDATE resultados_pesquisa
+                            SET titulo_pt = ?, descricao_pt = ?, atualizado_em = CURRENT_TIMESTAMP
+                            WHERE id = ?
+                            """,
+                            (titulo_pt.strip(), descricao_pt.strip(), resultado_dict['id'])
+                        )
+                        traduzidas += 1
+                        logger.info(f"[JOB {job_id}] Retraduzido resultado {resultado_dict['id']}: '{resultado_dict['titulo_pt'][:50]}' -> '{titulo_pt[:50]}'")
+                    else:
+                        erros += 1
+
+                except Exception as e:
+                    erros += 1
+                    logger.error(f"[JOB {job_id}] Erro ao retraduzir resultado {resultado_dict.get('id')}: {e}")
+
+                finally:
+                    processados += 1
+                    # Atualizar progresso
+                    progresso = int((processados / total) * 100)
+                    traducao_jobs[job_id].update({
+                        "processados": processados,
+                        "progresso": progresso,
+                        "traduzidas": traduzidas,
+                        "erros": erros
+                    })
+
+        # Processar todos os resultados em paralelo (controlado pelo semáforo)
+        await asyncio.gather(*[retraduzir_um_resultado(r) for r in resultados])
+
+        # Finalizar job
+        traducao_jobs[job_id].update({
+            "status": "concluido",
+            "progresso": 100,
+            "total_traduzidas": traduzidas,
+            "total_erros": erros,
+            "mensagem": f"Reprocessamento concluído! {traduzidas} traduções corrigidas, {erros} erros.",
+            "concluido_em": datetime.now().isoformat()
+        })
+
+        logger.info(f"[JOB {job_id}] Reprocessamento concluído: {traduzidas}/{total} traduções corrigidas")
+
+    except Exception as e:
+        logger.error(f"[JOB {job_id}] Erro fatal no reprocessamento: {e}")
+        traducao_jobs[job_id].update({
+            "status": "erro",
+            "erro": str(e),
+            "concluido_em": datetime.now().isoformat()
+        })

@@ -266,6 +266,9 @@ Respond in JSON format (no markdown):
         idioma_alvo_nome = nomes_idiomas.get(idioma_alvo, idioma_alvo)
 
         prompt = f"""Translate the following {idioma_origem_nome} text to {idioma_alvo_nome}.
+
+IMPORTANT: Preserve the original capitalization, formatting, and structure of the text.
+Do NOT change uppercase/lowercase letters unless grammatically required in the target language.
 Return ONLY the translated text, without any explanation or additional text.
 
 Text to translate:
@@ -790,6 +793,8 @@ Response Format (JSON only):
 
         # Prompt de tradução simples e direto
         prompt = f"""Translate the following text from {idioma_nome} to Portuguese (Brazilian).
+
+IMPORTANT: Preserve the original capitalization, formatting, and structure of the text.
 Return ONLY the translated text, without any additional explanations or comments.
 
 Text to translate:
