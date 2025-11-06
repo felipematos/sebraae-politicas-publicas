@@ -2873,7 +2873,7 @@
                     { nome: 'Plano de Implantação', descricao: 'Estratégia de implementação' },
                     { nome: 'Biblioteca', descricao: 'Documentos e relatórios' }
                 ],
-                stats: { total_falhas: 0, total_priorizadas: 0, total_resultados: 0, total_pendentes: 0, total_processando: 0, total_concluidas: 0, total_documentos: 0, total_indexados: 0, total_vetores: 0 },
+                stats: { total_falhas: 0, total_priorizadas: 0, total_resultados: 0, total_pendentes: 0, total_processando: 0, total_concluidas: 0, total_documentos: 0, total_indexados: 0, total_vetores: 0, resultados_pt: 0, resultados_internacionais: 0, resultados_traduzidos: 0, percentual_traduzidos: 0 },
                 ativo: false,
                 pesquisa_iniciando: false,
                 analisando: false,
@@ -3215,6 +3215,12 @@
                                 this.stats.total_pendentes = dados.total_pendentes || 0;
                                 this.stats.total_processando = dados.total_processando || 0;
                                 this.stats.total_concluidas = dados.total_concluidas || 0;
+
+                                // Estatísticas de tradução
+                                this.stats.resultados_pt = dados.resultados_pt || 0;
+                                this.stats.resultados_internacionais = dados.resultados_internacionais || 0;
+                                this.stats.resultados_traduzidos = dados.resultados_traduzidos || 0;
+                                this.stats.percentual_traduzidos = dados.percentual_traduzidos || 0;
 
                                 // Calcular percentual de processamento baseado em falhas com resultados
                                 if (this.stats.total_falhas > 0) {
