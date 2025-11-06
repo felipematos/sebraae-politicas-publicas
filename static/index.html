@@ -3156,6 +3156,12 @@
                                     scoreText = (score * 100).toFixed(0);
                                 }
 
+                                // Calcular percentual de progresso real das pesquisas
+                                const totalEsperado = Math.max(falha.total_buscas_enfileiradas || 0, falha.max_searches || 0);
+                                const percentualProgresso = totalEsperado > 0
+                                    ? Math.min(((falha.searches_completed || 0) / totalEsperado) * 100, 100)
+                                    : 0;
+
                                 return `
                                 <tr class="border-b hover:bg-blue-50 cursor-pointer" onclick="app.abrir_modal_resultados_pesquisa(${falha.id}, '${falha.titulo.replace(/'/g, "\\'")}', '${falha.pilar}')">
                                     <td class="px-6 py-4 text-sm">${falha.id}</td>
@@ -3163,7 +3169,7 @@
                                     <td class="px-6 py-4 text-sm"><span class="bg-blue-100 text-blue-800 px-3 py-1 rounded">${falha.pilar}</span></td>
                                     <td class="px-6 py-4 text-sm">
                                         <div class="w-full bg-gray-200 rounded h-2">
-                                            <div class="bg-blue-600 h-2 rounded" style="width: ${Math.min((falha.total_resultados || 0) / 10, 100)}%"></div>
+                                            <div class="bg-blue-600 h-2 rounded" style="width: ${percentualProgresso}%"></div>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 text-sm">
