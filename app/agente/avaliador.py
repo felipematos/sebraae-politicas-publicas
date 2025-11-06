@@ -57,6 +57,7 @@ async def calcular_score_relevancia(
 ) -> float:
     """
     Calcula score de relevancia baseado em matching de palavras-chave
+    MELHORADO: Usa escala completa 0-1 e bonus mais generosos
 
     Para resultados em idiomas diferentes do português, usa a tradução
     para garantir comparação justa com a query em português.
@@ -87,25 +88,60 @@ async def calcular_score_relevancia(
 
     # Contar quantas palavras-chave aparecem no texto
     matches = 0
+    matches_parciais = 0  # Contar matches parciais (ex: "educação" em "educacional")
     for palavra in palavras_query:
         if palavra in texto_lower:
             matches += 1
+        else:
+            # Verificar match parcial (palavra é parte de outra palavra)
+            palavras_texto = texto_lower.split()
+            for palavra_texto in palavras_texto:
+                if palavra in palavra_texto or palavra_texto in palavra:
+                    matches_parciais += 1
+                    break
 
-    # Score base: proporcao de palavras encontradas (0-0.8)
-    # Usa escala 0-1 completa para refletir bem a relevancia
-    score_base = (matches / len(palavras_query)) * 0.8
+    # Score base: proporcao de palavras encontradas (0-0.75)
+    # MUDANÇA: Agora usa escala mais alta (0.75 vs 0.8 anterior) mas com bonus maiores
+    score_base = (matches / len(palavras_query)) * 0.75
 
-    # Bonus se query completa aparece como phrase (0-0.15)
+    # Bonus para matches parciais (max 0.10)
+    bonus_parcial = (matches_parciais / len(palavras_query)) * 0.10
+
+    # Bonus se query completa aparece como phrase (0-0.25)
+    # MUDANÇA: Bonus aumentado de 0.15 para 0.25
     bonus_phrase = 0.0
     if query_lower in texto_lower:
-        bonus_phrase = 0.15  # Muito bom: encontrou a query inteira
+        bonus_phrase = 0.25  # Excelente: encontrou a query inteira
     elif matches == len(palavras_query):
-        # Se todas as palavras estao presentes mas nao em sequence
-        bonus_phrase = 0.10  # Bom: encontrou todas as palavras
+        # Se todas as palavras estao presentes mas nao em sequencia
+        bonus_phrase = 0.15  # Muito bom: encontrou todas as palavras
 
-    score = score_base + bonus_phrase
+    score = score_base + bonus_parcial + bonus_phrase
 
     return min(1.0, score)
+
+
+def detectar_brasil(resultado: Dict[str, Any]) -> bool:
+    """
+    Detecta se resultado é relacionado ao Brasil
+
+    Args:
+        resultado: Dicionário com titulo, descricao, url
+
+    Returns:
+        True se detectar Brasil, False caso contrário
+    """
+    # Termos que indicam Brasil
+    termos_brasil = [
+        "brasil", "brazilian", "brasileiro", "brasileira",
+        ".br", "brasilia", "brasília", "gov.br"
+    ]
+
+    # Juntar titulo + descricao + url
+    texto = f"{resultado.get('titulo', '')} {resultado.get('descricao', '')} {resultado.get('fonte_url', '')}".lower()
+
+    # Verificar se algum termo aparece
+    return any(termo in texto for termo in termos_brasil)
 
 
 def calcular_score_ponderado(
@@ -116,61 +152,113 @@ def calcular_score_ponderado(
     confiabilidade_fonte: float
 ) -> float:
     """
-    Calcula score ponderado melhorado com 4 fatores
+    Calcula score ponderado melhorado com 4 fatores + bonus Brasil
+    MELHORADO: Normalização não-linear de ocorrências e bonus de 20% para Brasil
 
     Fatores:
-    - score_relevancia: Quanto o resultado eh relevante para a query (50%)
-      Usa escala 0-1 completa para refletir melhor a relevancia
-    - num_ocorrencias: Quantas vezes apareceu em multiplas pesquisas (20%)
-      Incentiva resultados que aparecem em multiplas buscas
+    - score_relevancia: Quanto o resultado eh relevante para a query (55%)
+      MUDANÇA: Peso aumentado de 50% para 55%
+    - num_ocorrencias: Quantas vezes apareceu em multiplas pesquisas (15%)
+      MUDANÇA: Peso reduzido de 20% para 15%, normalização melhorada
     - confiabilidade_fonte: Confiabilidade da fonte de dados (20%)
-      Pondera pela fonte de onde veio o resultado
+      MANTIDO: Pondera pela fonte de onde veio o resultado
     - titulo_match: Se titulo contem palavras-chave (10%)
-      Bonus se a query aparece no titulo
+      MANTIDO: Bonus se a query aparece no titulo
+    - bonus_brasil: +20% se resultado relacionado ao Brasil
+      NOVO: Prioriza resultados brasileiros
 
     Args:
         resultado: Dicionario com titulo, descricao, url, fonte
         query: Query para matching no titulo
-        score_relevancia: Score de relevancia (0-1) - CORRIGIDO PARA USAR ESCALA COMPLETA
+        score_relevancia: Score de relevancia (0-1)
         num_ocorrencias: Numero de ocorrencias
         confiabilidade_fonte: Confiabilidade da fonte (0-1)
 
     Returns:
         Score ponderado entre 0.0 e 1.0
     """
-    # Fator 1: Relevancia (50%) - AUMENTADO para refletir importancia
-    # score_relevancia agora usa escala 0-1 completa
-    peso_relevancia = 0.50
-    valor_relevancia = min(1.0, score_relevancia)  # Ja entre 0-1
+    # Fator 1: Relevancia (55%) - AUMENTADO de 50% para 55%
+    peso_relevancia = 0.55
+    valor_relevancia = min(1.0, score_relevancia)
 
-    # Fator 2: Ocorrencias (20%) - REDUZIDO pois já considerado em relevancia
-    # Normalizamos para 0-1: max 5 ocorrencias = 100%
-    peso_ocorrencias = 0.20
-    valor_ocorrencias = min(1.0, num_ocorrencias / 5.0)
+    # Fator 2: Ocorrencias (15%) - REDUZIDO de 20% para 15%
+    # Normalização melhorada: usa raiz quadrada para suavizar penalização
+    # MUDANÇA: sqrt(ocorrencias)/sqrt(5) ao invés de linear
+    peso_ocorrencias = 0.15
+    import math
+    valor_ocorrencias = min(1.0, math.sqrt(num_ocorrencias) / math.sqrt(5.0))
+    # Exemplos:
+    # 1 ocorrência: sqrt(1)/sqrt(5) = 0.447 (vs 0.2 anterior) ✅
+    # 2 ocorrências: sqrt(2)/sqrt(5) = 0.632 (vs 0.4 anterior) ✅
+    # 5 ocorrências: sqrt(5)/sqrt(5) = 1.0   (vs 1.0 anterior) ✅
 
     # Fator 3: Confiabilidade da fonte (20%) - MANTIDO
     peso_fonte = 0.20
-    valor_fonte = min(1.0, confiabilidade_fonte)  # Ja entre 0-1
+    valor_fonte = min(1.0, confiabilidade_fonte)
 
-    # Fator 4: Match no titulo (10%) - MANTIDO como bonus
+    # Fator 4: Match no titulo (10%) - MANTIDO
     peso_titulo = 0.10
     titulo = resultado.get("titulo", "").lower()
+    titulo_pt = resultado.get("titulo_pt", "").lower()  # Também considerar tradução
+    titulo_completo = f"{titulo} {titulo_pt}"
+
     palavras_query = extrair_palavras_chave(query)
     if palavras_query:
-        titulo_matches = sum(1 for p in palavras_query if p in titulo)
+        titulo_matches = sum(1 for p in palavras_query if p in titulo_completo)
         valor_titulo = min(1.0, titulo_matches / len(palavras_query))
     else:
         valor_titulo = 0.0
 
-    # Score ponderado com formula melhorada
-    score = (
+    # Score base ponderado
+    score_base = (
         valor_relevancia * peso_relevancia +
         valor_ocorrencias * peso_ocorrencias +
         valor_fonte * peso_fonte +
         valor_titulo * peso_titulo
     )
 
-    return min(1.0, max(0.0, score))
+    # NOVO: Bonus de 20% para resultados relacionados ao Brasil
+    bonus_brasil = 0.0
+    if detectar_brasil(resultado):
+        bonus_brasil = score_base * 0.20  # 20% do score base
+
+    # Score final com bonus
+    score_final = score_base + bonus_brasil
+
+    # Aplicar função de expansão não-linear para melhor distribuição
+    # Expande scores médios, mantém extremos
+    score_expandido = expandir_score(score_final)
+
+    return min(1.0, max(0.0, score_expandido))
+
+
+def expandir_score(score: float) -> float:
+    """
+    Aplica função não-linear para expandir distribuição de scores
+    Mantém scores baixos (<0.25) e altos (>0.80), expande zona média mais agressivamente
+
+    Args:
+        score: Score original (0-1)
+
+    Returns:
+        Score expandido (0-1)
+    """
+    if score < 0.25:
+        # Zona baixa: manter (resultados irrelevantes)
+        return score
+    elif score > 0.80:
+        # Zona alta: manter (resultados excelentes)
+        return score
+    elif score < 0.40:
+        # Zona média-baixa (0.25-0.40): expandir moderadamente
+        # Mapear [0.25, 0.40] -> [0.25, 0.50]
+        # Fórmula: 0.25 + (score - 0.25) * ((0.50 - 0.25) / (0.40 - 0.25))
+        return 0.25 + (score - 0.25) * 1.67
+    else:
+        # Zona média-alta (0.40-0.80): expandir mais agressivamente
+        # Mapear [0.40, 0.80] -> [0.50, 0.85]
+        # Fórmula: 0.50 + (score - 0.40) * ((0.85 - 0.50) / (0.80 - 0.40))
+        return 0.50 + (score - 0.40) * 0.875
 
 
 class Avaliador:
