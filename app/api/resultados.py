@@ -40,6 +40,8 @@ async def listar_resultados(
         r.falha_id,
         r.titulo,
         r.descricao,
+        r.titulo_pt,
+        r.descricao_pt,
         r.fonte_url,
         r.fonte_tipo,
         r.pais_origem,

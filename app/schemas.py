@@ -66,6 +66,8 @@ class ResultadoResponse(BaseModel):
     falha_id: int
     titulo: str
     descricao: Optional[str]
+    titulo_pt: Optional[str] = None
+    descricao_pt: Optional[str] = None
     fonte_url: str
     fonte_tipo: Optional[str]
     pais_origem: Optional[str]
