@@ -2,6 +2,14 @@
 """
 Script para processar modelos da OpenRouter e adicionar metadados inteligentes.
 Atualizado em: 2025-11-06
+
+Sistema de scoring granular:
+- Tier S (9.0-10.0): Modelos top-tier, estado da arte
+- Tier A (7.5-8.9): Modelos excelentes, altamente recomendados
+- Tier B (6.0-7.4): Modelos bons, confiáveis
+- Tier C (4.5-5.9): Modelos medianos, uso específico
+- Tier D (3.0-4.4): Modelos básicos, limitados
+- Tier E (0.0-2.9): Modelos fracos ou inadequados
 """
 
 import json
@@ -10,138 +18,301 @@ from typing import Dict, List, Any
 import re
 
 
+# Benchmarks conhecidos (baseado em dados públicos)
+BENCHMARK_TIERS = {
+    # Tier S - Estado da arte
+    "tier_s": [
+        "gpt-4-turbo", "gpt-4o", "claude-3.5-sonnet", "claude-3-opus",
+        "gemini-1.5-pro", "gemini-2.0-flash-thinking", "o1", "o3-mini",
+        "deepseek-v3", "qwen-2.5-72b", "llama-3.3-70b"
+    ],
+    # Tier A - Excelentes
+    "tier_a": [
+        "gpt-4o-mini", "claude-3-sonnet", "claude-3-haiku",
+        "gemini-1.5-flash", "gemini-flash-1.5", "mistral-large",
+        "llama-3.1-405b", "qwen-2-72b", "mixtral-8x22b",
+        "deepseek-r1", "grok-3"
+    ],
+    # Tier B - Bons
+    "tier_b": [
+        "gpt-3.5-turbo", "claude-2", "gemini-pro",
+        "llama-3.1-70b", "llama-3-70b", "mixtral-8x7b",
+        "mistral-medium", "gemma-2-27b", "qwen-1.5-72b"
+    ],
+    # Tier C - Medianos
+    "tier_c": [
+        "llama-3-8b", "llama-2-70b", "mistral-7b",
+        "gemma-7b", "phi-3", "yi-34b"
+    ]
+}
+
+
+def identificar_tier_modelo(model_id: str, name: str) -> str:
+    """Identifica o tier do modelo baseado em benchmarks conhecidos"""
+    model_lower = (model_id + " " + name).lower()
+
+    for tier, modelos in BENCHMARK_TIERS.items():
+        for modelo_ref in modelos:
+            if modelo_ref.replace("-", " ") in model_lower or modelo_ref.replace(" ", "-") in model_lower:
+                return tier
+
+    return "tier_d"  # Padrão para modelos desconhecidos
+
+
 def calcular_score_traducao(model: Dict[str, Any]) -> float:
     """
     Calcula score de adequação para tradução (0.0-10.0).
-    Baseado em: capacidade multilíngue, context window, benchmarks conhecidos.
+    Sistema granular baseado em:
+    - Tier do modelo (benchmarks conhecidos)
+    - Tamanho e arquitetura
+    - Context window
+    - Capacidade multilíngue
     """
-    score = 5.0  # Base
     model_id = model["id"].lower()
     name = model["name"].lower()
     description = model.get("description", "").lower()
-
-    # Modelos conhecidos por excelência em tradução
-    excellent_for_translation = [
-        "claude", "gpt-4", "gpt-3.5", "llama-3", "gemini", "gemma",
-        "mistral", "mixtral", "qwen", "deepseek", "command"
-    ]
-
-    for keyword in excellent_for_translation:
-        if keyword in model_id or keyword in name:
-            score += 2.0
-            break
-
-    # Modelos multilíngues ou com suporte explícito
-    if any(term in description for term in ["multilingual", "translation", "multiple languages", "language support"]):
-        score += 1.5
-
-    # Context window maior = melhor para contexto de tradução
     context = model.get("context_length", 0)
-    if context >= 100000:
-        score += 1.5
-    elif context >= 32000:
-        score += 1.0
-    elif context >= 8000:
-        score += 0.5
 
-    # Modelos maiores geralmente traduzem melhor
+    # Base score por tier
+    tier = identificar_tier_modelo(model_id, name)
+    tier_scores = {
+        "tier_s": 8.5,
+        "tier_a": 7.2,
+        "tier_b": 5.8,
+        "tier_c": 4.2,
+        "tier_d": 2.5
+    }
+    score = tier_scores.get(tier, 2.5)
+
+    # Ajustes por características específicas
+
+    # 1. Tamanho do modelo (granular)
     if "405b" in model_id or "405b" in name:
+        score += 1.2
+    elif any(size in model_id or size in name for size in ["180b", "175b"]):
         score += 1.0
-    elif any(size in model_id or size in name for size in ["70b", "72b", "180b"]):
-        score += 0.7
-    elif any(size in model_id or size in name for size in ["13b", "27b", "30b", "34b"]):
-        score += 0.3
-
-    # Modelos "instruct" são melhores para seguir instruções de tradução
-    if "instruct" in model_id or "instruct" in name:
+    elif any(size in model_id or size in name for size in ["70b", "72b"]):
+        score += 0.8
+    elif any(size in model_id or size in name for size in ["30b", "34b"]):
         score += 0.5
+    elif any(size in model_id or size in name for size in ["20b", "27b"]):
+        score += 0.3
+    elif any(size in model_id or size in name for size in ["13b", "14b"]):
+        score += 0.1
+    elif any(size in model_id or size in name for size in ["7b", "8b"]):
+        score -= 0.3
+    elif any(size in model_id or size in name for size in ["3b", "1b"]):
+        score -= 0.8
 
-    # Penalizar modelos muito especializados em outras tarefas
-    if any(term in description for term in ["code only", "math only", "vision only"]):
-        score -= 2.0
+    # 2. Context window (impacta capacidade de tradução com contexto)
+    if context >= 1000000:
+        score += 0.8
+    elif context >= 200000:
+        score += 0.6
+    elif context >= 128000:
+        score += 0.4
+    elif context >= 32000:
+        score += 0.2
+    elif context < 8000:
+        score -= 0.5
 
-    return min(10.0, max(0.0, score))
+    # 3. Capacidade multilíngue explícita
+    multilingual_indicators = [
+        "multilingual", "multi-lingual", "translation",
+        "multiple languages", "language support", "polyglot"
+    ]
+    if any(term in description for term in multilingual_indicators):
+        score += 0.6
+
+    # 4. Tipo de instrução
+    if "instruct" in model_id or "instruct" in name:
+        score += 0.4
+    elif "chat" in model_id or "chat" in name:
+        score += 0.2
+
+    # 5. Modelos especializados (bônus ou penalidade)
+    if any(term in description for term in ["code generation", "coding", "code-specific"]):
+        score -= 0.4  # Menos adequado para tradução geral
+    if any(term in description for term in ["vision", "image", "multimodal"]):
+        score -= 0.3  # Foco dividido
+
+    # 6. Versões específicas (refinamentos)
+    if "turbo" in model_id or "turbo" in name:
+        score += 0.3
+    if "preview" in model_id or "preview" in name:
+        score -= 0.2  # Versões preview podem ser instáveis
+
+    # 7. Provider quality adjustments
+    if "openai" in model_id:
+        score += 0.3
+    elif "anthropic" in model_id or "claude" in name:
+        score += 0.4
+    elif "google" in model_id or "gemini" in name:
+        score += 0.3
+    elif "meta" in model_id or "llama" in name:
+        score += 0.2
+
+    # 8. Modelos free têm mais rate limits (pequena penalidade)
+    if ":free" in model_id:
+        score -= 0.2
+
+    return round(min(10.0, max(0.0, score)), 2)
 
 
 def calcular_score_analise(model: Dict[str, Any]) -> float:
     """
     Calcula score de adequação para análise e raciocínio (0.0-10.0).
-    Baseado em: capacidade de raciocínio, benchmarks, context window.
+    Sistema granular baseado em:
+    - Tier do modelo
+    - Capacidade de raciocínio
+    - Context window para análise longa
+    - Benchmarks de raciocínio
     """
-    score = 5.0  # Base
     model_id = model["id"].lower()
     name = model["name"].lower()
     description = model.get("description", "").lower()
-
-    # Modelos premium conhecidos por raciocínio
-    premium_reasoning = [
-        "gpt-4", "claude-3-opus", "claude-3.5-sonnet", "claude-3-sonnet",
-        "gemini-1.5-pro", "gemini-2.0", "o1", "o3", "grok-3", "grok-4",
-        "deepseek-r1", "qwen-2.5", "llama-3.3-70b", "llama-3.1-405b"
-    ]
-
-    for keyword in premium_reasoning:
-        if keyword in model_id or keyword in name:
-            score += 3.0
-            break
-
-    # Termos relacionados a raciocínio avançado
-    if any(term in description for term in ["reasoning", "analysis", "thinking", "complex", "advanced", "agentic"]):
-        score += 1.5
-
-    # Context window maior = melhor para análise de documentos longos
     context = model.get("context_length", 0)
-    if context >= 200000:
-        score += 2.0
-    elif context >= 100000:
-        score += 1.5
+
+    # Base score por tier (análise requer modelos melhores)
+    tier = identificar_tier_modelo(model_id, name)
+    tier_scores = {
+        "tier_s": 9.0,
+        "tier_a": 7.5,
+        "tier_b": 6.0,
+        "tier_c": 4.5,
+        "tier_d": 2.8
+    }
+    score = tier_scores.get(tier, 2.8)
+
+    # 1. Modelos com capacidade de raciocínio avançada
+    reasoning_models = [
+        "o1", "o3", "deepseek-r1", "deepseek-reasoner",
+        "thinking", "reasoning", "r1"
+    ]
+    if any(term in model_id or term in name for term in reasoning_models):
+        score += 1.0
+
+    # 2. Descrição menciona raciocínio/análise
+    reasoning_terms = [
+        "reasoning", "analysis", "thinking", "chain-of-thought",
+        "step-by-step", "complex reasoning", "problem solving"
+    ]
+    reasoning_count = sum(1 for term in reasoning_terms if term in description)
+    score += min(0.8, reasoning_count * 0.2)
+
+    # 3. Context window (crítico para análise de documentos)
+    if context >= 1000000:
+        score += 1.0
+    elif context >= 500000:
+        score += 0.8
+    elif context >= 200000:
+        score += 0.6
+    elif context >= 128000:
+        score += 0.4
     elif context >= 32000:
-        score += 1.0
+        score += 0.2
+    elif context < 16000:
+        score -= 0.5
 
-    # Modelos maiores têm melhor capacidade de raciocínio
+    # 4. Tamanho do modelo (para raciocínio complexo)
     if "405b" in model_id or "405b" in name:
-        score += 1.5
-    elif any(size in model_id or size in name for size in ["70b", "72b", "180b"]):
         score += 1.0
-    elif any(size in model_id or size in name for size in ["13b", "27b", "30b", "34b"]):
-        score += 0.5
+    elif any(size in model_id or size in name for size in ["180b", "175b"]):
+        score += 0.8
+    elif any(size in model_id or size in name for size in ["70b", "72b"]):
+        score += 0.6
+    elif any(size in model_id or size in name for size in ["30b", "34b"]):
+        score += 0.3
+    elif any(size in model_id or size in name for size in ["7b", "8b"]):
+        score -= 0.4
+    elif any(size in model_id or size in name for size in ["3b", "1b"]):
+        score -= 0.8
 
-    return min(10.0, max(0.0, score))
+    # 5. Modelos especializados em análise
+    if "research" in model_id or "research" in name:
+        score += 0.5
+    if "analyst" in model_id or "analysis" in name:
+        score += 0.4
+
+    # 6. Penalidades
+    if any(term in description for term in ["chat only", "conversation", "casual"]):
+        score -= 0.3
+    if "mini" in model_id or "lite" in model_id:
+        score -= 0.4
+
+    return round(min(10.0, max(0.0, score)), 2)
 
 
 def calcular_score_velocidade(model: Dict[str, Any]) -> float:
     """
     Calcula score de velocidade (0.0-10.0).
-    Baseado em: tamanho do modelo, provider, termos como "fast", "turbo", etc.
+    Sistema granular baseado em:
+    - Tamanho do modelo (menor = mais rápido)
+    - Indicadores de otimização
+    - Provider
+    - Arquitetura
     """
-    score = 5.0  # Base
     model_id = model["id"].lower()
     name = model["name"].lower()
     description = model.get("description", "").lower()
 
-    # Indicadores de velocidade no nome
-    if any(term in model_id or term in name for term in ["fast", "turbo", "speed", "quick", "instant", "flash", "lite", "mini"]):
+    # Base score - assume mediano
+    score = 5.0
+
+    # 1. Tamanho do modelo (MAIOR IMPACTO em velocidade)
+    if any(size in model_id or size in name for size in ["1b", "3b"]):
         score += 3.0
-
-    # Modelos menores são mais rápidos
-    if any(size in model_id or size in name for size in ["7b", "8b", "mini", "small", "lite"]):
-        score += 2.0
-    elif any(size in model_id or size in name for size in ["13b", "14b", "20b", "27b"]):
-        score += 1.0
+    elif any(size in model_id or size in name for size in ["7b", "8b"]):
+        score += 2.5
+    elif any(size in model_id or size in name for size in ["13b", "14b"]):
+        score += 1.5
+    elif any(size in model_id or size in name for size in ["20b", "27b"]):
+        score += 0.5
+    elif any(size in model_id or size in name for size in ["30b", "34b"]):
+        score -= 0.5
     elif any(size in model_id or size in name for size in ["70b", "72b"]):
-        score -= 1.0
-    elif any(size in model_id or size in name for size in ["180b", "405b"]):
-        score -= 2.0
+        score -= 1.5
+    elif any(size in model_id or size in name for size in ["180b", "175b"]):
+        score -= 2.5
+    elif any(size in model_id or size in name for size in ["405b"]):
+        score -= 3.0
 
-    # Providers conhecidos por velocidade
-    if any(provider in model_id for provider in ["gemini-flash", "gpt-4o-mini", "claude-haiku", "grok-fast"]):
-        score += 2.0
+    # 2. Indicadores explícitos de velocidade
+    speed_terms = ["fast", "turbo", "speed", "quick", "instant", "flash", "lite", "mini", "rapid"]
+    speed_count = sum(1 for term in speed_terms if term in model_id or term in name)
+    score += min(2.0, speed_count * 0.8)
 
-    # Termos relacionados à velocidade na descrição
-    if any(term in description for term in ["fast", "efficient", "optimized", "quick", "low latency"]):
+    # 3. Descrição menciona velocidade/eficiência
+    if any(term in description for term in ["fast", "low latency", "efficient", "optimized", "quick"]):
+        score += 0.6
+
+    # 4. Providers conhecidos por velocidade
+    if "gemini-flash" in model_id:
+        score += 1.5
+    elif "gpt-4o-mini" in model_id or "gpt-3.5" in model_id:
+        score += 1.2
+    elif "claude-haiku" in model_id or "claude-3-haiku" in model_id:
+        score += 1.0
+    elif "grok" in model_id and "fast" in model_id:
         score += 1.0
 
-    return min(10.0, max(0.0, score))
+    # 5. Arquitetura (se disponível na descrição)
+    if "mamba" in description:
+        score += 0.5  # Arquitetura eficiente
+    if "moe" in description or "mixture of experts" in description:
+        score += 0.3  # MoE pode ser mais eficiente
+
+    # 6. Penalidades
+    if "reasoning" in model_id or "thinking" in model_id:
+        score -= 1.0  # Modelos de raciocínio são mais lentos
+    if any(term in description for term in ["comprehensive", "thorough", "detailed"]):
+        score -= 0.3
+
+    # 7. Modelos preview/beta podem ser mais lentos
+    if "preview" in model_id or "beta" in model_id:
+        score -= 0.4
+
+    return round(min(10.0, max(0.0, score)), 2)
 
 
 def calcular_categoria_preco(prompt_price: float, completion_price: float) -> str:
@@ -167,34 +338,53 @@ def calcular_categoria_preco(prompt_price: float, completion_price: float) -> st
 def calcular_custo_beneficio(model: Dict[str, Any], metadata: Dict[str, Any]) -> float:
     """
     Calcula score geral de custo-benefício (0.0-10.0).
-    Maior = melhor relação qualidade/preço.
+    Fórmula refinada que considera:
+    - Qualidade média do modelo
+    - Preço
+    - Adequação para casos de uso comuns
     """
     prompt_price = float(model["pricing"]["prompt"])
     completion_price = float(model["pricing"]["completion"])
     total_price = prompt_price + completion_price
 
-    # Score médio de qualidade
+    # Score médio de qualidade (ponderado)
+    # Tradução e análise têm peso maior (mais comuns)
     quality_score = (
-        metadata["scores"]["traducao"] +
-        metadata["scores"]["analise"] +
-        metadata["scores"]["velocidade"]
-    ) / 3
+        metadata["scores"]["traducao"] * 0.35 +
+        metadata["scores"]["analise"] * 0.35 +
+        metadata["scores"]["velocidade"] * 0.30
+    )
 
     # Modelos gratuitos têm excelente custo-benefício se tiverem qualidade razoável
     if total_price == 0:
-        return min(10.0, quality_score * 1.5)
+        # Score máximo para gratuitos de alta qualidade
+        if quality_score >= 7.5:
+            return 10.0
+        elif quality_score >= 6.0:
+            return 9.5
+        elif quality_score >= 4.5:
+            return 9.0
+        else:
+            return 8.0  # Mesmo gratuito, se for fraco não é bom custo-benefício
 
     # Para modelos pagos, calcular relação qualidade/preço
-    # Normalizar preço (assumindo range típico de $0.00001 a $0.1)
-    normalized_price = min(10.0, total_price * 1000)  # Escala para 0-10
+    # Normalizar preço em escala logarítmica para melhor distribuição
+    import math
+    if total_price > 0:
+        # Log scale: $0.00001 = -5, $0.0001 = -4, $0.001 = -3, $0.01 = -2, $0.1 = -1
+        log_price = math.log10(total_price)
 
-    # Custo-benefício = qualidade / preço normalizado
-    if normalized_price > 0:
-        cost_benefit = (quality_score / normalized_price) * 10
+        # Normalizar para escala 0-10 (preços mais altos = score menor)
+        # -6 (muito barato) a -1 (muito caro)
+        price_score = max(0, min(10, 10 + log_price))  # Inverter: preço alto = score baixo
+
+        # Custo-benefício = média ponderada de qualidade e preço
+        # Qualidade tem peso 60%, preço tem peso 40%
+        cost_benefit = (quality_score * 0.6) + (price_score * 0.4)
     else:
         cost_benefit = quality_score
 
-    return min(10.0, max(0.0, cost_benefit))
+    return round(min(10.0, max(0.0, cost_benefit)), 2)
 
 
 def identificar_modelos_similares(model: Dict[str, Any], all_models: List[Dict[str, Any]]) -> List[str]:
@@ -278,9 +468,9 @@ def processar_modelos(input_file: str, output_file: str):
                 "categoria": categoria_preco
             },
             "scores": {
-                "traducao": round(score_traducao, 2),
-                "analise": round(score_analise, 2),
-                "velocidade": round(score_velocidade, 2),
+                "traducao": score_traducao,
+                "analise": score_analise,
+                "velocidade": score_velocidade,
                 "custo_beneficio": 0.0  # Será calculado após
             },
             "architecture": model.get("architecture", {}),
@@ -294,9 +484,7 @@ def processar_modelos(input_file: str, output_file: str):
     for model in processed_models:
         # Encontrar o modelo original para passar ao cálculo
         original = next(m for m in models if m["id"] == model["id"])
-        model["scores"]["custo_beneficio"] = round(
-            calcular_custo_beneficio(original, model), 2
-        )
+        model["scores"]["custo_beneficio"] = calcular_custo_beneficio(original, model)
 
     print("🔗 Identificando modelos similares para fallback...")
     for i, model in enumerate(processed_models):
@@ -312,7 +500,7 @@ def processar_modelos(input_file: str, output_file: str):
             "ultima_atualizacao": datetime.now().isoformat(),
             "data_atualizacao_legivel": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "total_modelos": len(processed_models),
-            "versao_schema": "1.0"
+            "versao_schema": "1.1"
         },
         "categorias": {
             "free": [m for m in processed_models if m["pricing"]["categoria"] == "free"],
@@ -344,15 +532,27 @@ def processar_modelos(input_file: str, output_file: str):
     print(f"   Modelos premium: {len(output_data['categorias']['premium'])}")
     print(f"   Modelos ultra premium: {len(output_data['categorias']['ultra_premium'])}")
 
-    print("\n🏆 Top 5 Custo-Benefício:")
-    for i, model in enumerate(output_data["top_models"]["custo_beneficio"][:5], 1):
+    print("\n🏆 Top 10 Custo-Benefício:")
+    for i, model in enumerate(output_data["top_models"]["custo_beneficio"][:10], 1):
         print(f"   {i}. {model['name']}")
-        print(f"      Score: {model['scores']['custo_beneficio']}/10")
+        print(f"      Custo-Benefício: {model['scores']['custo_beneficio']}/10")
+        print(f"      Tradução: {model['scores']['traducao']}/10 | Análise: {model['scores']['analise']}/10 | Velocidade: {model['scores']['velocidade']}/10")
         print(f"      Preço: ${model['pricing']['total_per_1k']:.6f}/1K tokens")
-        print(f"      Categoria: {model['pricing']['categoria']}")
         print()
 
-    print("✅ Processamento concluído!")
+    print("\n🌍 Top 5 Tradução:")
+    for i, model in enumerate(output_data["top_models"]["traducao"][:5], 1):
+        print(f"   {i}. {model['name']} - {model['scores']['traducao']}/10 (${model['pricing']['total_per_1k']:.6f}/1K)")
+
+    print("\n🔬 Top 5 Análise:")
+    for i, model in enumerate(output_data["top_models"]["analise"][:5], 1):
+        print(f"   {i}. {model['name']} - {model['scores']['analise']}/10 (${model['pricing']['total_per_1k']:.6f}/1K)")
+
+    print("\n⚡ Top 5 Velocidade:")
+    for i, model in enumerate(output_data["top_models"]["velocidade"][:5], 1):
+        print(f"   {i}. {model['name']} - {model['scores']['velocidade']}/10 (${model['pricing']['total_per_1k']:.6f}/1K)")
+
+    print("\n✅ Processamento concluído!")
 
 
 if __name__ == "__main__":
