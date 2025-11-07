@@ -1495,6 +1495,37 @@
                                     ⚠️ Tradução da descrição em português não disponível
                                 </p>
 
+                                <!-- Informações de Ferramenta e Termo de Busca -->
+                                <div class="flex items-start gap-3 mb-3 p-2 bg-gray-50 rounded border border-gray-200">
+                                    <!-- Ferramenta de Pesquisa -->
+                                    <div x-show="resultado.ferramenta_origem" class="flex items-center gap-1.5">
+                                        <span class="font-medium text-gray-700 text-xs">🔍 Ferramenta:</span>
+                                        <span class="text-xs text-gray-900 font-medium capitalize" x-text="resultado.ferramenta_origem"></span>
+                                    </div>
+
+                                    <!-- Termo de Busca -->
+                                    <div x-show="resultado.query" class="flex items-start gap-1.5 flex-1" x-data="{ expandido: false }">
+                                        <span class="font-medium text-gray-700 text-xs whitespace-nowrap">🏷️ Busca:</span>
+                                        <div class="flex-1">
+                                            <span
+                                                x-show="!expandido && resultado.query && resultado.query.length > 80"
+                                                @click="expandido = true"
+                                                class="text-xs text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                                                x-text="resultado.query.substring(0, 80) + '...'">
+                                            </span>
+                                            <span
+                                                x-show="expandido || !resultado.query || resultado.query.length <= 80"
+                                                @click="if (resultado.query && resultado.query.length > 80) expandido = false"
+                                                :class="resultado.query && resultado.query.length > 80 ? 'text-xs text-gray-900 cursor-pointer hover:text-blue-600 transition-colors' : 'text-xs text-gray-900'"
+                                                x-text="resultado.query">
+                                            </span>
+                                            <span x-show="resultado.query && resultado.query.length > 80" class="text-xs text-gray-400 ml-1">
+                                                (clique para <span x-text="expandido ? 'recolher' : 'expandir'"></span>)
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="flex items-center justify-between text-xs text-gray-500">
                                     <div class="flex items-center gap-3 flex-1">
                                         <span x-show="resultado.pais_origem">
@@ -1502,27 +1533,6 @@
                                         </span>
                                         <span x-show="resultado.fonte_tipo">
                                             📑 <span x-text="resultado.fonte_tipo"></span>
-                                        </span>
-                                        <span x-show="resultado.ferramenta_origem" x-data="{ expandido: false }" class="flex items-center gap-1">
-                                            🔍 <span x-text="resultado.ferramenta_origem"></span>
-                                            <span x-show="resultado.query" class="text-gray-400">|</span>
-                                            <span x-show="resultado.query" class="flex items-center gap-1">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-                                                </svg>
-                                                <span
-                                                    x-show="!expandido && resultado.query && resultado.query.length > 50"
-                                                    @click="expandido = true"
-                                                    class="cursor-pointer hover:text-blue-600"
-                                                    x-text="resultado.query.substring(0, 50) + '...'">
-                                                </span>
-                                                <span
-                                                    x-show="expandido || !resultado.query || resultado.query.length <= 50"
-                                                    @click="if (resultado.query && resultado.query.length > 50) expandido = false"
-                                                    :class="resultado.query && resultado.query.length > 50 ? 'cursor-pointer hover:text-blue-600' : ''"
-                                                    x-text="resultado.query">
-                                                </span>
-                                            </span>
                                         </span>
                                     </div>
                                     <a :href="resultado.fonte_url" target="_blank" rel="noopener noreferrer"
@@ -1594,9 +1604,18 @@
         <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
             <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center mb-4">
-                    <div>
-                        <h1 class="text-3xl font-bold" style="color: #1e3a8a;">Sebrae Nacional</h1>
-                        <p class="text-sm mt-1" style="color: #374151;">Pesquisa de Políticas Públicas para Inovação</p>
+                    <div class="flex items-center gap-8">
+                        <div>
+                            <h1 class="text-3xl font-bold" style="color: #1e3a8a;">Sebrae Nacional</h1>
+                            <p class="text-sm mt-1" style="color: #374151;">Pesquisa de Políticas Públicas para Inovação</p>
+                        </div>
+                        <div class="border-l border-gray-300 pl-8">
+                            <p class="text-xs text-gray-500 mb-2">Realização:</p>
+                            <div class="flex items-center gap-4">
+                                <img src="/static/img/logo_abgi.svg" alt="ABGI" class="h-8" style="height: 32px; width: auto;">
+                                <img src="/static/img/logo_10k.svg" alt="10K Digital" class="h-8" style="height: 32px; width: auto;">
+                            </div>
+                        </div>
                     </div>
                     <div class="flex items-center gap-4">
                         <!-- Botão de Biblioteca de Relatórios -->
