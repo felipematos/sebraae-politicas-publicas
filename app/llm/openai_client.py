@@ -2,8 +2,13 @@
 """
 Cliente OpenAI para geração de texto
 """
+import os
 from typing import Optional
 from openai import AsyncOpenAI
+from dotenv import load_dotenv
+
+# Carrega variáveis de ambiente
+load_dotenv()
 
 
 class OpenAIClient:
@@ -16,6 +21,10 @@ class OpenAIClient:
         Args:
             api_key: API key da OpenAI (opcional, usa env var se não fornecido)
         """
+        # Se api_key não foi fornecida, busca da env var
+        if api_key is None:
+            api_key = os.getenv("OPENAI_API_KEY")
+
         self.client = AsyncOpenAI(api_key=api_key)
 
     async def generate_completion(

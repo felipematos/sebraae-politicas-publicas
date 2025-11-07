@@ -78,18 +78,19 @@ class AnalisarFase2Response(BaseModel):
 
 # ===== FUNÇÕES AUXILIARES =====
 
-async def enriquecer_fontes_com_analises(fontes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+async def enriquecer_fontes_com_analises(fontes: List[Dict[str, Any]], limpar_cache: bool = False) -> List[Dict[str, Any]]:
     """
     Enriquece fontes com análises de LLM (usando cache quando possível)
 
     Para cada fonte:
     1. Gera hash único
-    2. Verifica se já existe análise em cache
+    2. Verifica se já existe análise em cache (a menos que limpar_cache=True)
     3. Se não, chama LLM e salva no cache
     4. Adiciona análise à fonte
 
     Args:
         fontes: Lista de fontes a enriquecer
+        limpar_cache: Se True, ignora cache e força nova análise
 
     Returns:
         Fontes com campos adicionais: tipo_fonte_llm, tem_implementacao_llm, tem_metricas_llm
@@ -97,7 +98,7 @@ async def enriquecer_fontes_com_analises(fontes: List[Dict[str, Any]]) -> List[D
     if not fontes:
         return fontes
 
-    logger.info(f"Enriquecendo {len(fontes)} fontes com análises de LLM...")
+    logger.info(f"Enriquecendo {len(fontes)} fontes com análises de LLM (limpar_cache={limpar_cache})...")
 
     # 1. Gerar hashes de todas as fontes
     fonte_hashes = {}
@@ -110,9 +111,13 @@ async def enriquecer_fontes_com_analises(fontes: List[Dict[str, Any]]) -> List[D
         fonte_hashes[hash_fonte] = fonte
         fonte['_hash'] = hash_fonte
 
-    # 2. Buscar análises em cache (batch)
-    analises_cache = await obter_analises_fontes_lote(list(fonte_hashes.keys()))
-    logger.info(f"Encontradas {len(analises_cache)} análises em cache")
+    # 2. Buscar análises em cache (batch) - pula se limpar_cache=True
+    analises_cache = {}
+    if not limpar_cache:
+        analises_cache = await obter_analises_fontes_lote(list(fonte_hashes.keys()))
+        logger.info(f"Encontradas {len(analises_cache)} análises em cache")
+    else:
+        logger.info(f"Cache ignorado - forçando nova análise de todas as fontes")
 
     # 3. Identificar fontes que precisam de análise
     fontes_para_analisar = []
@@ -191,7 +196,8 @@ async def listar_falhas_fase1(
     regiao: str = "",
     idioma: str = "",
     apenas_com_implementacao: bool = False,
-    apenas_com_metricas: bool = False
+    apenas_com_metricas: bool = False,
+    limpar_cache: bool = False
 ):
     """
     FASE I: Lista falhas priorizadas sem executar análise de IA
@@ -308,7 +314,7 @@ async def listar_falhas_fase1(
                     logger.info(f"Aplicando filtros avançados para falha {falha_id}...")
 
                     # Enriquecer fontes com análises LLM (usa cache quando possível)
-                    fontes_filtradas_list = await enriquecer_fontes_com_analises(fontes_filtradas_list)
+                    fontes_filtradas_list = await enriquecer_fontes_com_analises(fontes_filtradas_list, limpar_cache=limpar_cache)
 
                     # Aplicar filtros baseados nas análises
                     fontes_filtradas_final = []
@@ -462,7 +468,8 @@ async def obter_fontes_falha_fase1(
     regiao: str = "",  # Array como string separada por vírgulas
     idioma: str = "",  # Array como string separada por vírgulas
     apenas_com_implementacao: bool = False,
-    apenas_com_metricas: bool = False
+    apenas_com_metricas: bool = False,
+    limpar_cache: bool = False
 ):
     """
     Obtém as fontes disponíveis para uma falha na Fase I com paginação e filtros
@@ -634,7 +641,7 @@ async def obter_fontes_falha_fase1(
             logger.info(f"Aplicando filtros avançados com LLM...")
 
             # Enriquecer fontes com análises (usa cache quando possível)
-            fontes_filtradas = await enriquecer_fontes_com_analises(fontes_filtradas)
+            fontes_filtradas = await enriquecer_fontes_com_analises(fontes_filtradas, limpar_cache=limpar_cache)
 
             # Aplicar filtros baseados nas análises
             fontes_filtradas_final = []
@@ -718,7 +725,8 @@ async def estimar_custo_analise_fase1(
     regiao: str = "",
     idioma: str = "",
     apenas_com_implementacao: bool = False,
-    apenas_com_metricas: bool = False
+    apenas_com_metricas: bool = False,
+    limpar_cache: bool = False
 ):
     """
     Estima o custo e tempo de execução de uma análise antes de executá-la
@@ -845,20 +853,26 @@ async def estimar_custo_analise_fase1(
         fontes_a_analisar = 0
 
         if precisa_llm and fontes_filtradas:
-            # Gerar hashes
-            fonte_hashes = []
-            for fonte in fontes_filtradas:
-                hash_fonte = await gerar_hash_fonte(
-                    titulo=fonte.get('titulo', ''),
-                    descricao=fonte.get('descricao', ''),
-                    url=fonte.get('url', '')
-                )
-                fonte_hashes.append(hash_fonte)
+            # Se limpar_cache=True, todas as fontes precisam de análise
+            if limpar_cache:
+                fontes_em_cache = 0
+                fontes_a_analisar = len(fontes_filtradas)
+                logger.info(f"Cache será ignorado - todas as {fontes_a_analisar} fontes serão analisadas")
+            else:
+                # Gerar hashes
+                fonte_hashes = []
+                for fonte in fontes_filtradas:
+                    hash_fonte = await gerar_hash_fonte(
+                        titulo=fonte.get('titulo', ''),
+                        descricao=fonte.get('descricao', ''),
+                        url=fonte.get('url', '')
+                    )
+                    fonte_hashes.append(hash_fonte)
 
-            # Verificar cache em lote
-            analises_cache = await obter_analises_fontes_lote(fonte_hashes)
-            fontes_em_cache = len(analises_cache)
-            fontes_a_analisar = len(fontes_filtradas) - fontes_em_cache
+                # Verificar cache em lote
+                analises_cache = await obter_analises_fontes_lote(fonte_hashes)
+                fontes_em_cache = len(analises_cache)
+                fontes_a_analisar = len(fontes_filtradas) - fontes_em_cache
 
         # ===== CALCULAR ESTIMATIVAS =====
 
@@ -905,7 +919,8 @@ async def estimar_custo_analise_fase1(
                     "idiomas": idiomas_selecionados,
                     "anos_publicacao": anos_publicacao,
                     "apenas_implementacao": apenas_com_implementacao,
-                    "apenas_metricas": apenas_com_metricas
+                    "apenas_metricas": apenas_com_metricas,
+                    "limpar_cache": limpar_cache
                 },
                 "modelo_llm": "xai/grok-4-fast",
                 "analises_paralelas": 5

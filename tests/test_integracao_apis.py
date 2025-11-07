@@ -4,8 +4,12 @@ Testes para clientes de APIs externas
 """
 import pytest
 import os
+from dotenv import load_dotenv
 from app.integracao.perplexity_api import PerplexityClient
 from app.integracao.jina_api import JinaClient
+
+# Carregar variáveis de ambiente
+load_dotenv()
 
 
 @pytest.fixture
