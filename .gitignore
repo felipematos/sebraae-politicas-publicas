@@ -68,3 +68,5 @@ documentos/
 # Python cache
 __pycache__/
 *.pyc
+
+.config/
