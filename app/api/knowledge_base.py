@@ -36,8 +36,31 @@ router = APIRouter(prefix="/api/knowledge-base", tags=["Knowledge Base"])
 DOCS_DIR = Path(__file__).parent.parent.parent / "documentos"
 DOCS_DIR.mkdir(parents=True, exist_ok=True)
 
+# Arquivo de metadados dos documentos (tags, etc)
+METADATA_FILE = DOCS_DIR / "documentos_metadata.json"
+
 # Limite máximo de tamanho de arquivo (25MB)
 MAX_FILE_SIZE = 25 * 1024 * 1024  # 26,214,400 bytes
+
+# Tags padrão disponíveis
+DEFAULT_TAGS = ["Sebrae", "Entrevista", "Workshop", "Transcrição", "Relatório do Projeto"]
+
+
+def load_metadata():
+    """Carrega metadados dos documentos"""
+    if METADATA_FILE.exists():
+        try:
+            with open(METADATA_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+
+def save_metadata(metadata):
+    """Salva metadados dos documentos"""
+    with open(METADATA_FILE, 'w', encoding='utf-8') as f:
+        json.dump(metadata, f, ensure_ascii=False, indent=2)
 
 
 class ChatRequest(BaseModel):
@@ -528,20 +551,26 @@ async def list_documents():
     """
     try:
         documentos = []
+        metadata = load_metadata()
 
         # Listar arquivos do diretório
         if DOCS_DIR.exists():
             for file_path in DOCS_DIR.iterdir():
-                if file_path.is_file():
+                if file_path.is_file() and file_path.name != "documentos_metadata.json":
                     stat = file_path.stat()
                     tipo = file_path.suffix.lower().strip('.')
+
+                    # Buscar tags do metadados
+                    doc_metadata = metadata.get(file_path.name, {})
+                    tags = doc_metadata.get("tags", [])
 
                     documentos.append({
                         "nome": file_path.name,
                         "tamanho": stat.st_size,
                         "tipo": tipo,
                         "status": "indexado",
-                        "criado_em": datetime.fromtimestamp(stat.st_ctime).isoformat()
+                        "criado_em": datetime.fromtimestamp(stat.st_ctime).isoformat(),
+                        "tags": tags
                     })
 
         return JSONResponse({
@@ -912,3 +941,69 @@ async def delete_document(filename: str):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erro ao deletar documento: {str(e)}")
+
+@router.get("/tags")
+async def get_available_tags():
+    """
+    Retorna lista de tags disponíveis (padrão + customizadas)
+    """
+    try:
+        metadata = load_metadata()
+        
+        # Coletar todas as tags únicas usadas nos documentos
+        all_tags = set(DEFAULT_TAGS)
+        for doc_meta in metadata.values():
+            tags = doc_meta.get("tags", [])
+            all_tags.update(tags)
+        
+        return JSONResponse({
+            "tags": sorted(list(all_tags)),
+            "tags_padrao": DEFAULT_TAGS
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao obter tags: {str(e)}")
+
+
+@router.put("/documentos/{filename}/tags")
+async def update_document_tags(filename: str, tags: List[str]):
+    """
+    Atualiza as tags de um documento
+    """
+    try:
+        # Validar o nome do arquivo
+        if "/" in filename or "\\" in filename or ".." in filename:
+            raise HTTPException(status_code=400, detail="Nome de arquivo inválido")
+        
+        file_path = DOCS_DIR / filename
+        
+        # Verificar se o arquivo existe
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail=f"Arquivo {filename} não encontrado")
+        
+        # Carregar metadados
+        metadata = load_metadata()
+        
+        # Atualizar tags do documento
+        if filename not in metadata:
+            metadata[filename] = {}
+        
+        metadata[filename]["tags"] = tags
+        metadata[filename]["updated_at"] = datetime.now().isoformat()
+        
+        # Salvar metadados
+        save_metadata(metadata)
+        
+        print(f"[KB] Tags atualizadas para {filename}: {tags}")
+        
+        return JSONResponse({
+            "mensagem": f"Tags atualizadas com sucesso",
+            "tags": tags
+        })
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[KB] Erro ao atualizar tags de {filename}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar tags: {str(e)}")

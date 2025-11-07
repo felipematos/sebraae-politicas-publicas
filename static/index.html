@@ -17,6 +17,7 @@
     </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script defer src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="/static/css/styles.css">
     <style>
@@ -389,6 +390,80 @@
                     </button>
                     <button @click="salvar_config_kb()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
                         ✓ Salvar Configurações
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Edição de Tags -->
+        <div id="tags-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="modal_tags_aberto = false" x-show="modal_tags_aberto" x-cloak>
+            <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" @click.stop>
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">🏷️ Editar Tags</h3>
+                        <p class="text-sm text-gray-600 mt-1" x-text="`Documento: ${documento_tags_editando}`"></p>
+                    </div>
+                    <button @click="modal_tags_aberto = false" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Tags Selecionadas -->
+                <div class="mb-6">
+                    <p class="text-sm font-semibold text-gray-700 mb-3">Tags Selecionadas</p>
+                    <div class="flex flex-wrap gap-2 min-h-[40px] p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <template x-if="tags_selecionadas.length === 0">
+                            <p class="text-sm text-gray-400 italic">Nenhuma tag selecionada</p>
+                        </template>
+                        <template x-for="tag in tags_selecionadas" :key="tag">
+                            <span class="inline-flex items-center bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
+                                <span x-text="tag"></span>
+                                <button @click="alternar_tag(tag)" class="ml-2 hover:text-red-200">×</button>
+                            </span>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Tags Disponíveis -->
+                <div class="mb-6">
+                    <p class="text-sm font-semibold text-gray-700 mb-3">Tags Disponíveis (clique para adicionar/remover)</p>
+                    <div class="flex flex-wrap gap-2">
+                        <template x-for="tag in tags_disponiveis" :key="tag">
+                            <button @click="alternar_tag(tag)"
+                                    class="px-3 py-1 rounded-full text-sm transition"
+                                    :class="tags_selecionadas.includes(tag) ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                                    x-text="tag"></button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Adicionar Nova Tag -->
+                <div class="mb-6">
+                    <p class="text-sm font-semibold text-gray-700 mb-3">Criar Nova Tag</p>
+                    <div class="flex gap-2">
+                        <input type="text"
+                               x-model="nova_tag"
+                               @keyup.enter="adicionar_nova_tag()"
+                               placeholder="Digite o nome da nova tag..."
+                               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button @click="adicionar_nova_tag()"
+                                class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition">
+                            + Adicionar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Botões -->
+                <div class="flex gap-3 justify-end pt-4 border-t">
+                    <button @click="modal_tags_aberto = false"
+                            class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-medium transition">
+                        Cancelar
+                    </button>
+                    <button @click="salvar_tags()"
+                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                        ✓ Salvar Tags
                     </button>
                 </div>
             </div>
@@ -1377,7 +1452,7 @@
                             </select>
                         </div>
                         <!-- Filtrar por idiomas (seleção múltipla com painel expansível) -->
-                        <div x-data="{ idiomas_aberto: false, todos_idiomas: ['pt', 'en', 'es', 'fr', 'de', 'it', 'ja', 'ar', 'ko', 'he'] }">
+                        <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">Idiomas</label>
                             <button
                                 @click="idiomas_aberto = !idiomas_aberto"
@@ -1442,7 +1517,7 @@
                             </div>
                         </div>
                         <!-- Filtrar por ferramentas (seleção múltipla com painel expansível) -->
-                        <div x-data="{ ferramentas_aberto: false }">
+                        <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">Ferramentas</label>
                             <button
                                 @click="ferramentas_aberto = !ferramentas_aberto"
@@ -2556,7 +2631,7 @@
                             </thead>
                             <tbody id="tabela-documentos">
                                 <tr class="border-b hover:bg-gray-50">
-                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">Carregando documentos...</td>
+                                    <td colspan="7" class="px-6 py-4 text-center text-gray-500">Carregando documentos...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -3502,6 +3577,11 @@
                 config_kb: {
                     modelo_embedding: 'text-embedding-3-small'
                 },
+                modal_tags_aberto: false,
+                documento_tags_editando: '',
+                tags_disponiveis: [],
+                tags_selecionadas: [],
+                nova_tag: '',
                 documentos: [],
                 documentos_filtrados: [],
                 documentos_selecionados: [],
@@ -6099,6 +6179,94 @@
                     }
                 },
 
+                async carregar_tags_disponiveis() {
+                    try {
+                        const res = await fetch('/api/knowledge-base/tags');
+                        if (res.ok) {
+                            const data = await res.json();
+                            this.tags_disponiveis = data.tags || [];
+                        }
+                    } catch (e) {
+                        console.error('Erro ao carregar tags:', e);
+                    }
+                },
+
+                async abrir_modal_tags(filename) {
+                    try {
+                        // Encontrar documento
+                        const doc = this.documentos.find(d => d.nome === filename);
+                        if (!doc) return;
+
+                        this.documento_tags_editando = filename;
+                        this.tags_selecionadas = [...(doc.tags || [])];
+                        this.nova_tag = '';
+
+                        // Carregar tags disponíveis
+                        await this.carregar_tags_disponiveis();
+
+                        // Abrir modal
+                        this.modal_tags_aberto = true;
+                    } catch (e) {
+                        console.error('Erro ao abrir modal de tags:', e);
+                    }
+                },
+
+                alternar_tag(tag) {
+                    const index = this.tags_selecionadas.indexOf(tag);
+                    if (index > -1) {
+                        this.tags_selecionadas.splice(index, 1);
+                    } else {
+                        this.tags_selecionadas.push(tag);
+                    }
+                },
+
+                adicionar_nova_tag() {
+                    const tag = this.nova_tag.trim();
+                    if (tag && !this.tags_selecionadas.includes(tag)) {
+                        this.tags_selecionadas.push(tag);
+                        if (!this.tags_disponiveis.includes(tag)) {
+                            this.tags_disponiveis.push(tag);
+                            this.tags_disponiveis.sort();
+                        }
+                        this.nova_tag = '';
+                    }
+                },
+
+                async salvar_tags() {
+                    try {
+                        const res = await fetch(`/api/knowledge-base/documentos/${encodeURIComponent(this.documento_tags_editando)}/tags`, {
+                            method: 'PUT',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(this.tags_selecionadas)
+                        });
+
+                        if (res.ok) {
+                            // Atualizar documento local
+                            const doc = this.documentos.find(d => d.nome === this.documento_tags_editando);
+                            if (doc) {
+                                doc.tags = [...this.tags_selecionadas];
+                            }
+
+                            // Atualizar lista filtrada
+                            this.documentos_filtrados = this.documentos_filtrados.map(d =>
+                                d.nome === this.documento_tags_editando ? {...d, tags: [...this.tags_selecionadas]} : d
+                            );
+
+                            // Renderizar novamente
+                            this.renderizar_documentos();
+
+                            // Fechar modal
+                            this.modal_tags_aberto = false;
+
+                            console.log('✓ Tags salvas com sucesso');
+                        } else {
+                            console.error('Erro ao salvar tags');
+                        }
+                    } catch (e) {
+                        console.error('Erro ao salvar tags:', e);
+                    }
+                },
+
                 async carregar_documentos() {
                     try {
                         const res = await fetch('/api/knowledge-base/documentos');
@@ -6125,12 +6293,17 @@
 
                     if (this.documentos_filtrados.length === 0) {
                         const mensagem = this.busca_documentos ? 'Nenhum documento encontrado com essa busca' : 'Nenhum documento enviado';
-                        tbody.innerHTML = `<tr class="border-b"><td colspan="6" class="px-6 py-4 text-center text-gray-500">${mensagem}</td></tr>`;
+                        tbody.innerHTML = `<tr class="border-b"><td colspan="7" class="px-6 py-4 text-center text-gray-500">${mensagem}</td></tr>`;
                         return;
                     }
 
                     tbody.innerHTML = this.documentos_filtrados.map(doc => {
                         const isChecked = this.documentos_selecionados.includes(doc.nome);
+                        const tags = doc.tags || [];
+                        const tagsHtml = tags.length > 0
+                            ? tags.map(tag => `<span class="inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs mr-1 mb-1">${tag}</span>`).join('')
+                            : '<span class="text-gray-400 text-xs italic">Sem tags</span>';
+
                         return `
                         <tr class="border-b hover:bg-blue-50">
                             <td class="px-3 py-4 text-center">
@@ -6139,13 +6312,17 @@
                                        data-filename="${doc.nome}"
                                        ${isChecked ? 'checked' : ''}>
                             </td>
-                            <td class="px-6 py-4 text-sm font-medium">${doc.nome}</td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-medium">${doc.nome}</div>
+                                <div class="mt-1 flex flex-wrap gap-1">${tagsHtml}</div>
+                            </td>
                             <td class="px-6 py-4 text-sm">${(doc.tamanho / 1024).toFixed(2)} KB</td>
                             <td class="px-6 py-4 text-sm"><span class="bg-gray-100 px-2 py-1 rounded text-xs">${doc.tipo}</span></td>
                             <td class="px-6 py-4 text-sm">
                                 <span class="${doc.status === 'indexado' ? 'text-green-600 font-bold' : 'text-yellow-600'}">${doc.status}</span>
                             </td>
                             <td class="px-6 py-4 text-sm">
+                                <button class="btn-editar-tags text-blue-600 hover:underline text-xs mr-2" data-filename="${doc.nome}">🏷️ Tags</button>
                                 <button class="btn-remover text-red-600 hover:underline text-xs" data-filename="${doc.nome}">Remover</button>
                             </td>
                         </tr>
@@ -6167,6 +6344,15 @@
                             e.stopPropagation();
                             const filename = btn.getAttribute('data-filename');
                             this.remover_documento(filename);
+                        });
+                    });
+
+                    // Add event delegation for edit tags buttons
+                    tbody.querySelectorAll('.btn-editar-tags').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const filename = btn.getAttribute('data-filename');
+                            this.abrir_modal_tags(filename);
                         });
                     });
                 },
