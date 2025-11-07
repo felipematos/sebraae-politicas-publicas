@@ -144,6 +144,94 @@ def detectar_brasil(resultado: Dict[str, Any]) -> bool:
     return any(termo in texto for termo in termos_brasil)
 
 
+def detectar_meta_resposta(resultado: Dict[str, Any]) -> bool:
+    """
+    Detecta se resultado é uma meta-resposta da API (introdução/lista) em vez de conteúdo substantivo
+
+    Meta-respostas são respostas que apenas introduzem fontes sem fornecer conteúdo real,
+    como "Here are five sources...", "Aqui tienes...", etc.
+
+    Args:
+        resultado: Dicionário com titulo, descricao, titulo_pt, descricao_pt
+
+    Returns:
+        True se for meta-resposta, False caso contrário
+    """
+    # Padrões de meta-respostas em vários idiomas
+    padroes_meta = [
+        # Inglês
+        "here are", "here's", "here is", "these are",
+        # Português
+        "aqui estão", "aqui está", "eis ", "seguem",
+        # Espanhol
+        "aquí tienes", "aquí están", "he aquí", "fuentes relevantes:",
+        # Francês
+        "voici", "voilà",
+        # Italiano
+        "ecco",
+        # Alemão
+        "hier sind",
+        # Padrões genéricos
+        "five sources", "cinco fontes", "cinq sources", "cinco fuentes",
+        "5 sources", "5 fontes", "5 fuentes"
+    ]
+
+    # Juntar titulo + descricao (original e traduzido) - tratar None como string vazia
+    titulo = resultado.get('titulo') or ''
+    descricao = resultado.get('descricao') or ''
+    titulo_pt = resultado.get('titulo_pt') or ''
+    descricao_pt = resultado.get('descricao_pt') or ''
+
+    texto = f"{titulo} {descricao} {titulo_pt} {descricao_pt}".lower()
+
+    # Verificar padrões nas primeiras 150 caracteres (onde geralmente aparecem)
+    texto_inicio = texto[:150]
+
+    return any(padrao in texto_inicio for padrao in padroes_meta)
+
+
+def detectar_conteudo_vazio(resultado: Dict[str, Any]) -> bool:
+    """
+    Detecta se resultado indica que não encontrou informação relevante
+
+    Args:
+        resultado: Dicionário com titulo, descricao, titulo_pt, descricao_pt
+
+    Returns:
+        True se for conteúdo vazio/não encontrado, False caso contrário
+    """
+    # Padrões que indicam resultado vazio ou não encontrado
+    padroes_vazio = [
+        # Português
+        "não encontr", "não há", "não foi possível", "sem resultados",
+        "nenhum resultado", "nada encontrado",
+        # Inglês
+        "not found", "no results", "no information", "nothing found",
+        "could not find", "unable to find",
+        # Espanhol
+        "no encontr", "sin resultados", "no hay",
+        # Francês
+        "pas trouvé", "aucun résultat", "pas de résultats",
+        # Hebraico (transliterado)
+        "לא מצא", "אין תוצאות",
+        # Árabe (transliterado)
+        "لم يتم العثور"
+    ]
+
+    # Juntar titulo + descricao (original e traduzido) - tratar None como string vazia
+    titulo = resultado.get('titulo') or ''
+    descricao = resultado.get('descricao') or ''
+    titulo_pt = resultado.get('titulo_pt') or ''
+    descricao_pt = resultado.get('descricao_pt') or ''
+
+    texto = f"{titulo} {descricao} {titulo_pt} {descricao_pt}".lower()
+
+    # Verificar padrões nas primeiras 200 caracteres
+    texto_inicio = texto[:200]
+
+    return any(padrao in texto_inicio for padrao in padroes_vazio)
+
+
 def calcular_score_ponderado(
     resultado: Dict[str, Any],
     query: str,
@@ -152,20 +240,22 @@ def calcular_score_ponderado(
     confiabilidade_fonte: float
 ) -> float:
     """
-    Calcula score ponderado melhorado com 4 fatores + bonus Brasil
-    MELHORADO: Normalização não-linear de ocorrências e bonus de 20% para Brasil
+    Calcula score ponderado melhorado com 4 fatores + bonus Brasil + penalizações
+    MELHORADO v2: Redução do peso da fonte, aumento da relevância, penalizações para conteúdo problemático
 
     Fatores:
-    - score_relevancia: Quanto o resultado eh relevante para a query (55%)
-      MUDANÇA: Peso aumentado de 50% para 55%
+    - score_relevancia: Quanto o resultado eh relevante para a query (63%)
+      MUDANÇA v2: Peso aumentado de 55% para 63%
     - num_ocorrencias: Quantas vezes apareceu em multiplas pesquisas (15%)
-      MUDANÇA: Peso reduzido de 20% para 15%, normalização melhorada
-    - confiabilidade_fonte: Confiabilidade da fonte de dados (20%)
-      MANTIDO: Pondera pela fonte de onde veio o resultado
+      MANTIDO: Normalização com raiz quadrada
+    - confiabilidade_fonte: Confiabilidade da fonte de dados (12%)
+      MUDANÇA v2: Peso reduzido de 20% para 12%
     - titulo_match: Se titulo contem palavras-chave (10%)
       MANTIDO: Bonus se a query aparece no titulo
     - bonus_brasil: +20% se resultado relacionado ao Brasil
-      NOVO: Prioriza resultados brasileiros
+      MANTIDO: Prioriza resultados brasileiros
+    - penalizacoes: Forte penalização para meta-respostas e conteúdo vazio
+      NOVO v2: -70% para meta-respostas, -80% para conteúdo vazio
 
     Args:
         resultado: Dicionario com titulo, descricao, url, fonte
@@ -177,23 +267,32 @@ def calcular_score_ponderado(
     Returns:
         Score ponderado entre 0.0 e 1.0
     """
-    # Fator 1: Relevancia (55%) - AUMENTADO de 50% para 55%
-    peso_relevancia = 0.55
+    # NOVO v2: Verificar penalizações críticas primeiro
+    penalizacao_total = 0.0
+    motivo_penalizacao = []
+
+    # Penalização forte para meta-respostas da API
+    if detectar_meta_resposta(resultado):
+        penalizacao_total += 0.70  # -70% do score
+        motivo_penalizacao.append("meta_resposta")
+
+    # Penalização muito forte para conteúdo vazio/não encontrado
+    if detectar_conteudo_vazio(resultado):
+        penalizacao_total += 0.80  # -80% do score
+        motivo_penalizacao.append("conteudo_vazio")
+
+    # Fator 1: Relevancia (63%) - AUMENTADO v2 de 55% para 63%
+    peso_relevancia = 0.63
     valor_relevancia = min(1.0, score_relevancia)
 
-    # Fator 2: Ocorrencias (15%) - REDUZIDO de 20% para 15%
+    # Fator 2: Ocorrencias (15%) - MANTIDO
     # Normalização melhorada: usa raiz quadrada para suavizar penalização
-    # MUDANÇA: sqrt(ocorrencias)/sqrt(5) ao invés de linear
     peso_ocorrencias = 0.15
     import math
     valor_ocorrencias = min(1.0, math.sqrt(num_ocorrencias) / math.sqrt(5.0))
-    # Exemplos:
-    # 1 ocorrência: sqrt(1)/sqrt(5) = 0.447 (vs 0.2 anterior) ✅
-    # 2 ocorrências: sqrt(2)/sqrt(5) = 0.632 (vs 0.4 anterior) ✅
-    # 5 ocorrências: sqrt(5)/sqrt(5) = 1.0   (vs 1.0 anterior) ✅
 
-    # Fator 3: Confiabilidade da fonte (20%) - MANTIDO
-    peso_fonte = 0.20
+    # Fator 3: Confiabilidade da fonte (12%) - REDUZIDO v2 de 20% para 12%
+    peso_fonte = 0.12
     valor_fonte = min(1.0, confiabilidade_fonte)
 
     # Fator 4: Match no titulo (10%) - MANTIDO
@@ -217,13 +316,28 @@ def calcular_score_ponderado(
         valor_titulo * peso_titulo
     )
 
-    # NOVO: Bonus de 20% para resultados relacionados ao Brasil
+    # Bonus de 20% para resultados relacionados ao Brasil
     bonus_brasil = 0.0
     if detectar_brasil(resultado):
         bonus_brasil = score_base * 0.20  # 20% do score base
 
-    # Score final com bonus
-    score_final = score_base + bonus_brasil
+    # Score com bonus
+    score_com_bonus = score_base + bonus_brasil
+
+    # NOVO v2: Aplicar penalizações (multiplicativo para ser mais agressivo)
+    # Se temos penalizações, reduzir o score drasticamente
+    if penalizacao_total > 0:
+        # Aplicar penalização multiplicativa (mais agressiva que subtrativa)
+        fator_penalizacao = max(0.05, 1.0 - penalizacao_total)  # Mínimo de 5% do score
+        score_penalizado = score_com_bonus * fator_penalizacao
+
+        # Debug: imprimir quando aplicar penalizações
+        if motivo_penalizacao:
+            print(f"[AVALIADOR] Penalização aplicada: {motivo_penalizacao} | Score antes: {score_com_bonus:.3f} → depois: {score_penalizado:.3f}")
+
+        score_final = score_penalizado
+    else:
+        score_final = score_com_bonus
 
     # Aplicar função de expansão não-linear para melhor distribuição
     # Expande scores médios, mantém extremos
