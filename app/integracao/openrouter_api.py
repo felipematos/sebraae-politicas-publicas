@@ -30,9 +30,9 @@ class OpenRouterClient:
 
     # Modelos especializados para tarefas específicas
     MODELOS_ESPECIALIZADOS = {
-        "avaliacao": "xai/grok-4-fast",  # Avaliação de qualidade (rápido e preciso)
-        "traducao": "meta-llama/llama-3.1-70b-instruct:free",  # Llama 3.1 70B - excelente para tradução
-        "deteccao_idioma": "xai/grok-4-fast",  # Detecção de idioma (muito preciso)
+        "avaliacao": "x-ai/grok-4-fast",  # Avaliação de qualidade (rápido e preciso) - CORRIGIDO
+        "traducao": "meta-llama/llama-3.3-70b-instruct:free",  # Llama 3.3 70B - excelente para tradução
+        "deteccao_idioma": "x-ai/grok-4-fast",  # Detecção de idioma (muito preciso) - CORRIGIDO
     }
 
     # Modelos para avaliação profunda (em ordem de prioridade)
@@ -40,9 +40,9 @@ class OpenRouterClient:
     MODELOS_AVALIACAO_PROFUNDA = [
         # Tier 1: Modelos premium (mais caros, melhor qualidade)
         {
-            "nome": "xai/grok-4",
+            "nome": "x-ai/grok-4",
             "descricao": "Grok 4 - Análise profunda de alta qualidade",
-            "custo_por_1k_tokens": 0.015,  # Estimativa
+            "custo_por_1k_tokens": 0.003,  # Preço real: $0.000003/token
             "qualidade": "premium",
             "velocidade": "média"
         },
@@ -55,9 +55,9 @@ class OpenRouterClient:
         },
         # Tier 2: Modelos balanceados (bom custo-benefício)
         {
-            "nome": "xai/grok-4-fast",
+            "nome": "x-ai/grok-4-fast",
             "descricao": "Grok 4 Fast - Rápido com boa qualidade",
-            "custo_por_1k_tokens": 0.005,
+            "custo_por_1k_tokens": 0.0002,  # Preço real: $0.0000002/token
             "qualidade": "alta",
             "velocidade": "rápida"
         },
@@ -147,7 +147,7 @@ Text to analyze:
 {texto[:500]}"""
 
         try:
-            modelo = self.MODELOS_ESPECIALIZADOS.get("deteccao_idioma", "xai/grok-4-fast")
+            modelo = self.MODELOS_ESPECIALIZADOS.get("deteccao_idioma", "x-ai/grok-4-fast")
             resultado = await self._chamar_modelo(modelo, prompt)
             if resultado:
                 # Extrair código de idioma (geralmente 2 letras)
@@ -158,7 +158,7 @@ Text to analyze:
                     return codigo
             return "unknown"
         except Exception as e:
-            print(f"[WARN] Detecção de idioma falhou: {str(e)[:100]}")
+            print(f"[WARN] Detecção de idioma falhou: {str(e)}")
             return "unknown"
 
     async def avaliar_qualidade_resultado(
@@ -206,7 +206,7 @@ Respond in JSON format (no markdown):
 }}"""
 
         try:
-            modelo = self.MODELOS_ESPECIALIZADOS.get("avaliacao", "xai/grok-4-fast")
+            modelo = self.MODELOS_ESPECIALIZADOS.get("avaliacao", "x-ai/grok-4-fast")
             resultado = await self._chamar_modelo(modelo, prompt)
             if resultado:
                 # Parser JSON simples
@@ -224,7 +224,7 @@ Respond in JSON format (no markdown):
                 "motivo": "Falha ao avaliar"
             }
         except Exception as e:
-            print(f"[WARN] Avaliação de qualidade falhou: {str(e)[:100]}")
+            print(f"[WARN] Avaliação de qualidade falhou: {str(e)}")
             return {
                 "score": 0.5,
                 "recomendacao": "REVISAR",
@@ -379,7 +379,7 @@ Text to analyze and translate:
             except Exception as e:
                 print(
                     f"[TRADUÇÃO+DETECÇÃO] ✗ Tentativa {tentativa + 1}/{len(self.MODELOS_TRADUCAO)} "
-                    f"com {modelo}: {str(e)[:100]}"
+                    f"com {modelo}: {str(e)}"
                 )
                 if tentativa < len(self.MODELOS_TRADUCAO) - 1:
                     await asyncio.sleep(1.0)
@@ -454,7 +454,7 @@ Text to translate:
             except Exception as e:
                 print(
                     f"[TRADUÇÃO] ✗ Tentativa {tentativa + 1}/{len(self.MODELOS_GRATUITOS)} "
-                    f"com {modelo}: {str(e)[:100]}"
+                    f"com {modelo}: {str(e)}"
                 )
                 if tentativa < len(self.MODELOS_GRATUITOS) - 1:
                     # Aguardar um pouco antes de tentar próximo modelo
@@ -580,7 +580,7 @@ Response Format (JSON only):
 }}"""
 
         try:
-            modelo = self.MODELOS_ESPECIALIZADOS.get("avaliacao", "xai/grok-4-fast")
+            modelo = self.MODELOS_ESPECIALIZADOS.get("avaliacao", "x-ai/grok-4-fast")
             resultado = await self._chamar_modelo(modelo, prompt)
 
             if resultado:
@@ -610,7 +610,13 @@ Response Format (JSON only):
                     }
 
         except Exception as e:
-            print(f"[ANÁLISE] ✗ Erro ao analisar fonte: {str(e)[:100]}")
+            # Log melhorado com contexto completo
+            erro_msg = str(e)
+            print(f"[ANÁLISE] ✗ Erro ao analisar fonte: {erro_msg}")
+            print(f"[ANÁLISE]   → Título: {titulo[:80] if titulo else 'N/A'}")
+            print(f"[ANÁLISE]   → Modelo usado: {modelo}")
+            if len(erro_msg) > 200:
+                print(f"[ANÁLISE]   → Detalhes completos: {erro_msg}")
 
         # Fallback: tentar classificar baseado em palavras-chave
         return self._classificar_heuristico(titulo, descricao, url)
@@ -976,7 +982,7 @@ Text to translate:
             traducao = await self._chamar_modelo(modelo, prompt)
             return traducao.strip()
         except Exception as e:
-            print(f"[TRADUÇÃO] ✗ Erro ao traduzir de {idioma_origem}: {str(e)[:100]}")
+            print(f"[TRADUÇÃO] ✗ Erro ao traduzir de {idioma_origem}: {str(e)}")
             # Em caso de erro, retornar texto original
             return texto
 
@@ -1148,7 +1154,7 @@ Return ONLY a JSON object with:
                         }
 
             except Exception as e:
-                print(f"[AVALIAÇÃO PROFUNDA] ✗ Erro com {modelo_nome}: {str(e)[:100]}")
+                print(f"[AVALIAÇÃO PROFUNDA] ✗ Erro com {modelo_nome}: {str(e)}")
                 # Continuar para próximo modelo
                 if i < len(modelos) - 1:
                     print(f"[AVALIAÇÃO PROFUNDA] Tentando próximo modelo...")
@@ -1265,7 +1271,7 @@ async def consultar_openrouter(
         resposta = await cliente._chamar_modelo(modelo_usar, prompt)
         return resposta
     except Exception as e:
-        print(f"[ERRO] Consulta OpenRouter falhou com modelo {modelo_usar}: {str(e)[:100]}")
+        print(f"[ERRO] Consulta OpenRouter falhou com modelo {modelo_usar}: {str(e)}")
         # Tentar com modelos alternativos como fallback
         for modelo_alt in cliente.MODELOS_GRATUITOS:
             if modelo_alt != modelo_usar:
