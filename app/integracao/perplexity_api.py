@@ -103,7 +103,7 @@ IMPORTANT: Your response MUST be ENTIRELY in {idioma_nome}.
         """
         Parseia resposta do Perplexity e extrai resultados
 
-        Esperado formato com URLs e titulos
+        Esperado formato com URLs e titulos entre pipes: | Título | URL | Descrição |
         """
         from app.utils.url_validator import eh_url_valida
 
@@ -129,10 +129,28 @@ IMPORTANT: Your response MUST be ENTIRELY in {idioma_nome}.
 
                 # Validar URL antes de adicionar
                 if url and eh_url_valida(url):
+                    # Extrair título entre pipes se disponível
+                    titulo_final = titulo_temp or "Resultado Perplexity"
+                    descricao_final = linha
+
+                    # Se a linha contém pipes, extrair o título de entre eles
+                    if "|" in linha:
+                        partes = [p.strip() for p in linha.split("|")]
+                        # Filtrar partes vazias
+                        partes = [p for p in partes if p and "http" not in p.lower()]
+                        if partes:
+                            # Primeira parte não-vazia é o título
+                            titulo_final = partes[0]
+                            # Restante é a descrição (se houver)
+                            if len(partes) > 1:
+                                descricao_final = " ".join(partes[1:])
+                            else:
+                                descricao_final = titulo_final
+
                     resultados.append({
-                        "titulo": titulo_temp or "Resultado Perplexity",
+                        "titulo": titulo_final,
                         "url": url,
-                        "descricao": linha
+                        "descricao": descricao_final
                     })
                     titulo_temp = ""
             else:
