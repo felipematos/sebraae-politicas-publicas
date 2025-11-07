@@ -1390,6 +1390,18 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <!-- Ícone de link externo -->
+                                    <a
+                                        :href="resultado.fonte_url"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors flex-shrink-0"
+                                        title="Abrir link original em nova janela"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                        </svg>
+                                    </a>
                                 </div>
                                 <div class="flex items-start justify-between gap-4 mb-3 pr-28">
                                     <div class="flex-1">
@@ -1548,18 +1560,6 @@
                                        class="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 flex-shrink-0 ml-2">
                                         Ver fonte
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                                        </svg>
-                                    </a>
-                                    <!-- Ícone de link externo -->
-                                    <a
-                                        :href="resultado.url"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors flex-shrink-0"
-                                        title="Abrir link original em nova janela"
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                                         </svg>
                                     </a>
@@ -1728,6 +1728,120 @@
                     <div>
                         <h2 class="text-3xl font-bold">1. Pesquisa de Políticas Públicas</h2>
                         <p class="text-gray-600 mt-1">Identifique e pesquise políticas públicas relevantes para cada falha de mercado</p>
+                    </div>
+                </div>
+
+                <!-- Painel de Configurações de Pesquisa -->
+                <div class="bg-white rounded-lg shadow">
+                    <button @click="config_pesquisa_aberta = !config_pesquisa_aberta"
+                            class="w-full flex justify-between items-center p-4 hover:bg-gray-50 transition">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-xl">🔍</span>
+                            <div class="text-left">
+                                <h3 class="font-bold text-gray-900">Configurações de Pesquisa</h3>
+                                <p class="text-sm text-gray-600">Selecione ferramentas de pesquisa e visualize custos estimados</p>
+                            </div>
+                        </div>
+                        <span class="text-gray-400 text-xl" x-text="config_pesquisa_aberta ? '▲' : '▼'"></span>
+                    </button>
+
+                    <div x-show="config_pesquisa_aberta" x-collapse class="p-6 border-t">
+                        <div class="space-y-4">
+                            <p class="text-sm text-gray-600 mb-4">Escolha quais ferramentas de pesquisa deseja utilizar. O custo estimado é calculado por busca.</p>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Perplexity -->
+                                <label class="flex items-start p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition">
+                                    <input type="checkbox" x-model="ferramentas_habilitadas.perplexity" class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600">
+                                    <div class="ml-3 flex-1">
+                                        <span class="font-semibold text-gray-900">🔮 Perplexity</span>
+                                        <p class="text-xs text-gray-600 mt-1">AI research com análise profunda</p>
+                                        <p class="text-sm font-medium text-blue-600 mt-2">
+                                            <span x-text="custos_ferramentas.perplexity.moeda"></span>
+                                            <span x-text="custos_ferramentas.perplexity.custo.toFixed(2)"></span>
+                                            <span class="text-gray-600" x-text="custos_ferramentas.perplexity.descricao"></span>
+                                        </p>
+                                    </div>
+                                </label>
+
+                                <!-- Jina -->
+                                <label class="flex items-start p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition">
+                                    <input type="checkbox" x-model="ferramentas_habilitadas.jina" class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600">
+                                    <div class="ml-3 flex-1">
+                                        <span class="font-semibold text-gray-900">🌐 Jina.ai</span>
+                                        <p class="text-xs text-gray-600 mt-1">Extração de conteúdo web</p>
+                                        <p class="text-sm font-medium text-green-600 mt-2">
+                                            <span x-text="custos_ferramentas.jina.moeda"></span>
+                                            <span x-text="custos_ferramentas.jina.custo.toFixed(2)"></span>
+                                            <span class="text-gray-600" x-text="custos_ferramentas.jina.descricao"></span>
+                                        </p>
+                                    </div>
+                                </label>
+
+                                <!-- Deep Research -->
+                                <label class="flex items-start p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition">
+                                    <input type="checkbox" x-model="ferramentas_habilitadas.deep_research" class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600">
+                                    <div class="ml-3 flex-1">
+                                        <span class="font-semibold text-gray-900">🔬 Deep Research</span>
+                                        <p class="text-xs text-gray-600 mt-1">Pesquisa profunda em documentos</p>
+                                        <p class="text-sm font-medium text-orange-600 mt-2">
+                                            <span x-text="custos_ferramentas.deep_research.moeda"></span>
+                                            <span x-text="custos_ferramentas.deep_research.custo.toFixed(2)"></span>
+                                            <span class="text-gray-600" x-text="custos_ferramentas.deep_research.descricao"></span>
+                                        </p>
+                                    </div>
+                                </label>
+
+                                <!-- Tavily -->
+                                <label class="flex items-start p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition">
+                                    <input type="checkbox" x-model="ferramentas_habilitadas.tavily" class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600">
+                                    <div class="ml-3 flex-1">
+                                        <span class="font-semibold text-gray-900">🎯 Tavily</span>
+                                        <p class="text-xs text-gray-600 mt-1">Busca rápida na web</p>
+                                        <p class="text-sm font-medium text-indigo-600 mt-2">
+                                            <span x-text="custos_ferramentas.tavily.moeda"></span>
+                                            <span x-text="custos_ferramentas.tavily.custo.toFixed(3)"></span>
+                                            <span class="text-gray-600" x-text="custos_ferramentas.tavily.descricao"></span>
+                                        </p>
+                                    </div>
+                                </label>
+
+                                <!-- Serper -->
+                                <label class="flex items-start p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition">
+                                    <input type="checkbox" x-model="ferramentas_habilitadas.serper" class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600">
+                                    <div class="ml-3 flex-1">
+                                        <span class="font-semibold text-gray-900">🔎 Serper</span>
+                                        <p class="text-xs text-gray-600 mt-1">Busca otimizada para SEO</p>
+                                        <p class="text-sm font-medium text-purple-600 mt-2">
+                                            <span x-text="custos_ferramentas.serper.moeda"></span>
+                                            <span x-text="custos_ferramentas.serper.custo.toFixed(3)"></span>
+                                            <span class="text-gray-600" x-text="custos_ferramentas.serper.descricao"></span>
+                                        </p>
+                                    </div>
+                                </label>
+
+                                <!-- Exa -->
+                                <label class="flex items-start p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition">
+                                    <input type="checkbox" x-model="ferramentas_habilitadas.exa" class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600">
+                                    <div class="ml-3 flex-1">
+                                        <span class="font-semibold text-gray-900">⭐ Exa</span>
+                                        <p class="text-xs text-gray-600 mt-1">Busca neural avançada</p>
+                                        <p class="text-sm font-medium text-amber-600 mt-2">
+                                            <span x-text="custos_ferramentas.exa.moeda"></span>
+                                            <span x-text="custos_ferramentas.exa.custo.toFixed(2)"></span>
+                                            <span class="text-gray-600" x-text="custos_ferramentas.exa.descricao"></span>
+                                        </p>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <!-- Resumo de custo -->
+                            <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <p class="text-sm text-blue-800">
+                                    <strong>💡 Dica:</strong> O custo total dependerá do número de buscas realizadas. As ferramentas selecionadas serão utilizadas na próxima pesquisa.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -3166,6 +3280,24 @@
                     limpar_cache: false  // Se true, ignora cache e força nova análise
                 },
                 filtros_fase1_alterados: false,  // Indica se os filtros foram modificados desde a última aplicação
+                // Configurações de Pesquisa
+                config_pesquisa_aberta: false,  // Painel de configurações de pesquisa aberto/fechado
+                ferramentas_habilitadas: {
+                    perplexity: true,
+                    jina: true,
+                    deep_research: true,
+                    tavily: false,
+                    serper: false,
+                    exa: false
+                },
+                custos_ferramentas: {
+                    perplexity: { custo: 0.01, moeda: 'R$', descricao: 'por busca' },
+                    jina: { custo: 0.0, moeda: 'R$', descricao: 'gratuito' },
+                    deep_research: { custo: 0.05, moeda: 'R$', descricao: 'por busca' },
+                    tavily: { custo: 0.005, moeda: 'R$', descricao: 'por busca' },
+                    serper: { custo: 0.002, moeda: 'R$', descricao: 'por busca' },
+                    exa: { custo: 0.01, moeda: 'R$', descricao: 'por busca' }
+                },
                 // Configurações de Avaliação Profunda
                 config_avaliacao_profunda_aberta: false,  // Painel de configurações aberto/fechado
                 avaliacao_profunda_ativa: false,  // Se avaliação profunda está ativada
@@ -3454,7 +3586,8 @@
                         const filtrosSalvos = localStorage.getItem('filtros_fase1');
                         if (filtrosSalvos) {
                             try {
-                                this.filtros_fase1 = JSON.parse(filtrosSalvos);
+                                // Merge com defaults para garantir que novos campos tenham valores padrão
+                                this.filtros_fase1 = { ...this.filtros_fase1, ...JSON.parse(filtrosSalvos) };
                             } catch (e) {
                                 console.warn('Erro ao carregar filtros salvos:', e);
                             }
@@ -6563,7 +6696,7 @@
                             idioma: this.filtros_fase1.idioma.join(','),
                             apenas_com_implementacao: this.filtros_fase1.apenas_com_implementacao,
                             apenas_com_metricas: this.filtros_fase1.apenas_com_metricas,
-                            limpar_cache: this.filtros_fase1.limpar_cache
+                            limpar_cache: this.filtros_fase1.limpar_cache || false
                         });
 
                         // Buscar estimativa para cada falha em paralelo
@@ -6739,7 +6872,7 @@
                             idioma: this.filtros_fase1.idioma.join(','),
                             apenas_com_implementacao: this.filtros_fase1.apenas_com_implementacao,
                             apenas_com_metricas: this.filtros_fase1.apenas_com_metricas,
-                            limpar_cache: this.filtros_fase1.limpar_cache
+                            limpar_cache: this.filtros_fase1.limpar_cache || false
                         });
 
                         const res = await fetch(`/api/boas-praticas/fase1/listar?${params.toString()}`);

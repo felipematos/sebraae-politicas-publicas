@@ -182,6 +182,12 @@ async def obter_estatisticas():
 
         percentual_traduzidos = round((resultados_traduzidos / resultados_internacionais) * 100, 1) if resultados_internacionais > 0 else 100.0
 
+        # Contar falhas priorizadas (destacadas)
+        priorizadas_row = await db.fetch_one(
+            "SELECT COUNT(*) as total FROM priorizacoes_falhas WHERE destacada = 1"
+        )
+        total_priorizadas = priorizadas_row["total"] if priorizadas_row else 0
+
         return {
             "sucesso": True,
             "dados": {
@@ -191,6 +197,7 @@ async def obter_estatisticas():
                 "total_pendentes": total_pendentes,
                 "total_processando": total_processando,
                 "total_concluidas": total_concluidas,
+                "total_priorizadas": total_priorizadas,
                 "resultados_pt": resultados_pt,
                 "resultados_internacionais": resultados_internacionais,
                 "resultados_traduzidos": resultados_traduzidos,
@@ -206,7 +213,8 @@ async def obter_estatisticas():
                 "pesquisas_concluidas": 0,
                 "total_pendentes": 0,
                 "total_processando": 0,
-                "total_concluidas": 0
+                "total_concluidas": 0,
+                "total_priorizadas": 0
             },
             "erro": str(e)
         }
