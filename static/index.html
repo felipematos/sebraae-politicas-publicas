@@ -1272,18 +1272,6 @@
                         <template x-for="resultado in resultados_pesquisa_paginados" :key="resultado.id">
                             <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow relative">
                                 <div class="absolute top-4 right-4 flex items-center gap-2 z-20">
-                                    <!-- Ícone de link externo -->
-                                    <a
-                                        :href="resultado.url"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
-                                        title="Abrir link original em nova janela"
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                                        </svg>
-                                    </a>
                                     <span
                                         class="px-2 py-1 text-xs font-medium rounded"
                                         :class="{
@@ -1319,34 +1307,34 @@
                                             @click.away="aberto = false"
                                         >
                                             <div class="py-1">
-                                                <button @click="atualizar_idioma_resultado(resultado, 'pt'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                <button @click="atualizar_idioma_resultado(resultado, 'pt'); aberto = false" class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-2">
                                                     <span>🇧🇷</span> <span>Português</span>
                                                 </button>
-                                                <button @click="atualizar_idioma_resultado(resultado, 'en'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                <button @click="atualizar_idioma_resultado(resultado, 'en'); aberto = false" class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-2">
                                                     <span>🇺🇸</span> <span>Inglês</span>
                                                 </button>
-                                                <button @click="atualizar_idioma_resultado(resultado, 'es'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                <button @click="atualizar_idioma_resultado(resultado, 'es'); aberto = false" class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-2">
                                                     <span>🇪🇸</span> <span>Espanhol</span>
                                                 </button>
-                                                <button @click="atualizar_idioma_resultado(resultado, 'fr'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                <button @click="atualizar_idioma_resultado(resultado, 'fr'); aberto = false" class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-2">
                                                     <span>🇫🇷</span> <span>Francês</span>
                                                 </button>
-                                                <button @click="atualizar_idioma_resultado(resultado, 'de'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                <button @click="atualizar_idioma_resultado(resultado, 'de'); aberto = false" class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-2">
                                                     <span>🇩🇪</span> <span>Alemão</span>
                                                 </button>
-                                                <button @click="atualizar_idioma_resultado(resultado, 'it'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                <button @click="atualizar_idioma_resultado(resultado, 'it'); aberto = false" class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-2">
                                                     <span>🇮🇹</span> <span>Italiano</span>
                                                 </button>
-                                                <button @click="atualizar_idioma_resultado(resultado, 'ja'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                <button @click="atualizar_idioma_resultado(resultado, 'ja'); aberto = false" class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-2">
                                                     <span>🇯🇵</span> <span>Japonês</span>
                                                 </button>
-                                                <button @click="atualizar_idioma_resultado(resultado, 'ar'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                <button @click="atualizar_idioma_resultado(resultado, 'ar'); aberto = false" class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-2">
                                                     <span>🇸🇦</span> <span>Árabe</span>
                                                 </button>
-                                                <button @click="atualizar_idioma_resultado(resultado, 'ko'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                <button @click="atualizar_idioma_resultado(resultado, 'ko'); aberto = false" class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-2">
                                                     <span>🇰🇷</span> <span>Coreano</span>
                                                 </button>
-                                                <button @click="atualizar_idioma_resultado(resultado, 'he'); aberto = false" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                                                <button @click="atualizar_idioma_resultado(resultado, 'he'); aberto = false" class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-2">
                                                     <span>🇮🇱</span> <span>Hebraico</span>
                                                 </button>
                                             </div>
@@ -1500,6 +1488,18 @@
                                        class="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 flex-shrink-0 ml-2">
                                         Ver fonte
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                        </svg>
+                                    </a>
+                                    <!-- Ícone de link externo -->
+                                    <a
+                                        :href="resultado.url"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors flex-shrink-0"
+                                        title="Abrir link original em nova janela"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                                         </svg>
                                     </a>
