@@ -7,21 +7,13 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Sebrae Nacional - Políticas Públicas de Inovação</title>
-    <!-- Force body display IMMEDIATELY before any CSS loads -->
-    <script>
-        // This runs BEFORE any stylesheets load
-        // Set a style rule that forces body to display
-        const style = document.createElement('style');
-        style.innerHTML = 'body { display: block !important; visibility: visible !important; opacity: 1 !important; }';
-        document.head.appendChild(style);
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script defer src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="/static/css/styles.css">
     <style>
-        body { display: block !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         [x-cloak] { display: none !important; }
         .phase-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 500; }
         .phase-active { background-color: #dbeafe; color: #1e40af; }
@@ -40,18 +32,21 @@
         main { margin: 2rem auto; }
     </style>
     <script>
-        // Fallback: Remove x-cloak after 5 seconds if Alpine.js hasn't loaded
+        // Fallback: Remove x-cloak after a longer delay if Alpine.js hasn't loaded
         setTimeout(() => {
             const app = document.getElementById('app');
             if (app && app.hasAttribute('x-cloak')) {
-                app.removeAttribute('x-cloak');
-                console.warn('Alpine.js loading fallback applied');
+                // Only remove if Alpine hasn't initialized
+                if (typeof window.Alpine === 'undefined') {
+                    app.removeAttribute('x-cloak');
+                    console.warn('Alpine.js loading fallback applied - Alpine not detected');
+                }
             }
-        }, 5000);
+        }, 10000);
     </script>
 </head>
 <body class="bg-gray-50 text-gray-900" style="padding-top: 0 !important; margin-top: 0 !important;">
-    <div id="app" class="min-h-screen" x-data="app()" x-init="inicializar()" style="display: block;">
+    <div id="app" class="min-h-screen" x-data="app()" x-init="inicializar()" x-cloak>
         <!-- Container de Notificações -->
         <div id="notificacoes-container" class="fixed top-4 right-4 z-[9999] space-y-2" style="max-width: 400px;"></div>
 
@@ -73,7 +68,7 @@
 
         <!-- Modal de Configuração de Chaves de API -->
         <div id="api-keys-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="modal_api_keys_aberto = false" x-show="modal_api_keys_aberto" x-cloak>
-            <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" @click.stop @x-show="carregar_api_keys()">
+            <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" @click.stop x-init="carregar_api_keys()">
                 <div class="flex justify-between items-start mb-6">
                     <div>
                         <h3 class="text-2xl font-bold text-gray-800">🔑 Configurar Chaves de API</h3>
@@ -3072,12 +3067,12 @@
                 <!-- Sub-navegação de Fases -->
                 <div class="bg-white rounded-lg shadow p-4">
                     <div class="flex gap-2 flex-wrap">
-                        <button @click="boas_praticas_subfase = 1"
+                        <button @click="boas_praticas_subfase = 1; $nextTick(() => { if (typeof carregar_falhas_fase1 === 'function') carregar_falhas_fase1(); })"
                                 :class="boas_praticas_subfase === 1 ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                                 class="px-4 py-2 rounded-lg font-medium transition-colors">
                             Fase I - Filtro de Fontes
                         </button>
-                        <button @click="boas_praticas_subfase = 2"
+                        <button @click="boas_praticas_subfase = 2; $nextTick(() => { if (typeof carregar_falhas_fase2 === 'function') carregar_falhas_fase2(); })"
                                 :class="boas_praticas_subfase === 2 ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                                 class="px-4 py-2 rounded-lg font-medium transition-colors">
                             Fase II - Detecção de Boas Práticas
@@ -3096,7 +3091,7 @@
                 </div>
 
                 <!-- Fase I: Listagem de Falhas Priorizadas -->
-                <div x-show="boas_praticas_subfase === 1" class="space-y-4" x-init="$nextTick(() => carregar_falhas_fase1())">
+                <div x-show="boas_praticas_subfase === 1" class="space-y-4">
                     <!-- Controles -->
                     <div class="bg-white rounded-lg shadow p-6">
                         <div class="flex justify-between items-center mb-4">
@@ -3208,7 +3203,7 @@
                 </div>
 
                 <!-- Fase II: Análise com IA -->
-                <div x-show="boas_praticas_subfase === 2" class="space-y-4" x-init="$nextTick(() => carregar_falhas_fase2())">
+                <div x-show="boas_praticas_subfase === 2" class="space-y-4">
                     <!-- Controles -->
                     <div class="bg-white rounded-lg shadow p-6">
                         <div>
