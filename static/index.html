@@ -50,7 +50,7 @@
         }, 5000);
     </script>
 </head>
-<body class="bg-gray-50 text-gray-900">
+<body class="bg-gray-50 text-gray-900" style="padding-top: 0 !important; margin-top: 0 !important;">
     <div id="app" class="min-h-screen" x-data="app()" x-init="inicializar()" style="display: block;">
         <!-- Container de Notificações -->
         <div id="notificacoes-container" class="fixed top-4 right-4 z-[9999] space-y-2" style="max-width: 400px;"></div>
@@ -1945,7 +1945,7 @@
         </div>
 
         <!-- Header Principal -->
-        <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm" style="margin-top: 0 !important;">
             <div class="max-w-7xl mx-auto px-4 pt-6 pb-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center mb-8">
                     <div class="flex items-center gap-6">
@@ -3096,7 +3096,7 @@
                 </div>
 
                 <!-- Fase I: Listagem de Falhas Priorizadas -->
-                <div x-show="boas_praticas_subfase === 1" class="space-y-4" x-init="carregar_falhas_fase1()">
+                <div x-show="boas_praticas_subfase === 1" class="space-y-4" x-init="$nextTick(() => carregar_falhas_fase1())">
                     <!-- Controles -->
                     <div class="bg-white rounded-lg shadow p-6">
                         <div class="flex justify-between items-center mb-4">
@@ -3208,7 +3208,7 @@
                 </div>
 
                 <!-- Fase II: Análise com IA -->
-                <div x-show="boas_praticas_subfase === 2" class="space-y-4" x-init="carregar_falhas_fase2()">
+                <div x-show="boas_praticas_subfase === 2" class="space-y-4" x-init="$nextTick(() => carregar_falhas_fase2())">
                     <!-- Controles -->
                     <div class="bg-white rounded-lg shadow p-6">
                         <div>
@@ -3796,6 +3796,9 @@
                 mostrar_filtros_resultados: true,
                 ordenacao_resultados: 'score_desc',
                 filtro_idiomas_resultados: [],
+                idiomas_aberto: false,
+                ferramentas_aberto: false,
+                todos_idiomas: ['pt', 'en', 'es', 'fr', 'de', 'it', 'ja', 'ar', 'ko', 'he'],
                 filtro_score_min_resultados: 0,
                 filtro_score_max_resultados: 100,
                 filtro_ferramentas_resultados: [],
