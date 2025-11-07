@@ -1,14 +1,156 @@
 # -*- coding: utf-8 -*-
 """
 Endpoints para gerenciar configuracoes da aplicacao
-Permite habilitar/desabilitar canais de pesquisa e controlar modo teste
+Permite habilitar/desabilitar canais de pesquisa, controlar modo teste e gerenciar chaves de API
 """
 from fastapi import APIRouter, HTTPException
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+from pydantic import BaseModel
+import os
+from pathlib import Path
 from app.config import settings, save_search_channels_config, save_test_mode_config
 from app.database import get_estatisticas_gerais
 
 router = APIRouter(tags=["Config"])
+
+
+# ==================== CHAVES DE API ====================
+
+class APIKeysRequest(BaseModel):
+    perplexity_api_key: Optional[str] = None
+    jina_api_key: Optional[str] = None
+    tavily_api_key: Optional[str] = None
+    serper_api_key: Optional[str] = None
+    exa_api_key: Optional[str] = None
+
+
+def _get_env_file_path() -> Path:
+    """Retorna o caminho do arquivo .env"""
+    env_file = Path(__file__).parent.parent.parent / ".env"
+    return env_file
+
+
+def _read_env_file() -> Dict[str, str]:
+    """Lê o arquivo .env e retorna um dicionário com as variáveis"""
+    env_file = _get_env_file_path()
+    env_vars = {}
+
+    if env_file.exists():
+        with open(env_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    if '=' in line:
+                        key, value = line.split('=', 1)
+                        env_vars[key.strip()] = value.strip().strip('"\'')
+
+    return env_vars
+
+
+def _write_env_file(env_vars: Dict[str, str]) -> None:
+    """Escreve as variáveis no arquivo .env"""
+    env_file = _get_env_file_path()
+
+    # Criar arquivo se não existir
+    if not env_file.exists():
+        env_file.parent.mkdir(parents=True, exist_ok=True)
+        env_file.touch()
+
+    # Ler arquivo existente para preservar outras variáveis
+    existing_vars = _read_env_file()
+
+    # Mesclar com novas variáveis
+    existing_vars.update(env_vars)
+
+    # Escrever arquivo
+    with open(env_file, 'w', encoding='utf-8') as f:
+        for key, value in sorted(existing_vars.items()):
+            if key and not key.startswith('#'):
+                f.write(f'{key}={value}\n')
+
+
+@router.post("/config/api-keys")
+async def save_api_keys(request: APIKeysRequest) -> Dict[str, Any]:
+    """
+    Salva as chaves de API no arquivo .env
+
+    Args:
+        request: Objeto com as chaves de API
+
+    Returns:
+        Status da operação
+    """
+    try:
+        env_vars = {}
+
+        # Adicionar apenas as chaves que foram fornecidas
+        if request.perplexity_api_key:
+            env_vars['PERPLEXITY_API_KEY'] = request.perplexity_api_key
+
+        if request.jina_api_key:
+            env_vars['JINA_API_KEY'] = request.jina_api_key
+
+        if request.tavily_api_key:
+            env_vars['TAVILY_API_KEY'] = request.tavily_api_key
+
+        if request.serper_api_key:
+            env_vars['SERPER_API_KEY'] = request.serper_api_key
+
+        if request.exa_api_key:
+            env_vars['EXA_API_KEY'] = request.exa_api_key
+
+        # Escrever no arquivo .env
+        _write_env_file(env_vars)
+
+        # Atualizar variáveis de ambiente da aplicação
+        for key, value in env_vars.items():
+            os.environ[key] = value
+
+        return {
+            "sucesso": True,
+            "mensagem": "Chaves de API salvas com sucesso",
+            "chaves_atualizadas": list(env_vars.keys()),
+            "timestamp": __import__("datetime").datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao salvar chaves de API: {str(e)}"
+        )
+
+
+@router.get("/config/api-keys")
+async def get_api_keys_status() -> Dict[str, Any]:
+    """
+    Retorna o status das chaves de API (quais estão configuradas, sem retornar os valores)
+
+    Returns:
+        Status de cada chave (configurada ou não)
+    """
+    try:
+        env_vars = _read_env_file()
+
+        api_keys_status = {
+            "perplexity_api_key": "PERPLEXITY_API_KEY" in env_vars and bool(env_vars.get("PERPLEXITY_API_KEY")),
+            "jina_api_key": "JINA_API_KEY" in env_vars and bool(env_vars.get("JINA_API_KEY")),
+            "tavily_api_key": "TAVILY_API_KEY" in env_vars and bool(env_vars.get("TAVILY_API_KEY")),
+            "serper_api_key": "SERPER_API_KEY" in env_vars and bool(env_vars.get("SERPER_API_KEY")),
+            "exa_api_key": "EXA_API_KEY" in env_vars and bool(env_vars.get("EXA_API_KEY"))
+        }
+
+        return {
+            "sucesso": True,
+            "chaves_configuradas": api_keys_status,
+            "total_configuradas": sum(1 for v in api_keys_status.values() if v),
+            "timestamp": __import__("datetime").datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao ler status das chaves de API: {str(e)}"
+        )
 
 
 @router.get("/config/channels")

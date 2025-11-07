@@ -352,6 +352,35 @@ async def get_estatisticas_gerais() -> Dict[str, Any]:
     )
     stats['confidence_medio'] = round(result['media'], 2) if result['media'] else 0.0
 
+    # Estatísticas de Knowledge Base
+    try:
+        # Importar aqui para evitar dependências circulares
+        from pathlib import Path
+        from app.vector.vector_store import get_vector_store
+
+        # Contar documentos locais
+        docs_dir = Path(__file__).parent.parent / "documentos"
+        total_docs = 0
+        if docs_dir.exists():
+            total_docs = len([f for f in docs_dir.iterdir() if f.is_file()])
+
+        stats['total_documentos'] = total_docs
+        stats['total_indexados'] = total_docs
+
+        # Contar vetores no vector store
+        try:
+            vector_store = await get_vector_store()
+            vector_stats = vector_store.get_stats()
+            stats['total_vetores'] = vector_stats.get("documents_count", 0)
+        except:
+            stats['total_vetores'] = 0
+
+    except Exception as e:
+        print(f"[Stats] Erro ao obter estatísticas de KB: {e}")
+        stats['total_documentos'] = 0
+        stats['total_indexados'] = 0
+        stats['total_vetores'] = 0
+
     return stats
 
 

@@ -70,6 +70,135 @@
             </div>
         </div>
 
+        <!-- Modal de Configuração de Chaves de API -->
+        <div id="api-keys-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="modal_api_keys_aberto = false" x-show="modal_api_keys_aberto" x-cloak>
+            <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" @click.stop>
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">🔑 Configurar Chaves de API</h3>
+                        <p class="text-gray-600 mt-1">Gerencie as chaves de API necessárias para o sistema funcionar</p>
+                    </div>
+                    <button @click="modal_api_keys_aberto = false" class="text-gray-400 hover:text-gray-600 text-2xl">✕</button>
+                </div>
+
+                <!-- Mensagem de feedback -->
+                <div x-show="mensagem_api_keys" class="mb-4 p-3 rounded" :class="mensagem_api_keys.tipo === 'sucesso' ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'">
+                    <p class="text-sm" x-text="mensagem_api_keys.texto"></p>
+                </div>
+
+                <!-- Lista de APIs -->
+                <div class="space-y-6">
+                    <!-- Perplexity -->
+                    <div class="border border-gray-200 rounded-lg p-4 space-y-3">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h4 class="font-bold text-gray-900">🔮 Perplexity AI</h4>
+                                <p class="text-xs text-gray-600 mt-1">Pesquisa de políticas públicas com análise profunda de IA</p>
+                                <p class="text-xs text-blue-600 font-medium mt-2">Custo estimado: ~R$ 0.01 por busca</p>
+                            </div>
+                            <a href="https://www.perplexity.ai/api" target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Obter chave →</a>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="password" x-model="api_keys.perplexity_api_key" placeholder="Insira sua chave Perplexity API" :type="api_keys_mostrar.perplexity_api_key ? 'text' : 'password'" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button @click="api_keys_mostrar.perplexity_api_key = !api_keys_mostrar.perplexity_api_key" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">
+                                <span x-text="api_keys_mostrar.perplexity_api_key ? '👁️ Ocultar' : '👁️ Mostrar'"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Jina -->
+                    <div class="border border-gray-200 rounded-lg p-4 space-y-3">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h4 class="font-bold text-gray-900">🌐 Jina.ai</h4>
+                                <p class="text-xs text-gray-600 mt-1">Extração de conteúdo e análise de páginas web</p>
+                                <p class="text-xs text-green-600 font-medium mt-2">Custo estimado: Gratuito (com limite de requisições)</p>
+                            </div>
+                            <a href="https://jina.ai" target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Obter chave →</a>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="password" x-model="api_keys.jina_api_key" placeholder="Insira sua chave Jina (opcional)" :type="api_keys_mostrar.jina_api_key ? 'text' : 'password'" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button @click="api_keys_mostrar.jina_api_key = !api_keys_mostrar.jina_api_key" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">
+                                <span x-text="api_keys_mostrar.jina_api_key ? '👁️ Ocultar' : '👁️ Mostrar'"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tavily -->
+                    <div class="border border-gray-200 rounded-lg p-4 space-y-3">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h4 class="font-bold text-gray-900">🎯 Tavily Search</h4>
+                                <p class="text-xs text-gray-600 mt-1">Busca rápida na web com resultados relevantes</p>
+                                <p class="text-xs text-indigo-600 font-medium mt-2">Custo estimado: ~R$ 0.005 por busca</p>
+                            </div>
+                            <a href="https://tavily.com/api" target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Obter chave →</a>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="password" x-model="api_keys.tavily_api_key" placeholder="Insira sua chave Tavily API" :type="api_keys_mostrar.tavily_api_key ? 'text' : 'password'" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button @click="api_keys_mostrar.tavily_api_key = !api_keys_mostrar.tavily_api_key" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">
+                                <span x-text="api_keys_mostrar.tavily_api_key ? '👁️ Ocultar' : '👁️ Mostrar'"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Serper -->
+                    <div class="border border-gray-200 rounded-lg p-4 space-y-3">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h4 class="font-bold text-gray-900">🔎 Serper</h4>
+                                <p class="text-xs text-gray-600 mt-1">API de busca otimizada para SEO com dados estruturados</p>
+                                <p class="text-xs text-purple-600 font-medium mt-2">Custo estimado: ~R$ 0.002 por busca</p>
+                            </div>
+                            <a href="https://serper.dev" target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Obter chave →</a>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="password" x-model="api_keys.serper_api_key" placeholder="Insira sua chave Serper API" :type="api_keys_mostrar.serper_api_key ? 'text' : 'password'" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button @click="api_keys_mostrar.serper_api_key = !api_keys_mostrar.serper_api_key" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">
+                                <span x-text="api_keys_mostrar.serper_api_key ? '👁️ Ocultar' : '👁️ Mostrar'"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Exa -->
+                    <div class="border border-gray-200 rounded-lg p-4 space-y-3">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h4 class="font-bold text-gray-900">⭐ Exa AI</h4>
+                                <p class="text-xs text-gray-600 mt-1">Busca neural avançada para encontrar páginas similares</p>
+                                <p class="text-xs text-amber-600 font-medium mt-2">Custo estimado: ~R$ 0.01 por busca</p>
+                            </div>
+                            <a href="https://exa.ai" target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Obter chave →</a>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="password" x-model="api_keys.exa_api_key" placeholder="Insira sua chave Exa API" :type="api_keys_mostrar.exa_api_key ? 'text' : 'password'" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button @click="api_keys_mostrar.exa_api_key = !api_keys_mostrar.exa_api_key" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">
+                                <span x-text="api_keys_mostrar.exa_api_key ? '👁️ Ocultar' : '👁️ Mostrar'"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aviso de segurança -->
+                <div class="mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p class="text-xs text-yellow-800">
+                        <strong>⚠️ Segurança:</strong> As chaves são armazenadas localmente no arquivo .env. Nunca compartilhe suas chaves de API com terceiros.
+                    </p>
+                </div>
+
+                <!-- Botões de ação -->
+                <div class="flex gap-3 justify-end mt-6">
+                    <button @click="modal_api_keys_aberto = false" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded font-medium">
+                        Cancelar
+                    </button>
+                    <button @click="salvar_api_keys()" :disabled="salvando_api_keys" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium disabled:opacity-50">
+                        <span x-show="!salvando_api_keys">💾 Salvar Chaves</span>
+                        <span x-show="salvando_api_keys">⟳ Salvando...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal de Arquivos Duplicados -->
         <div id="duplicados-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="fechar_duplicados_modal()" x-show="duplicados_modal_aberto" x-cloak>
             <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4" @click.stop>
@@ -129,6 +258,99 @@
                     </button>
                     <button @click="proceder_com_upload()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium">
                         Continuar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Configurações de Knowledge Base -->
+        <div id="kb-config-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="modal_kb_config_aberto = false" x-show="modal_kb_config_aberto" x-cloak>
+            <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" @click.stop>
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">⚙️ Configurações de Base de Conhecimento</h3>
+                        <p class="text-gray-600 mt-1">Configure o modelo de embedding e visualize custos estimados</p>
+                    </div>
+                    <button @click="modal_kb_config_aberto = false" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Seleção de Modelo de Embedding -->
+                <div class="bg-gray-50 rounded-lg p-5 mb-6">
+                    <p class="text-sm font-semibold text-gray-700 mb-4">🤖 Modelo de Embedding</p>
+                    <div class="space-y-3">
+                        <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-blue-50 transition"
+                               :class="config_kb.modelo_embedding === 'text-embedding-3-small' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'">
+                            <input type="radio" name="embedding-model" value="text-embedding-3-small"
+                                   x-model="config_kb.modelo_embedding" class="mt-1 mr-3">
+                            <div class="flex-1">
+                                <p class="font-semibold text-gray-800">OpenAI text-embedding-3-small</p>
+                                <p class="text-sm text-gray-600 mt-1">Modelo compacto e eficiente para embeddings de texto</p>
+                                <div class="mt-2 space-y-1 text-xs">
+                                    <p class="text-green-700 font-medium">💰 Custo: R$ 0,0001 por 1.000 tokens (~R$ 0,01 por 10 páginas)</p>
+                                    <p class="text-gray-600">📊 Dimensões: 1.536</p>
+                                    <p class="text-gray-600">⚡ Performance: Alta velocidade e qualidade</p>
+                                </div>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-purple-50 transition opacity-50"
+                               :class="config_kb.modelo_embedding === 'text-embedding-3-large' ? 'border-purple-500 bg-purple-50' : 'border-gray-200'">
+                            <input type="radio" name="embedding-model" value="text-embedding-3-large"
+                                   x-model="config_kb.modelo_embedding" class="mt-1 mr-3" disabled>
+                            <div class="flex-1">
+                                <p class="font-semibold text-gray-800">OpenAI text-embedding-3-large <span class="text-xs text-gray-500">(Em breve)</span></p>
+                                <p class="text-sm text-gray-600 mt-1">Modelo premium para máxima qualidade de embeddings</p>
+                                <div class="mt-2 space-y-1 text-xs">
+                                    <p class="text-orange-700 font-medium">💰 Custo: R$ 0,00065 por 1.000 tokens (~R$ 0,065 por 10 páginas)</p>
+                                    <p class="text-gray-600">📊 Dimensões: 3.072</p>
+                                    <p class="text-gray-600">⚡ Performance: Máxima qualidade, velocidade moderada</p>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Informações sobre Custos -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <p class="font-semibold text-gray-900 mb-2">💡 Informações sobre Custos</p>
+                    <div class="space-y-2 text-sm text-gray-700">
+                        <p>• O custo é baseado no número de tokens processados durante a indexação</p>
+                        <p>• Aproximadamente 1 página = 750 tokens</p>
+                        <p>• Exemplo: Um PDF de 100 páginas custaria cerca de <strong class="text-blue-700">R$ 0,10</strong> para indexar</p>
+                        <p>• A indexação é feita uma única vez por documento</p>
+                    </div>
+                </div>
+
+                <!-- Estatísticas Atuais -->
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <p class="font-semibold text-gray-900 mb-3">📊 Estatísticas Atuais</p>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                            <p class="text-2xl font-bold text-blue-600" x-text="stats.total_documentos || 0">0</p>
+                            <p class="text-xs text-gray-600 mt-1">Documentos</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-bold text-green-600" x-text="stats.total_indexados || 0">0</p>
+                            <p class="text-xs text-gray-600 mt-1">Indexados</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-bold text-purple-600" x-text="stats.total_vetores || 0">0</p>
+                            <p class="text-xs text-gray-600 mt-1">Vetores</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões -->
+                <div class="flex gap-3 justify-end mt-6">
+                    <button @click="modal_kb_config_aberto = false" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-medium transition">
+                        Fechar
+                    </button>
+                    <button @click="salvar_config_kb()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                        ✓ Salvar Configurações
                     </button>
                 </div>
             </div>
@@ -1626,7 +1848,13 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex items-center">
+                    <div class="flex items-center gap-2">
+                        <!-- Botão de Configurar Chaves de API -->
+                        <button @click="modal_api_keys_aberto = true"
+                                class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors border-2 border-gray-300">
+                            🔑 Configurar APIs
+                        </button>
+
                         <!-- Botão de Biblioteca de Relatórios -->
                         <button @click="mudar_fase(7)"
                                 :class="fase_atual === 7 ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'"
@@ -2156,8 +2384,15 @@
             <!-- Fase 2: Base de Conhecimento -->
             <section x-show="fase_atual === 2" class="space-y-6">
                 <div class="flex justify-between items-center">
-                    <div>
-                        <h2 class="text-3xl font-bold">2. Base de Conhecimento</h2>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-4">
+                            <h2 class="text-3xl font-bold">2. Base de Conhecimento</h2>
+                            <button @click="modal_kb_config_aberto = true"
+                                    class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium flex items-center gap-2 transition">
+                                <span>⚙️</span>
+                                <span>Configurações</span>
+                            </button>
+                        </div>
                         <p class="text-gray-600 mt-1">Faça upload de documentos (DOCX, PDF) para criar uma base de conhecimento vetorial</p>
                     </div>
                 </div>
@@ -2177,6 +2412,15 @@
                         <button @click.stop="$refs.fileInput.click()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
                             Selecionar Arquivos
                         </button>
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <p class="text-sm text-gray-600">
+                                💡 <strong>Custo de Indexação:</strong> A indexação de documentos consumirá créditos de API com custo estimado de
+                                <strong class="text-blue-700">R$ 0,01 por cada 10 páginas</strong> de conteúdo.
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                Modelo usado: <strong x-text="config_kb.modelo_embedding || 'text-embedding-3-small'"></strong>
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -3216,6 +3460,10 @@
                 arquivos_duplicados: [],
                 arquivos_pendentes: null,
                 opcao_duplicados: 'ask',
+                modal_kb_config_aberto: false,
+                config_kb: {
+                    modelo_embedding: 'text-embedding-3-small'
+                },
                 documentos: [],
                 documentos_filtrados: [],
                 documentos_selecionados: [],
@@ -3280,6 +3528,25 @@
                     limpar_cache: false  // Se true, ignora cache e força nova análise
                 },
                 filtros_fase1_alterados: false,  // Indica se os filtros foram modificados desde a última aplicação
+                // Modal de Configuração de API Keys
+                modal_api_keys_aberto: false,
+                api_keys: {
+                    perplexity_api_key: '',
+                    jina_api_key: '',
+                    tavily_api_key: '',
+                    serper_api_key: '',
+                    exa_api_key: ''
+                },
+                api_keys_mostrar: {
+                    perplexity_api_key: false,
+                    jina_api_key: false,
+                    tavily_api_key: false,
+                    serper_api_key: false,
+                    exa_api_key: false
+                },
+                carregando_api_keys: false,
+                salvando_api_keys: false,
+                mensagem_api_keys: '',
                 // Configurações de Pesquisa
                 config_pesquisa_aberta: false,  // Painel de configurações de pesquisa aberto/fechado
                 ferramentas_habilitadas: {
@@ -3590,6 +3857,17 @@
                                 this.filtros_fase1 = { ...this.filtros_fase1, ...JSON.parse(filtrosSalvos) };
                             } catch (e) {
                                 console.warn('Erro ao carregar filtros salvos:', e);
+                            }
+                        }
+
+                        // Carregar configurações de KB do localStorage
+                        const configKBSalva = localStorage.getItem('config_kb');
+                        if (configKBSalva) {
+                            try {
+                                this.config_kb = { ...this.config_kb, ...JSON.parse(configKBSalva) };
+                                console.log('✓ Configurações de KB carregadas:', this.config_kb);
+                            } catch (e) {
+                                console.warn('Erro ao carregar configurações de KB:', e);
                             }
                         }
 
@@ -5755,6 +6033,21 @@
                     }
                 },
 
+                salvar_config_kb() {
+                    try {
+                        // Salvar no localStorage
+                        localStorage.setItem('config_kb', JSON.stringify(this.config_kb));
+
+                        // Fechar modal
+                        this.modal_kb_config_aberto = false;
+
+                        // Mostrar mensagem de sucesso
+                        console.log('✓ Configurações de KB salvas:', this.config_kb);
+                    } catch (e) {
+                        console.error('Erro ao salvar configurações:', e);
+                    }
+                },
+
                 async carregar_documentos() {
                     try {
                         const res = await fetch('/api/knowledge-base/documentos');
@@ -7350,6 +7643,53 @@
                             `).join('')}
                         </div>
                     `;
+                },
+
+                // Salvar chaves de API no arquivo .env
+                async salvar_api_keys() {
+                    this.salvando_api_keys = true;
+                    this.mensagem_api_keys = '';
+
+                    try {
+                        const response = await fetch('/api/config/api-keys', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                perplexity_api_key: this.api_keys.perplexity_api_key,
+                                jina_api_key: this.api_keys.jina_api_key,
+                                tavily_api_key: this.api_keys.tavily_api_key,
+                                serper_api_key: this.api_keys.serper_api_key,
+                                exa_api_key: this.api_keys.exa_api_key
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            this.mensagem_api_keys = {
+                                tipo: 'sucesso',
+                                texto: '✅ Chaves de API salvas com sucesso! O sistema começará a usar as novas chaves na próxima requisição.'
+                            };
+                            // Fechar modal após 2 segundos
+                            setTimeout(() => {
+                                this.modal_api_keys_aberto = false;
+                            }, 2000);
+                        } else {
+                            this.mensagem_api_keys = {
+                                tipo: 'erro',
+                                texto: `❌ Erro ao salvar chaves: ${data.erro || 'Erro desconhecido'}`
+                            };
+                        }
+                    } catch (erro) {
+                        this.mensagem_api_keys = {
+                            tipo: 'erro',
+                            texto: `❌ Erro ao salvar chaves: ${erro.message}`
+                        };
+                    } finally {
+                        this.salvando_api_keys = false;
+                    }
                 }
             };
         }
