@@ -334,6 +334,12 @@ async def get_estatisticas_gerais() -> Dict[str, Any]:
     )
     stats['pesquisas_concluidas'] = result['total']
 
+    # Total de falhas priorizadas (marcadas como destacadas)
+    result = await db.fetch_one(
+        "SELECT COUNT(*) as total FROM priorizacoes_falhas WHERE destacada = 1"
+    )
+    stats['total_priorizadas'] = result['total']
+
     # Pesquisas pendentes
     result = await db.fetch_one(
         "SELECT COUNT(*) as total FROM fila_pesquisas WHERE status = 'pendente'"

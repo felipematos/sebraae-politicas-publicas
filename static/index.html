@@ -3479,8 +3479,8 @@
                     } catch (e) {
                         console.error('Erro ao inicializar aplicação:', e);
                         // Mesmo com erro, manter a app visível
-                        this.stats.total_falhas = 50; // Valores padrão
-                        this.stats.total_priorizadas = 50;
+                        this.stats.total_falhas = 0; // Valores padrão
+                        this.stats.total_priorizadas = 0;
                     }
                 },
 
@@ -3494,7 +3494,7 @@
                                 const dados = response.dados;
                                 this.stats.total_falhas = dados.total_falhas || 0;
                                 this.stats.total_resultados = dados.total_resultados || 0;
-                                this.stats.total_priorizadas = dados.pesquisas_concluidas || 0;
+                                this.stats.total_priorizadas = dados.total_priorizadas || 0;
                                 this.stats.total_pendentes = dados.total_pendentes || 0;
                                 this.stats.total_processando = dados.total_processando || 0;
                                 this.stats.total_concluidas = dados.total_concluidas || 0;
