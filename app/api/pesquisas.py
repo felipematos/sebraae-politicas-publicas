@@ -188,6 +188,30 @@ async def obter_estatisticas():
         )
         total_priorizadas = priorizadas_row["total"] if priorizadas_row else 0
 
+        # Estatísticas de Knowledge Base
+        total_documentos = 0
+        total_indexados = 0
+        total_vetores = 0
+        try:
+            from pathlib import Path
+            from app.vector.vector_store import get_vector_store
+
+            # Contar documentos locais
+            docs_dir = Path(__file__).parent.parent.parent / "documentos"
+            if docs_dir.exists():
+                total_documentos = len([f for f in docs_dir.iterdir() if f.is_file()])
+                total_indexados = total_documentos
+
+            # Contar vetores no vector store
+            try:
+                vector_store = await get_vector_store()
+                vector_stats = vector_store.get_stats()
+                total_vetores = vector_stats.get("documents_count", 0)
+            except:
+                pass
+        except:
+            pass
+
         return {
             "sucesso": True,
             "dados": {
@@ -201,7 +225,10 @@ async def obter_estatisticas():
                 "resultados_pt": resultados_pt,
                 "resultados_internacionais": resultados_internacionais,
                 "resultados_traduzidos": resultados_traduzidos,
-                "percentual_traduzidos": percentual_traduzidos
+                "percentual_traduzidos": percentual_traduzidos,
+                "total_documentos": total_documentos,
+                "total_indexados": total_indexados,
+                "total_vetores": total_vetores
             }
         }
     except Exception as e:

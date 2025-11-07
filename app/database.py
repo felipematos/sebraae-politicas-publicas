@@ -358,11 +358,15 @@ async def get_estatisticas_gerais() -> Dict[str, Any]:
         from pathlib import Path
         from app.vector.vector_store import get_vector_store
 
+        print("[Stats] Iniciando coleta de estatísticas de KB...")
+
         # Contar documentos locais
         docs_dir = Path(__file__).parent.parent / "documentos"
         total_docs = 0
         if docs_dir.exists():
             total_docs = len([f for f in docs_dir.iterdir() if f.is_file()])
+
+        print(f"[Stats] Total de documentos locais: {total_docs}")
 
         stats['total_documentos'] = total_docs
         stats['total_indexados'] = total_docs
@@ -372,11 +376,15 @@ async def get_estatisticas_gerais() -> Dict[str, Any]:
             vector_store = await get_vector_store()
             vector_stats = vector_store.get_stats()
             stats['total_vetores'] = vector_stats.get("documents_count", 0)
-        except:
+            print(f"[Stats] Total de vetores: {stats['total_vetores']}")
+        except Exception as ve:
+            print(f"[Stats] Erro ao obter vetores: {ve}")
             stats['total_vetores'] = 0
 
     except Exception as e:
         print(f"[Stats] Erro ao obter estatísticas de KB: {e}")
+        import traceback
+        traceback.print_exc()
         stats['total_documentos'] = 0
         stats['total_indexados'] = 0
         stats['total_vetores'] = 0
