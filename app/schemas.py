@@ -72,6 +72,7 @@ class ResultadoResponse(BaseModel):
     fonte_tipo: Optional[str]
     pais_origem: Optional[str]
     idioma: str
+    query: Optional[str] = None
     confidence_score: float
     num_ocorrencias: int
     ferramenta_origem: str
