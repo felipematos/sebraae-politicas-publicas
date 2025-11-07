@@ -28,7 +28,8 @@ async def listar_resultados(
     falha_id: Optional[int] = None,
     min_score: float = Query(0.0, ge=0.0, le=1.0),
     max_score: float = Query(1.0, ge=0.0, le=1.0),
-    idioma: Optional[str] = None
+    idioma: Optional[str] = None,
+    ferramenta: Optional[str] = None
 ):
     """
     Listar resultados de pesquisa com filtros
@@ -67,6 +68,9 @@ async def listar_resultados(
 
     if idioma:
         query += f" AND r.idioma = '{idioma}'"
+
+    if ferramenta:
+        query += f" AND r.ferramenta_origem = '{ferramenta}'"
 
     query += f" ORDER BY r.confidence_score DESC LIMIT {limit} OFFSET {skip}"
 

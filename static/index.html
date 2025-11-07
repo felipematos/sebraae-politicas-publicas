@@ -1096,7 +1096,7 @@
                     </div>
 
                     <!-- Painel de filtros expansível -->
-                    <div x-show="mostrar_filtros_resultados" x-collapse class="grid grid-cols-3 gap-3 p-3 bg-white border border-gray-200 rounded-lg">
+                    <div x-show="mostrar_filtros_resultados" x-collapse class="grid grid-cols-4 gap-3 p-3 bg-white border border-gray-200 rounded-lg">
                         <!-- Ordenar por -->
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">Ordenar por</label>
@@ -1169,6 +1169,47 @@
                                 <label class="flex items-center space-x-2 cursor-pointer hover:bg-white p-1.5 rounded">
                                     <input type="checkbox" value="he" x-model="filtro_idiomas_resultados" @change="aplicar_filtros_resultados()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                                     <span class="text-sm text-gray-900">🇮🇱 Hebraico</span>
+                                </label>
+                            </div>
+                        </div>
+                        <!-- Filtrar por ferramentas (seleção múltipla com painel expansível) -->
+                        <div x-data="{ ferramentas_aberto: false }">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Ferramentas</label>
+                            <button
+                                @click="ferramentas_aberto = !ferramentas_aberto"
+                                class="w-full px-3 py-1.5 text-sm text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-between">
+                                <span x-text="filtro_ferramentas_resultados.length === 0 ? 'Todas as ferramentas' : filtro_ferramentas_resultados.length + ' selecionadas'"></span>
+                                <svg class="w-4 h-4 transition-transform" :class="ferramentas_aberto ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div x-show="ferramentas_aberto" x-collapse class="mt-2 p-2 border border-gray-200 rounded-lg bg-gray-50 space-y-1.5 max-h-48 overflow-y-auto">
+                                <!-- Opção "Todas" -->
+                                <label class="flex items-center space-x-2 cursor-pointer hover:bg-white p-1.5 rounded">
+                                    <input
+                                        type="checkbox"
+                                        :checked="filtro_ferramentas_resultados.length === 0"
+                                        @change="if ($event.target.checked) { filtro_ferramentas_resultados = []; aplicar_filtros_resultados(); }"
+                                        class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm text-gray-900 font-medium">Todas</span>
+                                </label>
+                                <hr class="border-gray-300">
+                                <!-- Ferramentas individuais -->
+                                <label class="flex items-center space-x-2 cursor-pointer hover:bg-white p-1.5 rounded">
+                                    <input type="checkbox" value="perplexity" x-model="filtro_ferramentas_resultados" @change="aplicar_filtros_resultados()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm text-gray-900">🔮 Perplexity</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer hover:bg-white p-1.5 rounded">
+                                    <input type="checkbox" value="tavily" x-model="filtro_ferramentas_resultados" @change="aplicar_filtros_resultados()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm text-gray-900">🔍 Tavily</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer hover:bg-white p-1.5 rounded">
+                                    <input type="checkbox" value="serper" x-model="filtro_ferramentas_resultados" @change="aplicar_filtros_resultados()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm text-gray-900">🌐 Serper</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer hover:bg-white p-1.5 rounded">
+                                    <input type="checkbox" value="exa" x-model="filtro_ferramentas_resultados" @change="aplicar_filtros_resultados()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm text-gray-900">✨ Exa</span>
                                 </label>
                             </div>
                         </div>
@@ -3186,6 +3227,7 @@
                 filtro_idiomas_resultados: [],
                 filtro_score_min_resultados: 0,
                 filtro_score_max_resultados: 100,
+                filtro_ferramentas_resultados: [],
 
                 obter_titulo_portugues(resultado) {
                     if (!resultado) return '';
@@ -3576,14 +3618,21 @@
                         );
                     }
 
-                    // 3. Filtro de score (range)
+                    // 3. Filtro de ferramentas (múltiplos)
+                    if (this.filtro_ferramentas_resultados.length > 0) {
+                        resultados = resultados.filter(r =>
+                            r.ferramenta_origem && this.filtro_ferramentas_resultados.includes(r.ferramenta_origem.toLowerCase())
+                        );
+                    }
+
+                    // 4. Filtro de score (range)
                     const score_min = this.filtro_score_min_resultados / 100;
                     const score_max = this.filtro_score_max_resultados / 100;
                     resultados = resultados.filter(r =>
                         r.confidence_score >= score_min && r.confidence_score <= score_max
                     );
 
-                    // 4. Ordenação
+                    // 5. Ordenação
                     switch (this.ordenacao_resultados) {
                         case 'score_desc':
                             resultados.sort((a, b) => (b.confidence_score || 0) - (a.confidence_score || 0));
@@ -3626,6 +3675,7 @@
                 limpar_filtros_resultados() {
                     this.busca_resultados_pesquisa = '';
                     this.filtro_idiomas_resultados = [];
+                    this.filtro_ferramentas_resultados = [];
                     this.filtro_score_min_resultados = 0;
                     this.filtro_score_max_resultados = 100;
                     this.ordenacao_resultados = 'score_desc';
@@ -3670,6 +3720,7 @@
                     // Limpar filtros
                     this.busca_resultados_pesquisa = '';
                     this.filtro_idiomas_resultados = [];
+                    this.filtro_ferramentas_resultados = [];
                     this.filtro_score_min_resultados = 0;
                     this.filtro_score_max_resultados = 100;
                     this.ordenacao_resultados = 'score_desc';
