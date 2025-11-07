@@ -22,6 +22,8 @@ class APIKeysRequest(BaseModel):
     tavily_api_key: Optional[str] = None
     serper_api_key: Optional[str] = None
     exa_api_key: Optional[str] = None
+    openai_api_key: Optional[str] = None
+    openrouter_api_key: Optional[str] = None
 
 
 def _get_env_file_path() -> Path:
@@ -99,6 +101,12 @@ async def save_api_keys(request: APIKeysRequest) -> Dict[str, Any]:
         if request.exa_api_key:
             env_vars['EXA_API_KEY'] = request.exa_api_key
 
+        if request.openai_api_key:
+            env_vars['OPENAI_API_KEY'] = request.openai_api_key
+
+        if request.openrouter_api_key:
+            env_vars['OPENROUTER_API_KEY'] = request.openrouter_api_key
+
         # Escrever no arquivo .env
         _write_env_file(env_vars)
 
@@ -120,29 +128,38 @@ async def save_api_keys(request: APIKeysRequest) -> Dict[str, Any]:
         )
 
 
+def _mascarar_chave(chave: str) -> str:
+    """Mascara uma chave mostrando apenas os primeiros 4 e últimos 4 caracteres"""
+    if not chave or len(chave) < 8:
+        return "***"
+    return f"{chave[:4]}...{chave[-4:]}"
+
+
 @router.get("/config/api-keys")
 async def get_api_keys_status() -> Dict[str, Any]:
     """
-    Retorna o status das chaves de API (quais estão configuradas, sem retornar os valores)
+    Retorna o status das chaves de API com valores mascarados
 
     Returns:
-        Status de cada chave (configurada ou não)
+        Status de cada chave (null se não configurada, ou valor mascarado)
     """
     try:
         env_vars = _read_env_file()
 
-        api_keys_status = {
-            "perplexity_api_key": "PERPLEXITY_API_KEY" in env_vars and bool(env_vars.get("PERPLEXITY_API_KEY")),
-            "jina_api_key": "JINA_API_KEY" in env_vars and bool(env_vars.get("JINA_API_KEY")),
-            "tavily_api_key": "TAVILY_API_KEY" in env_vars and bool(env_vars.get("TAVILY_API_KEY")),
-            "serper_api_key": "SERPER_API_KEY" in env_vars and bool(env_vars.get("SERPER_API_KEY")),
-            "exa_api_key": "EXA_API_KEY" in env_vars and bool(env_vars.get("EXA_API_KEY"))
+        api_keys_values = {
+            "perplexity_api_key": _mascarar_chave(env_vars.get("PERPLEXITY_API_KEY", "")) if "PERPLEXITY_API_KEY" in env_vars else None,
+            "jina_api_key": _mascarar_chave(env_vars.get("JINA_API_KEY", "")) if "JINA_API_KEY" in env_vars else None,
+            "tavily_api_key": _mascarar_chave(env_vars.get("TAVILY_API_KEY", "")) if "TAVILY_API_KEY" in env_vars else None,
+            "serper_api_key": _mascarar_chave(env_vars.get("SERPER_API_KEY", "")) if "SERPER_API_KEY" in env_vars else None,
+            "exa_api_key": _mascarar_chave(env_vars.get("EXA_API_KEY", "")) if "EXA_API_KEY" in env_vars else None,
+            "openai_api_key": _mascarar_chave(env_vars.get("OPENAI_API_KEY", "")) if "OPENAI_API_KEY" in env_vars else None,
+            "openrouter_api_key": _mascarar_chave(env_vars.get("OPENROUTER_API_KEY", "")) if "OPENROUTER_API_KEY" in env_vars else None
         }
 
         return {
             "sucesso": True,
-            "chaves_configuradas": api_keys_status,
-            "total_configuradas": sum(1 for v in api_keys_status.values() if v),
+            "chaves": api_keys_values,
+            "total_configuradas": sum(1 for v in api_keys_values.values() if v is not None),
             "timestamp": __import__("datetime").datetime.now().isoformat()
         }
 
