@@ -1150,14 +1150,30 @@ async def listar_modelos_fase2():
                 "categoria": "free",
                 "recomendado": False
             },
-            # Modelos pagos com grande janela de contexto
+            # Modelos pagos com grande janela de contexto e raciocínio avançado
+            {
+                "id": "google/gemini-2.5-pro",
+                "nome": "Google Gemini 2.5 Pro",
+                "descricao": "1M+ tokens de contexto, raciocínio avançado, ideal para análise profunda",
+                "custo_por_1k": 0.0025,
+                "categoria": "premium",
+                "recomendado": True
+            },
+            {
+                "id": "x-ai/grok-4",
+                "nome": "xAI Grok 4",
+                "descricao": "256K tokens de contexto, raciocínio avançado, multimodal",
+                "custo_por_1k": 0.009,
+                "categoria": "premium",
+                "recomendado": True
+            },
             {
                 "id": "google/gemini-pro-1.5",
                 "nome": "Google Gemini Pro 1.5",
                 "descricao": "2M tokens de contexto, ideal para análise profunda",
                 "custo_por_1k": 0.00125,
                 "categoria": "premium",
-                "recomendado": True
+                "recomendado": False
             },
             {
                 "id": "anthropic/claude-3.5-sonnet",
