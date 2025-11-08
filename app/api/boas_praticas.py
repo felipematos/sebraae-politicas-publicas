@@ -232,7 +232,8 @@ async def listar_falhas_fase1(
         filtros_avancados_ativos = (
             tipo_fonte or
             apenas_com_implementacao or
-            apenas_com_metricas
+            apenas_com_metricas or
+            limpar_cache  # Forçar análise se limpar_cache=True
         )
 
         filtros_ativos = filtros_basicos_ativos or filtros_avancados_ativos
@@ -311,33 +312,34 @@ async def listar_falhas_fase1(
 
                 # 4. Aplicar filtros avançados com LLM (se necessário)
                 if filtros_avancados_ativos and fontes_filtradas_list:
-                    logger.info(f"Aplicando filtros avançados para falha {falha_id}...")
+                    logger.info(f"Aplicando filtros avançados para falha {falha_id} (limpar_cache={limpar_cache})...")
 
                     # Enriquecer fontes com análises LLM (usa cache quando possível)
                     fontes_filtradas_list = await enriquecer_fontes_com_analises(fontes_filtradas_list, limpar_cache=limpar_cache)
 
-                    # Aplicar filtros baseados nas análises
-                    fontes_filtradas_final = []
-                    for fonte in fontes_filtradas_list:
-                        # Filtro de tipo de fonte
-                        if tipos_fonte_selecionados:
-                            tipo_llm = fonte.get('tipo_fonte_llm', 'desconhecido')
-                            if tipo_llm not in tipos_fonte_selecionados:
-                                continue
+                    # Aplicar filtros baseados nas análises (apenas se há filtros além de limpar_cache)
+                    if tipos_fonte_selecionados or apenas_com_implementacao or apenas_com_metricas:
+                        fontes_filtradas_final = []
+                        for fonte in fontes_filtradas_list:
+                            # Filtro de tipo de fonte
+                            if tipos_fonte_selecionados:
+                                tipo_llm = fonte.get('tipo_fonte_llm', 'desconhecido')
+                                if tipo_llm not in tipos_fonte_selecionados:
+                                    continue
 
-                        # Filtro de implementação
-                        if apenas_com_implementacao:
-                            if not fonte.get('tem_implementacao_llm', False):
-                                continue
+                            # Filtro de implementação
+                            if apenas_com_implementacao:
+                                if not fonte.get('tem_implementacao_llm', False):
+                                    continue
 
-                        # Filtro de métricas
-                        if apenas_com_metricas:
-                            if not fonte.get('tem_metricas_llm', False):
-                                continue
+                            # Filtro de métricas
+                            if apenas_com_metricas:
+                                if not fonte.get('tem_metricas_llm', False):
+                                    continue
 
-                        fontes_filtradas_final.append(fonte)
+                            fontes_filtradas_final.append(fonte)
 
-                    fontes_filtradas_list = fontes_filtradas_final
+                        fontes_filtradas_list = fontes_filtradas_final
 
                 num_fontes_filtradas = len(fontes_filtradas_list)
 
@@ -637,35 +639,39 @@ async def obter_fontes_falha_fase1(
 
         # 7. Filtros avançados com LLM (se necessário)
         # Aplicar ANTES da paginação para garantir resultados corretos
-        if tipos_fonte_selecionados or apenas_com_implementacao or apenas_com_metricas:
-            logger.info(f"Aplicando filtros avançados com LLM...")
+        # Também executar se limpar_cache=True para forçar reanálise
+        if tipos_fonte_selecionados or apenas_com_implementacao or apenas_com_metricas or limpar_cache:
+            logger.info(f"Aplicando filtros avançados com LLM (limpar_cache={limpar_cache})...")
 
             # Enriquecer fontes com análises (usa cache quando possível)
             fontes_filtradas = await enriquecer_fontes_com_analises(fontes_filtradas, limpar_cache=limpar_cache)
 
-            # Aplicar filtros baseados nas análises
-            fontes_filtradas_final = []
-            for fonte in fontes_filtradas:
-                # Filtro de tipo de fonte
-                if tipos_fonte_selecionados:
-                    tipo_llm = fonte.get('tipo_fonte_llm', 'desconhecido')
-                    if tipo_llm not in tipos_fonte_selecionados:
-                        continue
+            # Aplicar filtros baseados nas análises (apenas se há filtros além de limpar_cache)
+            if tipos_fonte_selecionados or apenas_com_implementacao or apenas_com_metricas:
+                fontes_filtradas_final = []
+                for fonte in fontes_filtradas:
+                    # Filtro de tipo de fonte
+                    if tipos_fonte_selecionados:
+                        tipo_llm = fonte.get('tipo_fonte_llm', 'desconhecido')
+                        if tipo_llm not in tipos_fonte_selecionados:
+                            continue
 
-                # Filtro de implementação
-                if apenas_com_implementacao:
-                    if not fonte.get('tem_implementacao_llm', False):
-                        continue
+                    # Filtro de implementação
+                    if apenas_com_implementacao:
+                        if not fonte.get('tem_implementacao_llm', False):
+                            continue
 
-                # Filtro de métricas
-                if apenas_com_metricas:
-                    if not fonte.get('tem_metricas_llm', False):
-                        continue
+                    # Filtro de métricas
+                    if apenas_com_metricas:
+                        if not fonte.get('tem_metricas_llm', False):
+                            continue
 
-                fontes_filtradas_final.append(fonte)
+                    fontes_filtradas_final.append(fonte)
 
-            fontes_filtradas = fontes_filtradas_final
-            logger.info(f"Após filtros avançados: {len(fontes_filtradas)} fontes")
+                fontes_filtradas = fontes_filtradas_final
+                logger.info(f"Após filtros avançados: {len(fontes_filtradas)} fontes")
+            else:
+                logger.info(f"Análise LLM executada (limpar_cache={limpar_cache}), sem filtros aplicados: {len(fontes_filtradas)} fontes")
 
         # Ordenar por score ajustado (maior para menor)
         fontes_filtradas.sort(key=lambda x: x['score_ajustado'], reverse=True)
