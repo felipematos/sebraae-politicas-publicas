@@ -363,7 +363,11 @@ async def listar_falhas_fase1(
 
 
 @router.post("/fase2/analisar/{falha_id}", response_model=AnalisarFase2Response)
-async def analisar_falha_fase2(falha_id: int, reprocessar: bool = False):
+async def analisar_falha_fase2(
+    falha_id: int,
+    reprocessar: bool = False,
+    modelo: Optional[str] = None
+):
     """
     FASE II: Executa análise com IA para uma falha específica
 
@@ -371,15 +375,16 @@ async def analisar_falha_fase2(falha_id: int, reprocessar: bool = False):
     1. Obtém fontes (resultados de pesquisa + documentos)
     2. Enriquece fontes com conteúdo completo via Jina.ai
     3. Extrai trechos de documentos com soft cut
-    4. Executa análise com LLM
-    5. Salva boas práticas identificadas no banco
+    4. Executa análise com LLM configurável
+    5. Salva boas práticas identificadas no banco (com confidence_score)
 
     Args:
         falha_id: ID da falha a analisar
         reprocessar: Se True, limpa práticas existentes e reanalisa
+        modelo: Modelo LLM a usar (ex: "google/gemini-2.0-flash-exp:free")
     """
     try:
-        logger.info(f"Fase II: Analisando falha {falha_id}")
+        logger.info(f"Fase II: Analisando falha {falha_id} com modelo {modelo or 'padrão'}")
 
         # Verificar se falha existe
         falhas = await get_falhas_mercado()
@@ -411,14 +416,16 @@ async def analisar_falha_fase2(falha_id: int, reprocessar: bool = False):
         logger.info("Enriquecendo fontes com conteúdo completo...")
         fontes_enriquecidas = await enrich_sources_with_full_content(fontes)
 
-        # 3. Analisar com LLM
+        # 3. Analisar com LLM (usando modelo configurável)
         logger.info("Executando análise com IA...")
         praticas_extraidas = await analisador.analisar_boas_praticas(
             falha=falha,
-            fontes=fontes_enriquecidas
+            fontes=fontes_enriquecidas,
+            modelo=modelo,
+            usar_openrouter=True
         )
 
-        # 4. Salvar no banco
+        # 4. Salvar no banco (incluindo confidence_score)
         for pratica in praticas_extraidas:
             await salvar_boa_pratica(
                 falha_id=falha_id,
@@ -426,7 +433,8 @@ async def analisar_falha_fase2(falha_id: int, reprocessar: bool = False):
                 descricao=pratica.get('descricao'),
                 is_sebrae=pratica.get('is_sebrae', False),
                 fonte_referencia=pratica.get('fonte'),
-                fase='fase_2'
+                fase='fase_2',
+                confidence_score=pratica.get('confidence_score', 50)
             )
 
         logger.info(f"Análise concluída: {len(praticas_extraidas)} práticas identificadas")
@@ -1098,4 +1106,314 @@ async def reanalisar_fontes(
 
     except Exception as e:
         logger.error(f"Erro ao reanalisar fontes: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===== FASE II - NOVOS ENDPOINTS =====
+
+@router.get("/fase2/modelos-disponiveis")
+async def listar_modelos_fase2():
+    """
+    Lista modelos LLM disponíveis para análise da Fase II
+
+    Retorna modelos recomendados com informações de custo e performance
+    """
+    try:
+        from app.llm.gerenciador_modelos import obter_gerenciador
+
+        gerenciador = obter_gerenciador()
+
+        # Obter modelos recomendados para análise de boas práticas
+        modelos_recomendados = [
+            # Modelos gratuitos de alta qualidade
+            {
+                "id": "google/gemini-2.0-flash-exp:free",
+                "nome": "Google Gemini 2.0 Flash (Grátis)",
+                "descricao": "Modelo rápido e gratuito com grande janela de contexto",
+                "custo_por_1k": 0.0,
+                "categoria": "free",
+                "recomendado": True
+            },
+            {
+                "id": "meta-llama/llama-3.3-70b-instruct:free",
+                "nome": "Meta Llama 3.3 70B (Grátis)",
+                "descricao": "Excelente para raciocínio complexo, totalmente gratuito",
+                "custo_por_1k": 0.0,
+                "categoria": "free",
+                "recomendado": True
+            },
+            {
+                "id": "google/gemma-2-27b-it:free",
+                "nome": "Google Gemma 2 27B (Grátis)",
+                "descricao": "Modelo compacto e eficiente da Google",
+                "custo_por_1k": 0.0,
+                "categoria": "free",
+                "recomendado": False
+            },
+            # Modelos pagos com grande janela de contexto
+            {
+                "id": "google/gemini-pro-1.5",
+                "nome": "Google Gemini Pro 1.5",
+                "descricao": "2M tokens de contexto, ideal para análise profunda",
+                "custo_por_1k": 0.00125,
+                "categoria": "premium",
+                "recomendado": True
+            },
+            {
+                "id": "anthropic/claude-3.5-sonnet",
+                "nome": "Claude 3.5 Sonnet",
+                "descricao": "Melhor raciocínio e análise complexa",
+                "custo_por_1k": 0.003,
+                "categoria": "premium",
+                "recomendado": True
+            },
+            {
+                "id": "openai/gpt-4o",
+                "nome": "OpenAI GPT-4o",
+                "descricao": "Excelente para análise e raciocínio",
+                "custo_por_1k": 0.005,
+                "categoria": "premium",
+                "recomendado": False
+            }
+        ]
+
+        return {
+            "modelos": modelos_recomendados,
+            "modelo_padrao": "google/gemini-2.0-flash-exp:free",
+            "total": len(modelos_recomendados)
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao listar modelos: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/fase2/estimar-custo/{falha_id}")
+async def estimar_custo_analise_fase2(
+    falha_id: int,
+    modelo: Optional[str] = None
+):
+    """
+    Estima custo e tempo para análise de uma falha específica na Fase II
+
+    Args:
+        falha_id: ID da falha
+        modelo: Modelo LLM a usar (opcional, usa padrão se não especificado)
+
+    Returns:
+        Estimativa de custo, tempo e tokens
+    """
+    try:
+        # Usar modelo padrão se não especificado
+        modelo_usar = modelo or "google/gemini-2.0-flash-exp:free"
+
+        # Obter fontes disponíveis
+        fontes = await obter_fontes_por_falha(falha_id)
+        num_fontes = len(fontes)
+
+        # Estimar tokens (aproximação)
+        # Contexto base: ~500 tokens
+        # Por fonte: ~1000 tokens em média (título + descrição + conteúdo parcial)
+        tokens_estimados = 500 + (num_fontes * 1000)
+
+        # Estimar custo baseado no modelo
+        custo_por_1k = {
+            "google/gemini-2.0-flash-exp:free": 0.0,
+            "meta-llama/llama-3.3-70b-instruct:free": 0.0,
+            "google/gemma-2-27b-it:free": 0.0,
+            "google/gemini-pro-1.5": 0.00125,
+            "anthropic/claude-3.5-sonnet": 0.003,
+            "openai/gpt-4o": 0.005
+        }.get(modelo_usar, 0.001)  # Default: $0.001/1K tokens
+
+        custo_estimado = (tokens_estimados / 1000) * custo_por_1k
+
+        # Estimar tempo
+        # Jina.ai para enriquecer fontes: ~2s por fonte
+        # Análise LLM: ~3-5s
+        tempo_jina = num_fontes * 2
+        tempo_llm = 4
+        tempo_total_segundos = tempo_jina + tempo_llm
+
+        # Formatar tempo
+        if tempo_total_segundos < 60:
+            tempo_formatado = f"~{int(tempo_total_segundos)} segundos"
+        else:
+            minutos = int(tempo_total_segundos // 60)
+            segundos = int(tempo_total_segundos % 60)
+            tempo_formatado = f"~{minutos}m {segundos}s"
+
+        return {
+            "falha_id": falha_id,
+            "modelo": modelo_usar,
+            "num_fontes": num_fontes,
+            "tokens_estimados": tokens_estimados,
+            "custo_estimado_usd": round(custo_estimado, 4),
+            "custo_estimado_formatado": f"${custo_estimado:.4f} USD",
+            "tempo_estimado_segundos": tempo_total_segundos,
+            "tempo_estimado_formatado": tempo_formatado,
+            "is_gratuito": custo_por_1k == 0.0
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao estimar custo para falha {falha_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/fase2/analisar-tudo")
+async def analisar_todas_falhas_fase2(
+    modelo: Optional[str] = None,
+    reprocessar: bool = False
+):
+    """
+    Analisa TODAS as falhas priorizadas em lote
+
+    Args:
+        modelo: Modelo LLM a usar (usa padrão se não especificado)
+        reprocessar: Se True, reanalisa mesmo falhas já processadas
+
+    Returns:
+        Resumo do processamento em lote
+    """
+    try:
+        logger.info(f"Fase II: Iniciando análise em lote com modelo {modelo or 'padrão'}")
+
+        # Obter falhas priorizadas (destacadas)
+        priorizacoes = await listar_priorizacoes()
+        falhas_priorizadas = [p for p in priorizacoes if p.get('destacada')]
+
+        if not falhas_priorizadas:
+            return {
+                "total_falhas": 0,
+                "processadas": 0,
+                "com_erro": 0,
+                "mensagem": "Nenhuma falha priorizada encontrada"
+            }
+
+        # Processar cada falha
+        resultados = []
+        processadas = 0
+        com_erro = 0
+
+        for prio in falhas_priorizadas:
+            falha_id = prio['falha_id']
+
+            try:
+                # Analisar falha
+                resultado = await analisar_falha_fase2(
+                    falha_id=falha_id,
+                    reprocessar=reprocessar,
+                    modelo=modelo
+                )
+
+                resultados.append({
+                    "falha_id": falha_id,
+                    "titulo": prio['titulo'],
+                    "sucesso": True,
+                    "total_praticas": resultado.total_praticas
+                })
+                processadas += 1
+
+            except Exception as e:
+                logger.error(f"Erro ao processar falha {falha_id}: {str(e)}")
+                resultados.append({
+                    "falha_id": falha_id,
+                    "titulo": prio['titulo'],
+                    "sucesso": False,
+                    "erro": str(e)
+                })
+                com_erro += 1
+
+        logger.info(f"Análise em lote concluída: {processadas}/{len(falhas_priorizadas)} processadas")
+
+        return {
+            "total_falhas": len(falhas_priorizadas),
+            "processadas": processadas,
+            "com_erro": com_erro,
+            "modelo_usado": modelo or "google/gemini-2.0-flash-exp:free",
+            "resultados": resultados,
+            "mensagem": f"Análise em lote concluída! {processadas} falhas processadas, {com_erro} erros."
+        }
+
+    except Exception as e:
+        logger.error(f"Erro na análise em lote: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/fase2/estimar-custo-tudo")
+async def estimar_custo_analise_tudo_fase2(modelo: Optional[str] = None):
+    """
+    Estima custo e tempo para analisar TODAS as falhas priorizadas
+
+    Args:
+        modelo: Modelo LLM a usar (usa padrão se não especificado)
+
+    Returns:
+        Estimativa agregada de custo e tempo
+    """
+    try:
+        # Obter falhas priorizadas
+        priorizacoes = await listar_priorizacoes()
+        falhas_priorizadas = [p for p in priorizacoes if p.get('destacada')]
+
+        if not falhas_priorizadas:
+            return {
+                "total_falhas": 0,
+                "custo_total_usd": 0.0,
+                "tempo_total_segundos": 0,
+                "mensagem": "Nenhuma falha priorizada encontrada"
+            }
+
+        # Estimar para cada falha
+        custo_total = 0.0
+        tempo_total = 0
+        estimativas_detalhadas = []
+
+        for prio in falhas_priorizadas:
+            falha_id = prio['falha_id']
+
+            try:
+                estimativa = await estimar_custo_analise_fase2(falha_id, modelo)
+                custo_total += estimativa['custo_estimado_usd']
+                tempo_total += estimativa['tempo_estimado_segundos']
+
+                estimativas_detalhadas.append({
+                    "falha_id": falha_id,
+                    "titulo": prio['titulo'],
+                    "custo_usd": estimativa['custo_estimado_usd'],
+                    "tempo_segundos": estimativa['tempo_estimado_segundos'],
+                    "num_fontes": estimativa['num_fontes']
+                })
+
+            except Exception as e:
+                logger.warning(f"Erro ao estimar falha {falha_id}: {str(e)}")
+
+        # Formatar tempo total
+        if tempo_total < 60:
+            tempo_formatado = f"~{int(tempo_total)} segundos"
+        elif tempo_total < 3600:
+            minutos = int(tempo_total // 60)
+            segundos = int(tempo_total % 60)
+            tempo_formatado = f"~{minutos}m {segundos}s"
+        else:
+            horas = int(tempo_total // 3600)
+            minutos = int((tempo_total % 3600) // 60)
+            tempo_formatado = f"~{horas}h {minutos}m"
+
+        modelo_usar = modelo or "google/gemini-2.0-flash-exp:free"
+        is_gratuito = custo_total == 0.0
+
+        return {
+            "total_falhas": len(falhas_priorizadas),
+            "modelo": modelo_usar,
+            "custo_total_usd": round(custo_total, 4),
+            "custo_total_formatado": f"${custo_total:.4f} USD" if not is_gratuito else "GRÁTIS",
+            "tempo_total_segundos": tempo_total,
+            "tempo_total_formatado": tempo_formatado,
+            "is_gratuito": is_gratuito,
+            "estimativas_detalhadas": estimativas_detalhadas
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao estimar custo total: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

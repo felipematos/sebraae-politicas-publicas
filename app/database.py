@@ -1227,17 +1227,27 @@ async def salvar_boa_pratica(
     descricao: str = None,
     is_sebrae: bool = False,
     fonte_referencia: str = None,
-    fase: str = 'fase_1'
+    fase: str = 'fase_1',
+    confidence_score: float = 0.0
 ) -> int:
     """
     Salva uma boa prática identificada
     Retorna o ID da prática criada
+
+    Args:
+        falha_id: ID da falha de mercado
+        titulo: Título da boa prática
+        descricao: Descrição detalhada
+        is_sebrae: Se é uma prática do Sebrae
+        fonte_referencia: Referência da fonte
+        fase: Fase do processo (fase_1, fase_2, etc)
+        confidence_score: Score de confiança (0-100)
     """
     query = """
-    INSERT INTO boas_praticas (falha_id, titulo, descricao, is_sebrae, fonte_referencia, fase)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO boas_praticas (falha_id, titulo, descricao, is_sebrae, fonte_referencia, fase, confidence_score)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
     """
-    await db.execute(query, (falha_id, titulo, descricao, 1 if is_sebrae else 0, fonte_referencia, fase))
+    await db.execute(query, (falha_id, titulo, descricao, 1 if is_sebrae else 0, fonte_referencia, fase, confidence_score))
 
     # Obter ID da prática recém-criada
     result = await db.fetch_one("SELECT last_insert_rowid() as id")

@@ -5,6 +5,7 @@ Agente para análise e extração de boas práticas a partir de fontes
 import json
 from typing import List, Dict, Any, Optional
 from app.llm.openai_client import OpenAIClient
+from app.integracao.openrouter_api import OpenRouterClient
 from app.utils.logger import logger
 
 
@@ -20,7 +21,9 @@ class AnalisadorBoasPraticas:
     async def analisar_boas_praticas(
         self,
         falha: Dict[str, Any],
-        fontes: List[Dict[str, Any]]
+        fontes: List[Dict[str, Any]],
+        modelo: Optional[str] = None,
+        usar_openrouter: bool = True
     ) -> List[Dict[str, Any]]:
         """
         Analisa fontes e extrai boas práticas relacionadas à falha
@@ -28,9 +31,11 @@ class AnalisadorBoasPraticas:
         Args:
             falha: Dicionário com dados da falha (id, titulo, descricao, pilar)
             fontes: Lista de fontes (resultados de pesquisa e documentos)
+            modelo: Modelo LLM a usar (ex: "google/gemini-2.0-flash-exp:free")
+            usar_openrouter: Se True, usa OpenRouter; se False, usa OpenAI
 
         Returns:
-            Lista de boas práticas identificadas
+            Lista de boas práticas identificadas (cada uma com confidence_score 0-100)
         """
         if not fontes:
             return []
@@ -43,17 +48,30 @@ class AnalisadorBoasPraticas:
             prompt = self._construir_prompt(falha, contexto_fontes)
 
             # Chamar LLM
-            resposta = await self.llm_client.generate_completion(
-                prompt=prompt,
-                temperature=0.3,
-                max_tokens=3000,
-                model="gpt-4o-mini"
-            )
+            if usar_openrouter:
+                # Usar modelo recomendado ou default
+                modelo_usar = modelo or "google/gemini-2.0-flash-exp:free"
+
+                async with OpenRouterClient() as client:
+                    resposta = await client.chamar_modelo(
+                        modelo=modelo_usar,
+                        prompt=prompt,
+                        temperature=0.3,
+                        max_tokens=4000
+                    )
+            else:
+                # Fallback para OpenAI (GPT-4o-mini)
+                resposta = await self.llm_client.generate_completion(
+                    prompt=prompt,
+                    temperature=0.3,
+                    max_tokens=3000,
+                    model="gpt-4o-mini"
+                )
 
             # Parsear resposta JSON
             praticas = self._parsear_resposta(resposta)
 
-            logger.info(f"Identificadas {len(praticas)} boas práticas para falha {falha['id']}")
+            logger.info(f"Identificadas {len(praticas)} boas práticas para falha {falha['id']} usando modelo {modelo_usar if usar_openrouter else 'gpt-4o-mini'}")
             return praticas
 
         except Exception as e:
@@ -149,7 +167,12 @@ Descrição: {falha.get('descricao', 'N/A')}
 2. Cada boa prática deve ser ESPECÍFICA e ACIONÁVEL
 3. Priorize práticas que têm evidências de sucesso ou resultados positivos
 4. Identifique se a prática vem do Sebrae (marcado com [SEBRAE] nas fontes)
-5. Se não houver boas práticas relevantes, retorne array vazio
+5. Atribua um score de confiança (0-100) para cada prática baseado em:
+   - Evidências de implementação real (peso 40%)
+   - Métricas/resultados quantificáveis apresentados (peso 30%)
+   - Relevância para a falha de mercado específica (peso 20%)
+   - Qualidade e credibilidade da fonte (peso 10%)
+6. Se não houver boas práticas relevantes, retorne array vazio
 
 **FORMATO DE SAÍDA** (JSON válido):
 ```json
@@ -158,7 +181,8 @@ Descrição: {falha.get('descricao', 'N/A')}
     "titulo": "Nome conciso da prática (máx 100 caracteres)",
     "descricao": "Descrição breve da prática e seus resultados (máx 300 caracteres)",
     "is_sebrae": true,
-    "fonte": "FONTE 1"
+    "fonte": "FONTE 1",
+    "confidence_score": 85
   }}
 ]
 ```
@@ -168,7 +192,15 @@ Descrição: {falha.get('descricao', 'N/A')}
 - Título deve ser claro e objetivo
 - Descrição deve explicar O QUE é e QUAL o impacto/resultado
 - Evite práticas genéricas ou vagas
-- Máximo 5 práticas por falha
+- Máximo 10 práticas por falha
+- Score de confiança OBRIGATÓRIO (0-100)
+
+**EXEMPLOS DE SCORES**:
+- 90-100: Prática comprovada com métricas claras e casos de sucesso documentados
+- 70-89: Prática implementada com resultados positivos relatados, mas sem métricas detalhadas
+- 50-69: Prática mencionada com evidências parciais de implementação
+- 30-49: Prática citada sem evidências robustas de implementação
+- 0-29: Prática teórica ou com implementação duvidosa
 
 Retorne APENAS o JSON, sem texto adicional."""
 
@@ -197,14 +229,22 @@ Retorne APENAS o JSON, sem texto adicional."""
             praticas_validas = []
             for p in praticas:
                 if isinstance(p, dict) and 'titulo' in p:
+                    # Validar e normalizar confidence_score
+                    confidence_score = p.get('confidence_score', 50)  # Default: 50
+                    if isinstance(confidence_score, (int, float)):
+                        confidence_score = max(0, min(100, int(confidence_score)))  # Garantir 0-100
+                    else:
+                        confidence_score = 50  # Fallback se não for número
+
                     praticas_validas.append({
                         'titulo': p.get('titulo', ''),
                         'descricao': p.get('descricao'),
                         'is_sebrae': p.get('is_sebrae', False),
-                        'fonte': p.get('fonte')
+                        'fonte': p.get('fonte'),
+                        'confidence_score': confidence_score
                     })
 
-            return praticas_validas[:5]  # Máximo 5 práticas
+            return praticas_validas[:10]  # Máximo 10 práticas
 
         except json.JSONDecodeError as e:
             logger.error(f"Erro ao parsear JSON: {str(e)}")
