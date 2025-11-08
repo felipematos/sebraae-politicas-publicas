@@ -3202,9 +3202,36 @@
                 <div x-show="boas_praticas_subfase === 2" class="space-y-4">
                     <!-- Controles -->
                     <div class="bg-white rounded-lg shadow p-6">
-                        <div>
-                            <h3 class="text-xl font-bold mb-2">Fase II - Detecção de Boas Práticas</h3>
-                            <p class="text-sm text-gray-600">Clique em "Analisar" para executar a detecção de boas práticas com IA para cada falha. O sistema buscará conteúdo completo das URLs e analisará documentos.</p>
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-xl font-bold mb-2">Fase II - Detecção de Boas Práticas</h3>
+                                <p class="text-sm text-gray-600">Clique em "Analisar" para executar a detecção de boas práticas com IA para cada falha.</p>
+                                <!-- Modelo atual -->
+                                <div class="mt-2 text-xs text-gray-500">
+                                    <span class="font-medium">Modelo configurado:</span>
+                                    <span x-text="modelo_llm_fase2.nome"></span>
+                                    <span x-show="modelo_llm_fase2.custo_por_1k === 0.0" class="ml-2 bg-green-100 text-green-800 px-2 py-0.5 rounded">GRÁTIS</span>
+                                </div>
+                            </div>
+                            <div class="flex gap-3">
+                                <button @click="abrir_modal_config_modelo()"
+                                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    Configurar Modelo
+                                </button>
+                                <button @click="confirmar_analisar_tudo()"
+                                        :disabled="falhas_fase2.length === 0 || processando_tudo"
+                                        class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-2 rounded-lg font-medium transition-all shadow-lg hover:shadow-xl flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                    <span x-show="!processando_tudo">Analisar Tudo</span>
+                                    <span x-show="processando_tudo">Processando...</span>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Status -->
@@ -3522,6 +3549,162 @@
             </div>
         </div>
 
+        <!-- Modal: Configurar Modelo LLM Fase II -->
+        <div x-show="modal_config_modelo_aberto"
+             x-cloak
+             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+             @click.self="modal_config_modelo_aberto = false">
+            <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-4 rounded-t-lg">
+                    <h2 class="text-2xl font-bold">⚙️ Configurar Modelo LLM - Fase II</h2>
+                    <p class="text-sm mt-1 text-indigo-100">Escolha o modelo para detecção de boas práticas</p>
+                </div>
+
+                <!-- Body -->
+                <div class="p-6 space-y-6">
+                    <!-- Modelos Gratuitos -->
+                    <div>
+                        <h3 class="text-lg font-bold mb-3 text-green-700">🆓 Modelos Gratuitos (Recomendados)</h3>
+                        <div class="space-y-3">
+                            <template x-for="modelo in modelos_disponiveis_fase2.filter(m => m.categoria === 'free')" :key="modelo.id">
+                                <div @click="selecionar_modelo_fase2(modelo)"
+                                     :class="modelo_llm_fase2.id === modelo.id ? 'ring-2 ring-green-500 bg-green-50' : 'hover:bg-gray-50'"
+                                     class="border rounded-lg p-4 cursor-pointer transition-all">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-2">
+                                                <h4 class="font-bold" x-text="modelo.nome"></h4>
+                                                <span x-show="modelo.recomendado" class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">⭐ RECOMENDADO</span>
+                                            </div>
+                                            <p class="text-sm text-gray-600 mt-1" x-text="modelo.descricao"></p>
+                                            <div class="flex gap-4 mt-2 text-xs text-gray-500">
+                                                <span class="bg-green-100 text-green-800 px-2 py-1 rounded font-bold">GRÁTIS</span>
+                                            </div>
+                                        </div>
+                                        <div x-show="modelo_llm_fase2.id === modelo.id">
+                                            <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Modelos Premium -->
+                    <div>
+                        <h3 class="text-lg font-bold mb-3 text-purple-700">💎 Modelos Premium</h3>
+                        <div class="space-y-3">
+                            <template x-for="modelo in modelos_disponiveis_fase2.filter(m => m.categoria === 'premium')" :key="modelo.id">
+                                <div @click="selecionar_modelo_fase2(modelo)"
+                                     :class="modelo_llm_fase2.id === modelo.id ? 'ring-2 ring-purple-500 bg-purple-50' : 'hover:bg-gray-50'"
+                                     class="border rounded-lg p-4 cursor-pointer transition-all">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-2">
+                                                <h4 class="font-bold" x-text="modelo.nome"></h4>
+                                                <span x-show="modelo.recomendado" class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">⭐ RECOMENDADO</span>
+                                            </div>
+                                            <p class="text-sm text-gray-600 mt-1" x-text="modelo.descricao"></p>
+                                            <div class="flex gap-4 mt-2 text-xs text-gray-500">
+                                                <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                                                    $<span x-text="modelo.custo_por_1k.toFixed(4)"></span>/1K tokens
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div x-show="modelo_llm_fase2.id === modelo.id">
+                                            <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="bg-gray-50 px-6 py-4 rounded-b-lg flex justify-end gap-3">
+                    <button @click="modal_config_modelo_aberto = false"
+                            class="px-6 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition-colors">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Confirmação Analisar Tudo -->
+        <div x-show="modal_confirmacao_tudo_aberto"
+             x-cloak
+             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+             @click.self="modal_confirmacao_tudo_aberto = false">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-4 rounded-t-lg">
+                    <h2 class="text-2xl font-bold">⚡ Analisar Todas as Falhas</h2>
+                </div>
+
+                <!-- Body -->
+                <div class="p-6 space-y-4">
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <p class="text-yellow-800 font-medium">⚠️ Atenção: Esta ação irá processar todas as falhas priorizadas.</p>
+                    </div>
+
+                    <!-- Estimativas -->
+                    <div x-show="estimativa_custo_tudo" class="space-y-3">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
+                                <div class="text-sm text-gray-600">Total de Falhas</div>
+                                <div class="text-2xl font-bold text-purple-700" x-text="estimativa_custo_tudo?.total_falhas || 0"></div>
+                            </div>
+                            <div class="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4">
+                                <div class="text-sm text-gray-600">Tempo Estimado</div>
+                                <div class="text-2xl font-bold text-blue-700" x-text="estimativa_custo_tudo?.tempo_total_formatado || '~0s'"></div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <div class="text-sm text-gray-600">Custo Estimado</div>
+                                    <div class="text-3xl font-bold text-green-700" x-text="estimativa_custo_tudo?.custo_total_formatado || 'GRÁTIS'"></div>
+                                </div>
+                                <div x-show="estimativa_custo_tudo?.is_gratuito" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-lg">
+                                    🎉 GRÁTIS
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                            <div class="text-xs text-gray-600">Modelo:</div>
+                            <div class="font-medium text-gray-800" x-text="modelo_llm_fase2.nome"></div>
+                        </div>
+                    </div>
+
+                    <div x-show="!estimativa_custo_tudo" class="text-center py-4">
+                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                        <p class="text-sm text-gray-600 mt-2">Calculando estimativas...</p>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="bg-gray-50 px-6 py-4 rounded-b-lg flex justify-end gap-3">
+                    <button @click="modal_confirmacao_tudo_aberto = false"
+                            class="px-6 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition-colors">
+                        Cancelar
+                    </button>
+                    <button @click="executar_analisar_tudo()"
+                            :disabled="!estimativa_custo_tudo"
+                            class="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-lg font-medium transition-all shadow-lg">
+                        Confirmar e Analisar
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Footer -->
         <footer class="bg-gray-800 text-white mt-12 py-8 border-t border-gray-700">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -3740,6 +3923,20 @@
                     modelo: 'google/gemini-2.5-pro',
                     max_tokens: 4000
                 },
+                // Fase II - Novos campos para configuração de modelo
+                modelo_llm_fase2: {
+                    id: 'google/gemini-2.0-flash-exp:free',
+                    nome: 'Google Gemini 2.0 Flash (Grátis)',
+                    custo_por_1k: 0.0,
+                    categoria: 'free'
+                },
+                modelos_disponiveis_fase2: [],
+                modal_config_modelo_aberto: false,
+                modal_confirmacao_analise_aberto: false,
+                modal_confirmacao_tudo_aberto: false,
+                estimativa_custo_atual: null,
+                estimativa_custo_tudo: null,
+                processando_tudo: false,
                 confirmacao_titulo: '',
                 confirmacao_mensagem: '',
                 confirmacao_callback: null,
@@ -7777,12 +7974,29 @@
                     const falhaIdx = this.falhas_fase2.findIndex(f => f.falha_id === falha_id);
                     if (falhaIdx === -1) return;
 
-                    this.falhas_fase2[falhaIdx].analisando = true;
-                    this.fase2_status = `Analisando falha ${falha_id}... (Buscando URLs via Jina.ai e analisando documentos)`;
-                    this.renderizar_tabela_fase2();
-
                     try {
-                        const res = await fetch(`/api/boas-praticas/fase2/analisar/${falha_id}?reprocessar=${reprocessar}`, {
+                        // Buscar estimativa primeiro
+                        const estimativa_res = await fetch(`/api/boas-praticas/fase2/estimar-custo/${falha_id}?modelo=${encodeURIComponent(this.modelo_llm_fase2.id)}`);
+                        const estimativa = await estimativa_res.json();
+
+                        // Confirmar com usuário
+                        const custo_msg = estimativa.is_gratuito ? 'GRÁTIS' : estimativa.custo_estimado_formatado;
+                        const confirmar = confirm(
+                            `Analisar Falha #${falha_id}\n\n` +
+                            `Modelo: ${this.modelo_llm_fase2.nome}\n` +
+                            `Fontes: ${estimativa.num_fontes}\n` +
+                            `Tempo estimado: ${estimativa.tempo_estimado_formatado}\n` +
+                            `Custo estimado: ${custo_msg}\n\n` +
+                            `Deseja continuar?`
+                        );
+
+                        if (!confirmar) return;
+
+                        this.falhas_fase2[falhaIdx].analisando = true;
+                        this.fase2_status = `Analisando falha ${falha_id} com ${this.modelo_llm_fase2.nome}...`;
+                        this.renderizar_tabela_fase2();
+
+                        const res = await fetch(`/api/boas-praticas/fase2/analisar/${falha_id}?reprocessar=${reprocessar}&modelo=${encodeURIComponent(this.modelo_llm_fase2.id)}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' }
                         });
@@ -7804,11 +8018,83 @@
                             this.mostrar_notificacao(`ℹ Nenhuma prática identificada para falha ${falha_id}`, 'aviso');
                         }
                     } catch (e) {
-                        this.falhas_fase2[falhaIdx].analisando = false;
+                        if (this.falhas_fase2[falhaIdx]) {
+                            this.falhas_fase2[falhaIdx].analisando = false;
+                        }
                         this.fase2_status = `✗ Erro ao analisar falha ${falha_id}`;
                         this.mostrar_notificacao('✗ Erro: ' + e.message, 'erro');
                         this.renderizar_tabela_fase2();
                         console.error('Erro:', e);
+                    }
+                },
+
+                // ===== FASE II - NOVOS MÉTODOS =====
+
+                async abrir_modal_config_modelo() {
+                    try {
+                        // Carregar modelos disponíveis
+                        const res = await fetch('/api/boas-praticas/fase2/modelos-disponiveis');
+                        const data = await res.json();
+                        this.modelos_disponiveis_fase2 = data.modelos;
+
+                        // Abrir modal
+                        this.modal_config_modelo_aberto = true;
+                    } catch (error) {
+                        console.error('Erro ao carregar modelos:', error);
+                        this.mostrar_notificacao('Erro ao carregar lista de modelos', 'erro');
+                    }
+                },
+
+                selecionar_modelo_fase2(modelo) {
+                    this.modelo_llm_fase2 = modelo;
+                    console.log('Modelo selecionado:', modelo.nome);
+                    this.mostrar_notificacao(`Modelo selecionado: ${modelo.nome}`, 'sucesso');
+                },
+
+                async confirmar_analisar_tudo() {
+                    try {
+                        // Buscar estimativa de custo
+                        this.modal_confirmacao_tudo_aberto = true;
+                        this.estimativa_custo_tudo = null;
+
+                        const res = await fetch(`/api/boas-praticas/fase2/estimar-custo-tudo?modelo=${encodeURIComponent(this.modelo_llm_fase2.id)}`);
+                        const data = await res.json();
+                        this.estimativa_custo_tudo = data;
+                    } catch (error) {
+                        console.error('Erro ao estimar custo:', error);
+                        this.modal_confirmacao_tudo_aberto = false;
+                        this.mostrar_notificacao('Erro ao estimar custo da análise', 'erro');
+                    }
+                },
+
+                async executar_analisar_tudo() {
+                    try {
+                        this.modal_confirmacao_tudo_aberto = false;
+                        this.processando_tudo = true;
+                        this.fase2_status = `Processando ${this.estimativa_custo_tudo.total_falhas} falhas com ${this.modelo_llm_fase2.nome}...`;
+
+                        const res = await fetch(`/api/boas-praticas/fase2/analisar-tudo?modelo=${encodeURIComponent(this.modelo_llm_fase2.id)}`, {
+                            method: 'POST'
+                        });
+
+                        const resultado = await res.json();
+
+                        if (resultado.processadas > 0) {
+                            this.fase2_status = `✅ ${resultado.mensagem} (${resultado.processadas} processadas, ${resultado.com_erro} erros)`;
+                            this.mostrar_notificacao(resultado.mensagem, 'sucesso');
+
+                            // Recarregar lista
+                            await this.carregar_falhas_fase2();
+                        } else {
+                            this.fase2_status = '❌ Nenhuma falha processada';
+                            this.mostrar_notificacao('Nenhuma falha processada', 'aviso');
+                        }
+                    } catch (error) {
+                        console.error('Erro ao processar em lote:', error);
+                        this.fase2_status = '❌ Erro ao processar falhas em lote';
+                        this.mostrar_notificacao('Erro ao processar falhas em lote: ' + error.message, 'erro');
+                    } finally {
+                        this.processando_tudo = false;
                     }
                 },
 
