@@ -7182,7 +7182,8 @@
                     const filtros_avancados_ativos =
                         this.filtros_fase1.tipo_fonte.length > 0 ||
                         this.filtros_fase1.apenas_com_implementacao ||
-                        this.filtros_fase1.apenas_com_metricas;
+                        this.filtros_fase1.apenas_com_metricas ||
+                        this.filtros_fase1.limpar_cache;
 
                     if (!filtros_avancados_ativos) {
                         // Sem filtros avançados, não há análise LLM necessária
@@ -7292,7 +7293,8 @@
                     const filtros_avancados_ativos =
                         this.filtros_fase1.tipo_fonte.length > 0 ||
                         this.filtros_fase1.apenas_com_implementacao ||
-                        this.filtros_fase1.apenas_com_metricas;
+                        this.filtros_fase1.apenas_com_metricas ||
+                        this.filtros_fase1.limpar_cache;
 
                     // Se não há filtros avançados, apenas carregar a lista
                     if (!filtros_avancados_ativos) {
@@ -7425,6 +7427,13 @@
                             this.fase1_status = 'Nenhuma falha priorizada encontrada. Complete a Fase 3 primeiro e marque falhas como destacadas.';
                         } else {
                             this.fase1_status = `✓ ${this.falhas_fase1.length} falha(s) priorizada(s) carregada(s)`;
+                        }
+
+                        // Se limpar_cache estava ativo, resetá-lo e salvar
+                        if (this.filtros_fase1.limpar_cache) {
+                            this.filtros_fase1.limpar_cache = false;
+                            localStorage.setItem('filtros_fase1', JSON.stringify(this.filtros_fase1));
+                            this.mostrar_notificacao('✓ Cache limpo e fontes reprocessadas com sucesso!', 'sucesso');
                         }
 
                         this.renderizar_tabela_fase1();
