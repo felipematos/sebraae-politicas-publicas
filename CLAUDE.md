@@ -127,6 +127,23 @@ git push origin main
 - Follow WCAG accessibility guidelines (minimum 4.5:1 for normal text, 3:1 for large text)
 - Test color combinations before implementing
 
+#### HTML/Template Editing
+- **ALWAYS** verify div balance BEFORE making changes to complex nested HTML
+- Use a div balance checker script to identify the EXACT structure:
+  ```python
+  with open('static/index.html', 'r') as f:
+      lines = f.readlines()
+  balance = 0
+  for i, line in enumerate(lines, 1):
+      balance += line.count('<div') - line.count('</div')
+      if i == LINE_NUMBER:  # Check specific lines
+          print(f"Line {i}: balance={balance}")
+  ```
+- **NEVER** remove or add divs without understanding their exact purpose in the hierarchy
+- After making changes, **ALWAYS** verify the div balance is still correct
+- Test UI changes visually with screenshots to catch layout issues early
+- Common mistake: Removing a closing div without removing its corresponding opening div (or vice versa)
+
 #### Documentation Maintenance
 - **ALWAYS** update README.md when making significant changes to:
   - Project structure
