@@ -210,8 +210,9 @@
                             </button>
                         </div>
                     </div>
+                </div>
 
-                                <!-- Aviso de segurança -->
+                <!-- Aviso de segurança -->
                 <div class="mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <p class="text-xs text-yellow-800">
                         <strong>⚠️ Segurança:</strong> As chaves são armazenadas localmente no arquivo .env. Nunca compartilhe suas chaves de API com terceiros.
@@ -228,7 +229,6 @@
                         <span x-show="salvando_api_keys">⟳ Salvando...</span>
                     </button>
                 </div>
-            </div>
 
         <!-- Modal de Arquivos Duplicados -->
         <div id="duplicados-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="fechar_duplicados_modal()" x-show="duplicados_modal_aberto" x-cloak>
