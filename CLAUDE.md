@@ -167,6 +167,93 @@ git push origin main
 - Use `chamador_llm_inteligente.py` for smart model routing
 - Never hardcode model selection - let the manager choose optimally
 
+#### HTML Structure & Div Balance (CRITICAL)
+
+**Problem Recognition:**
+The application uses Alpine.js v3.15.1 for reactivity. When div tags are improperly balanced (missing or extra closing `</div>` tags), it causes:
+- All modals/sections to display simultaneously
+- Alpine.js failing to bind to the `#app` element
+- Header and main content becoming children of modal elements instead of `#app`
+- Page rendering only partial content (usually just a modal's content)
+
+**Symptoms:**
+- Console shows: `[Alpine] #app bound: false`
+- Visual: All screens/dialogs appear opened at once
+- DOM Inspector: `header` and `main` are children of a modal div instead of `#app`
+- Stats may or may not load depending on how broken the structure is
+
+**Root Causes:**
+1. **Extra closing divs** between modals (orphaned `</div>` tags)
+2. **Missing closing divs** for modal structures (especially 2-layer modals with outer + inner divs)
+3. **Premature container closures** (e.g., closing a container before all its children are closed)
+
+**Diagnostic Commands:**
+```bash
+# Check overall div balance
+python3 -c "
+with open('static/index.html', 'r', encoding='utf-8') as f:
+    content = f.read()
+total_open = content.count('<div')
+total_close = content.count('</div>')
+print(f'<div: {total_open}, </div>: {total_close}, Balance: {total_open - total_close}')
+"
+
+# Find where balance goes negative (extra closing divs)
+python3 << 'EOF'
+with open('static/index.html', 'r', encoding='utf-8') as f:
+    lines = f.readlines()
+
+balance = 0
+for i, line in enumerate(lines, 1):
+    balance += line.count('<div') - line.count('</div>')
+    if balance < 0:
+        print(f"Line {i}: balance = {balance} | {line.strip()[:80]}")
+        if i <= 5:  # Show first 5 instances
+            continue
+        else:
+            break
+EOF
+```
+
+**Prevention Guidelines:**
+1. **NEVER manually edit modal structures** - they are complex nested structures
+2. **ALWAYS verify div balance** after ANY changes to `static/index.html`
+3. **Use git history** when structure is broken - check recent commits that fixed similar issues
+4. **Understand modal structure**: Most modals have 2 layers:
+   - Outer div: `class="fixed inset-0 bg-black bg-opacity-50..."` (backdrop)
+   - Inner div: `class="bg-white rounded-lg..."` (content)
+   - Both need proper closing tags
+5. **Check git log first** before attempting manual fixes:
+   ```bash
+   git log --oneline --all -20 --grep="div\|layout\|Alpine"
+   ```
+
+**Recovery Strategy:**
+1. Check git history for recent fixes: `git log --oneline -20`
+2. If similar issue was fixed before, restore from that commit:
+   ```bash
+   git show <commit-hash>:static/index.html > static/index.html.temp
+   # Review the temp file
+   cp static/index.html.temp static/index.html
+   ```
+3. Test with Playwright/browser to verify the fix works
+4. Only attempt manual fixes if no working commit exists
+
+**Testing After Changes:**
+Always use Playwright or Chrome DevTools to verify:
+```javascript
+// Check if Alpine bound correctly
+const app = document.querySelector('#app');
+console.log('Alpine bound:', app?.__x !== undefined);
+
+// Check DOM structure
+const header = document.querySelector('header');
+const main = document.querySelector('main');
+console.log('Header parent:', header?.parentElement?.id || header?.parentElement?.tagName);
+console.log('Main parent:', main?.parentElement?.id || main?.parentElement?.tagName);
+// Both should be 'app' or 'DIV' (inside #app), NOT a modal ID
+```
+
 ## Project Phases Reference
 
 1. **Levantamento** (Data Collection) - ✅ COMPLETED
