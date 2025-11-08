@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "ultima_atualizacao": "2025-11-06T13:41:11.790311",
-    "data_atualizacao_legivel": "2025-11-06 13:41:11",
-    "total_modelos": 338,
+    "ultima_atualizacao": "2025-11-08T20:29:56.381218",
+    "data_atualizacao_legivel": "2025-11-08 20:29:56",
+    "total_modelos": 341,
     "versao_schema": "1.1"
   },
   "categorias": {
@@ -769,6 +769,52 @@
         ]
       },
       {
+        "id": "openrouter/polaris-alpha",
+        "name": "Polaris Alpha",
+        "description": "This is a cloaked model provided to the community to gather feedback. A powerful, general-purpose model that excels across real-world tasks, with standout performance in coding, tool calling, and instruction following.\n\n**Note:** All prompts and completions for this model are logged by the provider and may be used to improve the model.",
+        "context_length": 256000,
+        "max_completion_tokens": 128000,
+        "pricing": {
+          "prompt": 0.0,
+          "completion": 0.0,
+          "request": 0.0,
+          "total_per_1k": 0.0,
+          "categoria": "free"
+        },
+        "scores": {
+          "traducao": 2.7,
+          "analise": 3.4,
+          "velocidade": 5.0,
+          "custo_beneficio": 8.0
+        },
+        "architecture": {
+          "modality": "text+image->text",
+          "input_modalities": [
+            "text",
+            "image"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "tokenizer": "Other",
+          "instruct_type": null
+        },
+        "supported_parameters": [
+          "max_tokens",
+          "response_format",
+          "structured_outputs",
+          "tool_choice",
+          "tools"
+        ],
+        "fallback_similar": [
+          "moonshotai/kimi-k2-thinking",
+          "qwen/qwen3-vl-8b-thinking",
+          "qwen/qwen3-vl-30b-a3b-instruct",
+          "relace/relace-apply-3",
+          "qwen/qwen3-vl-235b-a22b-thinking"
+        ]
+      },
+      {
         "id": "nvidia/nemotron-nano-12b-v2-vl:free",
         "name": "NVIDIA: Nemotron Nano 12B 2 VL (free)",
         "description": "NVIDIA Nemotron Nano 2 VL is a 12-billion-parameter open multimodal reasoning model designed for video understanding and document intelligence. It introduces a hybrid Transformer-Mamba architecture, combining transformer-level accuracy with Mamba’s memory-efficient sequence modeling for significantly higher throughput and lower latency.\n\nThe model supports inputs of text and multi-image documents, producing natural-language outputs. It is trained on high-quality NVIDIA-curated synthetic datasets optimized for optical-character recognition, chart reasoning, and multimodal comprehension.\n\nNemotron Nano 2 VL achieves leading results on OCRBench v2 and scores ≈ 74 average across MMMU, MathVista, AI2D, OCRBench, OCR-Reasoning, ChartQA, DocVQA, and Video-MME—surpassing prior open VL baselines. With Efficient Video Sampling (EVS), it handles long-form videos while reducing inference cost.\n\nOpen-weights, training data, and fine-tuning recipes are released under a permissive NVIDIA open license, with deployment supported across NeMo, NIM, and major inference runtimes.",
@@ -1116,11 +1162,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -1160,11 +1206,11 @@
           "temperature"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
+          "moonshotai/kimi-k2-thinking",
           "mistralai/voxtral-small-24b-2507",
           "liquid/lfm2-8b-a1b",
-          "liquid/lfm-2.2-6b",
-          "deepcogito/cogito-v2-preview-llama-405b",
-          "google/gemini-2.5-flash-image"
+          "liquid/lfm-2.2-6b"
         ]
       },
       {
@@ -2165,11 +2211,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "google/gemini-2.5-flash-image",
           "anthropic/claude-sonnet-4.5",
-          "google/gemini-2.5-flash-preview-09-2025",
-          "google/gemini-2.5-flash-lite-preview-09-2025"
+          "google/gemini-2.5-flash-preview-09-2025"
         ]
       },
       {
@@ -3759,6 +3805,60 @@
         ]
       },
       {
+        "id": "deepseek/deepseek-chat",
+        "name": "DeepSeek: DeepSeek V3",
+        "description": "DeepSeek-V3 is the latest model from the DeepSeek team, building upon the instruction following and coding abilities of the previous versions. Pre-trained on nearly 15 trillion tokens, the reported evaluations reveal that the model outperforms other open-source models and rivals leading closed-source models.\n\nFor model details, please visit [the DeepSeek-V3 repo](https://github.com/deepseek-ai/DeepSeek-V3) for more information, or see the [launch announcement](https://api-docs.deepseek.com/news/news1226).",
+        "context_length": 163840,
+        "max_completion_tokens": 163840,
+        "pricing": {
+          "prompt": 3e-07,
+          "completion": 1.2e-06,
+          "request": 0.0,
+          "total_per_1k": 1.5e-06,
+          "categoria": "ultra_economico"
+        },
+        "scores": {
+          "traducao": 8.7,
+          "analise": 9.4,
+          "velocidade": 5.0,
+          "custo_beneficio": 6.37
+        },
+        "architecture": {
+          "modality": "text->text",
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "tokenizer": "DeepSeek",
+          "instruct_type": null
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "max_tokens",
+          "min_p",
+          "presence_penalty",
+          "repetition_penalty",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_k",
+          "top_p"
+        ],
+        "fallback_similar": [
+          "perplexity/sonar-pro-search",
+          "openai/gpt-oss-safeguard-20b",
+          "nvidia/nemotron-nano-12b-v2-vl:free",
+          "nvidia/nemotron-nano-12b-v2-vl",
+          "minimax/minimax-m2:free"
+        ]
+      },
+      {
         "id": "deepseek/deepseek-v3.2-exp",
         "name": "DeepSeek: DeepSeek V3.2 Exp",
         "description": "DeepSeek-V3.2-Exp is an experimental large language model released by DeepSeek as an intermediate step between V3.1 and future architectures. It introduces DeepSeek Sparse Attention (DSA), a fine-grained sparse attention mechanism designed to improve training and inference efficiency in long-context scenarios while maintaining output quality. Users can control the reasoning behaviour with the `reasoning` `enabled` boolean. [Learn more in our docs](https://openrouter.ai/docs/use-cases/reasoning-tokens#enable-reasoning-with-default-config)\n\nThe model was trained under conditions aligned with V3.1-Terminus to enable direct comparison. Benchmarking shows performance roughly on par with V3.1 across reasoning, coding, and agentic tool-use tasks, with minor tradeoffs and gains depending on the domain. This release focuses on validating architectural optimizations for extended context lengths rather than advancing raw task accuracy, making it primarily a research-oriented model for exploring efficient transformer designs.",
@@ -3806,60 +3906,6 @@
           "tools",
           "top_k",
           "top_logprobs",
-          "top_p"
-        ],
-        "fallback_similar": [
-          "perplexity/sonar-pro-search",
-          "openai/gpt-oss-safeguard-20b",
-          "nvidia/nemotron-nano-12b-v2-vl:free",
-          "nvidia/nemotron-nano-12b-v2-vl",
-          "minimax/minimax-m2:free"
-        ]
-      },
-      {
-        "id": "deepseek/deepseek-chat",
-        "name": "DeepSeek: DeepSeek V3",
-        "description": "DeepSeek-V3 is the latest model from the DeepSeek team, building upon the instruction following and coding abilities of the previous versions. Pre-trained on nearly 15 trillion tokens, the reported evaluations reveal that the model outperforms other open-source models and rivals leading closed-source models.\n\nFor model details, please visit [the DeepSeek-V3 repo](https://github.com/deepseek-ai/DeepSeek-V3) for more information, or see the [launch announcement](https://api-docs.deepseek.com/news/news1226).",
-        "context_length": 163840,
-        "max_completion_tokens": 163840,
-        "pricing": {
-          "prompt": 3e-07,
-          "completion": 8.5e-07,
-          "request": 0.0,
-          "total_per_1k": 1.15e-06,
-          "categoria": "ultra_economico"
-        },
-        "scores": {
-          "traducao": 8.7,
-          "analise": 9.4,
-          "velocidade": 5.0,
-          "custo_beneficio": 6.33
-        },
-        "architecture": {
-          "modality": "text->text",
-          "input_modalities": [
-            "text"
-          ],
-          "output_modalities": [
-            "text"
-          ],
-          "tokenizer": "DeepSeek",
-          "instruct_type": null
-        },
-        "supported_parameters": [
-          "frequency_penalty",
-          "max_tokens",
-          "min_p",
-          "presence_penalty",
-          "repetition_penalty",
-          "response_format",
-          "seed",
-          "stop",
-          "structured_outputs",
-          "temperature",
-          "tool_choice",
-          "tools",
-          "top_k",
           "top_p"
         ],
         "fallback_similar": [
@@ -5823,11 +5869,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -5874,11 +5920,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "anthropic/claude-haiku-4.5",
           "google/gemini-2.5-flash-preview-09-2025",
-          "google/gemini-2.5-flash-lite-preview-09-2025",
-          "qwen/qwen-plus-2025-07-28"
+          "google/gemini-2.5-flash-lite-preview-09-2025"
         ]
       },
       {
@@ -5977,11 +6023,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-instruct",
           "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3",
-          "qwen/qwen3-vl-235b-a22b-thinking"
+          "qwen/qwen3-vl-30b-a3b-instruct"
         ]
       },
       {
@@ -6028,11 +6074,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "anthropic/claude-haiku-4.5",
           "anthropic/claude-sonnet-4.5",
-          "google/gemini-2.5-flash-preview-09-2025",
-          "google/gemini-2.5-flash-lite-preview-09-2025"
+          "google/gemini-2.5-flash-preview-09-2025"
         ]
       },
       {
@@ -6131,11 +6177,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -6299,11 +6345,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -6378,10 +6424,11 @@
         "architecture": {
           "modality": "text+image->text",
           "input_modalities": [
-            "file",
-            "image",
             "text",
-            "audio"
+            "image",
+            "file",
+            "audio",
+            "video"
           ],
           "output_modalities": [
             "text"
@@ -6403,11 +6450,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "google/gemini-2.5-flash-image",
           "anthropic/claude-sonnet-4.5",
-          "google/gemini-2.5-flash-preview-09-2025",
-          "google/gemini-2.5-flash-lite-preview-09-2025"
+          "google/gemini-2.5-flash-preview-09-2025"
         ]
       },
       {
@@ -6662,11 +6709,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "anthropic/claude-sonnet-4.5",
           "google/gemini-2.5-flash-preview-09-2025",
           "google/gemini-2.5-flash-lite-preview-09-2025",
-          "qwen/qwen-plus-2025-07-28",
-          "qwen/qwen-plus-2025-07-28:thinking"
+          "qwen/qwen-plus-2025-07-28"
         ]
       },
       {
@@ -6717,6 +6764,61 @@
           "minimax/minimax-m2",
           "anthropic/claude-haiku-4.5",
           "openai/o3-deep-research"
+        ]
+      },
+      {
+        "id": "moonshotai/kimi-linear-48b-a3b-instruct",
+        "name": "MoonshotAI: Kimi Linear 48B A3B Instruct",
+        "description": "Kimi Linear is a hybrid linear attention architecture that outperforms traditional full attention methods across various contexts, including short, long, and reinforcement learning (RL) scaling regimes. At its core is Kimi Delta Attention (KDA)—a refined version of Gated DeltaNet that introduces a more efficient gating mechanism to optimize the use of finite-state RNN memory.\n\nKimi Linear achieves superior performance and hardware efficiency, especially for long-context tasks. It reduces the need for large KV caches by up to 75% and boosts decoding throughput by up to 6x for contexts as long as 1M tokens.",
+        "context_length": 1048576,
+        "max_completion_tokens": 1048576,
+        "pricing": {
+          "prompt": 3e-07,
+          "completion": 6e-07,
+          "request": 0.0,
+          "total_per_1k": 9e-07,
+          "categoria": "ultra_economico"
+        },
+        "scores": {
+          "traducao": 3.0,
+          "analise": 3.4,
+          "velocidade": 8.6,
+          "custo_beneficio": 4.47
+        },
+        "architecture": {
+          "modality": "text->text",
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "tokenizer": "Other",
+          "instruct_type": null
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "logit_bias",
+          "logprobs",
+          "max_tokens",
+          "min_p",
+          "presence_penalty",
+          "repetition_penalty",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "top_k",
+          "top_logprobs",
+          "top_p"
+        ],
+        "fallback_similar": [
+          "moonshotai/kimi-k2-thinking",
+          "amazon/nova-premier-v1",
+          "anthropic/claude-sonnet-4.5",
+          "google/gemini-2.5-flash-preview-09-2025",
+          "google/gemini-2.5-flash-lite-preview-09-2025"
         ]
       },
       {
@@ -6821,6 +6923,58 @@
         ]
       },
       {
+        "id": "moonshotai/kimi-k2-thinking",
+        "name": "MoonshotAI: Kimi K2 Thinking",
+        "description": "Kimi K2 Thinking is Moonshot AI’s most advanced open reasoning model to date, extending the K2 series into agentic, long-horizon reasoning. Built on the trillion-parameter Mixture-of-Experts (MoE) architecture introduced in Kimi K2, it activates 32 billion parameters per forward pass and supports 256 k-token context windows. The model is optimized for persistent step-by-step thought, dynamic tool invocation, and complex reasoning workflows that span hundreds of turns. It interleaves step-by-step reasoning with tool use, enabling autonomous research, coding, and writing that can persist for hundreds of sequential actions without drift.\n\nIt sets new open-source benchmarks on HLE, BrowseComp, SWE-Multilingual, and LiveCodeBench, while maintaining stable multi-agent behavior through 200–300 tool calls. Built on a large-scale MoE architecture with MuonClip optimization, it combines strong reasoning depth with high inference efficiency for demanding agentic and analytical tasks.",
+        "context_length": 262144,
+        "max_completion_tokens": 262144,
+        "pricing": {
+          "prompt": 6e-07,
+          "completion": 2.5e-06,
+          "request": 0.0,
+          "total_per_1k": 3.1e-06,
+          "categoria": "ultra_economico"
+        },
+        "scores": {
+          "traducao": 3.3,
+          "analise": 5.2,
+          "velocidade": 4.9,
+          "custo_beneficio": 4.46
+        },
+        "architecture": {
+          "modality": "text->text",
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "tokenizer": "Other",
+          "instruct_type": null
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "include_reasoning",
+          "max_tokens",
+          "presence_penalty",
+          "reasoning",
+          "response_format",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_p"
+        ],
+        "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
+          "openrouter/polaris-alpha",
+          "qwen/qwen3-vl-8b-thinking",
+          "qwen/qwen3-vl-30b-a3b-instruct",
+          "relace/relace-apply-3"
+        ]
+      },
+      {
         "id": "qwen/qwen3-vl-30b-a3b-instruct",
         "name": "Qwen: Qwen3 VL 30B A3B Instruct",
         "description": "Qwen3-VL-30B-A3B-Instruct is a multimodal model that unifies strong text generation with visual understanding for images and videos. Its Instruct variant optimizes instruction-following for general multimodal tasks. It excels in perception of real-world/synthetic categories, 2D/3D spatial grounding, and long-form visual comprehension, achieving competitive multimodal benchmark results. For agentic use, it handles multi-image multi-turn instructions, video timeline alignments, GUI automation, and visual coding from sketches to debugged UI. Text performance matches flagship Qwen3 models, suiting document AI, OCR, UI assistance, spatial tasks, and agent research.",
@@ -6871,11 +7025,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "relace/relace-apply-3",
-          "qwen/qwen3-vl-235b-a22b-thinking"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -6969,11 +7123,11 @@
           "tools"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "openai/gpt-oss-safeguard-20b",
           "openai/gpt-5-image-mini",
-          "openai/gpt-5-image",
-          "openai/o3-deep-research"
+          "openai/gpt-5-image"
         ]
       },
       {
@@ -7103,7 +7257,8 @@
             "file",
             "image",
             "text",
-            "audio"
+            "audio",
+            "video"
           ],
           "output_modalities": [
             "text"
@@ -7125,11 +7280,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "google/gemini-2.5-flash-image",
           "anthropic/claude-sonnet-4.5",
-          "google/gemini-2.5-flash-preview-09-2025",
-          "google/gemini-2.5-flash-lite-preview-09-2025"
+          "google/gemini-2.5-flash-preview-09-2025"
         ]
       },
       {
@@ -7178,11 +7333,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "minimax/minimax-m2:free",
           "minimax/minimax-m2",
-          "anthropic/claude-sonnet-4.5",
-          "google/gemini-2.5-flash-preview-09-2025"
+          "anthropic/claude-sonnet-4.5"
         ]
       },
       {
@@ -7232,11 +7387,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "google/gemini-2.5-flash-image",
           "anthropic/claude-sonnet-4.5",
-          "google/gemini-2.5-flash-preview-09-2025",
-          "google/gemini-2.5-flash-lite-preview-09-2025"
+          "google/gemini-2.5-flash-preview-09-2025"
         ]
       },
       {
@@ -7264,7 +7419,8 @@
             "text",
             "image",
             "file",
-            "audio"
+            "audio",
+            "video"
           ],
           "output_modalities": [
             "text"
@@ -7286,11 +7442,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "google/gemini-2.5-flash-image",
           "anthropic/claude-sonnet-4.5",
-          "google/gemini-2.5-flash-preview-09-2025",
-          "google/gemini-2.5-flash-lite-preview-09-2025"
+          "google/gemini-2.5-flash-preview-09-2025"
         ]
       },
       {
@@ -7341,11 +7497,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -7370,10 +7526,11 @@
         "architecture": {
           "modality": "text+image->text",
           "input_modalities": [
-            "file",
-            "image",
             "text",
-            "audio"
+            "image",
+            "file",
+            "audio",
+            "video"
           ],
           "output_modalities": [
             "text"
@@ -7395,11 +7552,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "google/gemini-2.5-flash-image",
           "anthropic/claude-sonnet-4.5",
-          "google/gemini-2.5-flash-preview-09-2025",
-          "google/gemini-2.5-flash-lite-preview-09-2025"
+          "google/gemini-2.5-flash-preview-09-2025"
         ]
       },
       {
@@ -7488,11 +7645,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -7604,11 +7761,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -7712,9 +7869,9 @@
         ]
       },
       {
-        "id": "mistralai/mistral-7b-instruct-v0.3",
-        "name": "Mistral: Mistral 7B Instruct v0.3",
-        "description": "A high-performing, industry-standard 7.3B parameter model, with optimizations for speed and context length.\n\nAn improved version of [Mistral 7B Instruct v0.2](/models/mistralai/mistral-7b-instruct-v0.2), with the following changes:\n\n- Extended vocabulary to 32768\n- Supports v3 Tokenizer\n- Supports function calling\n\nNOTE: Support for function calling depends on the provider.",
+        "id": "mistralai/mistral-7b-instruct",
+        "name": "Mistral: Mistral 7B Instruct",
+        "description": "A high-performing, industry-standard 7.3B parameter model, with optimizations for speed and context length.\n\n*Mistral 7B Instruct has multiple version variants, and this is intended to be the latest version.*",
         "context_length": 32768,
         "max_completion_tokens": 16384,
         "pricing": {
@@ -7766,9 +7923,9 @@
         ]
       },
       {
-        "id": "mistralai/mistral-7b-instruct",
-        "name": "Mistral: Mistral 7B Instruct",
-        "description": "A high-performing, industry-standard 7.3B parameter model, with optimizations for speed and context length.\n\n*Mistral 7B Instruct has multiple version variants, and this is intended to be the latest version.*",
+        "id": "mistralai/mistral-7b-instruct-v0.3",
+        "name": "Mistral: Mistral 7B Instruct v0.3",
+        "description": "A high-performing, industry-standard 7.3B parameter model, with optimizations for speed and context length.\n\nAn improved version of [Mistral 7B Instruct v0.2](/models/mistralai/mistral-7b-instruct-v0.2), with the following changes:\n\n- Extended vocabulary to 32768\n- Supports v3 Tokenizer\n- Supports function calling\n\nNOTE: Support for function calling depends on the provider.",
         "context_length": 32768,
         "max_completion_tokens": 16384,
         "pricing": {
@@ -7914,11 +8071,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3",
-          "qwen/qwen3-vl-235b-a22b-thinking",
-          "qwen/qwen3-vl-235b-a22b-instruct"
+          "relace/relace-apply-3"
         ]
       },
       {
@@ -7967,11 +8124,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3",
-          "qwen/qwen3-vl-235b-a22b-thinking",
-          "qwen/qwen3-vl-235b-a22b-instruct"
+          "relace/relace-apply-3"
         ]
       },
       {
@@ -8017,11 +8174,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3",
-          "qwen/qwen3-vl-235b-a22b-thinking",
-          "qwen/qwen3-vl-235b-a22b-instruct"
+          "relace/relace-apply-3"
         ]
       },
       {
@@ -8413,7 +8570,8 @@
             "image",
             "file",
             "text",
-            "audio"
+            "audio",
+            "video"
           ],
           "output_modalities": [
             "text"
@@ -8435,11 +8593,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "google/gemini-2.5-flash-image",
           "anthropic/claude-sonnet-4.5",
-          "google/gemini-2.5-flash-lite-preview-09-2025",
-          "qwen/qwen-plus-2025-07-28"
+          "google/gemini-2.5-flash-lite-preview-09-2025"
         ]
       },
       {
@@ -8486,11 +8644,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -8614,10 +8772,11 @@
         "architecture": {
           "modality": "text+image->text",
           "input_modalities": [
-            "file",
-            "image",
             "text",
-            "audio"
+            "image",
+            "file",
+            "audio",
+            "video"
           ],
           "output_modalities": [
             "text"
@@ -8639,11 +8798,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "google/gemini-2.5-flash-image",
           "anthropic/claude-sonnet-4.5",
-          "google/gemini-2.5-flash-preview-09-2025",
-          "qwen/qwen-plus-2025-07-28"
+          "google/gemini-2.5-flash-preview-09-2025"
         ]
       },
       {
@@ -8698,11 +8857,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -8752,11 +8911,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "google/gemini-2.5-flash-image",
           "anthropic/claude-sonnet-4.5",
-          "google/gemini-2.5-flash-preview-09-2025",
-          "google/gemini-2.5-flash-lite-preview-09-2025"
+          "google/gemini-2.5-flash-preview-09-2025"
         ]
       },
       {
@@ -8958,11 +9117,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "google/gemini-2.5-flash-image",
           "anthropic/claude-sonnet-4.5",
-          "google/gemini-2.5-flash-preview-09-2025",
-          "google/gemini-2.5-flash-lite-preview-09-2025"
+          "google/gemini-2.5-flash-preview-09-2025"
         ]
       },
       {
@@ -9005,11 +9164,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3",
-          "qwen/qwen3-vl-235b-a22b-thinking",
-          "qwen/qwen3-vl-235b-a22b-instruct"
+          "relace/relace-apply-3"
         ]
       },
       {
@@ -9160,11 +9319,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "anthropic/claude-sonnet-4.5",
           "google/gemini-2.5-flash-preview-09-2025",
-          "google/gemini-2.5-flash-lite-preview-09-2025",
-          "qwen/qwen-plus-2025-07-28"
+          "google/gemini-2.5-flash-lite-preview-09-2025"
         ]
       },
       {
@@ -9461,11 +9620,11 @@
           "tools"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "openai/gpt-oss-safeguard-20b",
           "openai/gpt-5-image-mini",
-          "openai/gpt-5-image",
-          "openai/o3-deep-research"
+          "openai/gpt-5-image"
         ]
       },
       {
@@ -9620,11 +9779,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -9671,11 +9830,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3",
-          "qwen/qwen3-vl-235b-a22b-thinking",
-          "qwen/qwen3-vl-235b-a22b-instruct"
+          "qwen/qwen3-vl-30b-a3b-instruct"
         ]
       },
       {
@@ -9810,11 +9969,11 @@
           "temperature"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3",
-          "qwen/qwen3-vl-235b-a22b-thinking",
-          "qwen/qwen3-vl-235b-a22b-instruct"
+          "relace/relace-apply-3"
         ]
       },
       {
@@ -9917,11 +10076,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3",
-          "qwen/qwen3-vl-235b-a22b-thinking",
-          "qwen/qwen3-vl-235b-a22b-instruct"
+          "qwen/qwen3-vl-30b-a3b-instruct"
         ]
       },
       {
@@ -9966,11 +10125,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -10240,11 +10399,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -10298,11 +10457,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -10350,11 +10509,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "google/gemini-2.5-flash-image",
           "anthropic/claude-sonnet-4.5",
-          "google/gemini-2.5-flash-preview-09-2025",
-          "google/gemini-2.5-flash-lite-preview-09-2025"
+          "google/gemini-2.5-flash-preview-09-2025"
         ]
       },
       {
@@ -10409,6 +10568,61 @@
           "liquid/lfm-2.2-6b",
           "deepcogito/cogito-v2-preview-llama-405b",
           "baidu/ernie-4.5-21b-a3b-thinking"
+        ]
+      },
+      {
+        "id": "moonshotai/kimi-k2",
+        "name": "MoonshotAI: Kimi K2 0711",
+        "description": "Kimi K2 Instruct is a large-scale Mixture-of-Experts (MoE) language model developed by Moonshot AI, featuring 1 trillion total parameters with 32 billion active per forward pass. It is optimized for agentic capabilities, including advanced tool use, reasoning, and code synthesis. Kimi K2 excels across a broad range of benchmarks, particularly in coding (LiveCodeBench, SWE-bench), reasoning (ZebraLogic, GPQA), and tool-use (Tau2, AceBench) tasks. It supports long-context inference up to 128K tokens and is designed with a novel training stack that includes the MuonClip optimizer for stable large-scale MoE training.",
+        "context_length": 131072,
+        "max_completion_tokens": null,
+        "pricing": {
+          "prompt": 5e-07,
+          "completion": 2.4e-06,
+          "request": 0.0,
+          "total_per_1k": 2.8999999999999998e-06,
+          "categoria": "ultra_economico"
+        },
+        "scores": {
+          "traducao": 2.5,
+          "analise": 3.4,
+          "velocidade": 5.9,
+          "custo_beneficio": 4.09
+        },
+        "architecture": {
+          "modality": "text->text",
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "tokenizer": "Other",
+          "instruct_type": null
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "logit_bias",
+          "max_tokens",
+          "min_p",
+          "presence_penalty",
+          "repetition_penalty",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_k",
+          "top_p"
+        ],
+        "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
+          "moonshotai/kimi-k2-thinking",
+          "openai/gpt-oss-safeguard-20b",
+          "nvidia/nemotron-nano-12b-v2-vl:free",
+          "nvidia/nemotron-nano-12b-v2-vl"
         ]
       },
       {
@@ -10501,11 +10715,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "minimax/minimax-m2:free",
           "minimax/minimax-m2",
-          "anthropic/claude-sonnet-4.5",
-          "google/gemini-2.5-flash-preview-09-2025"
+          "anthropic/claude-sonnet-4.5"
         ]
       },
       {
@@ -10602,11 +10816,11 @@
           "tools"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "openai/gpt-oss-safeguard-20b",
           "openai/gpt-5-image-mini",
-          "openai/gpt-5-image",
-          "openai/o3-deep-research"
+          "openai/gpt-5-image"
         ]
       },
       {
@@ -10794,11 +11008,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
           "amazon/nova-premier-v1",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -10835,18 +11049,14 @@
         "supported_parameters": [
           "frequency_penalty",
           "logit_bias",
-          "logprobs",
           "max_tokens",
           "min_p",
           "presence_penalty",
           "repetition_penalty",
-          "response_format",
           "seed",
           "stop",
-          "structured_outputs",
           "temperature",
           "top_k",
-          "top_logprobs",
           "top_p"
         ],
         "fallback_similar": [
@@ -11144,11 +11354,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "amazon/nova-premier-v1",
           "qwen/qwen3-vl-8b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3",
-          "qwen/qwen3-vl-235b-a22b-thinking"
+          "qwen/qwen3-vl-30b-a3b-instruct"
         ]
       },
       {
@@ -11253,11 +11463,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -11453,11 +11663,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "moonshotai/kimi-linear-48b-a3b-instruct",
+          "moonshotai/kimi-k2-thinking",
           "openai/gpt-oss-safeguard-20b",
           "nvidia/nemotron-nano-12b-v2-vl:free",
-          "nvidia/nemotron-nano-12b-v2-vl",
-          "ibm-granite/granite-4.0-h-micro",
-          "qwen/qwen3-vl-8b-instruct"
+          "nvidia/nemotron-nano-12b-v2-vl"
         ]
       },
       {
@@ -11609,11 +11819,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -11864,11 +12074,11 @@
           "stop"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-30b-a3b-instruct",
-          "qwen/qwen3-vl-235b-a22b-thinking",
-          "qwen/qwen3-vl-235b-a22b-instruct",
-          "qwen/qwen3-max"
+          "qwen/qwen3-vl-235b-a22b-thinking"
         ]
       },
       {
@@ -11919,61 +12129,6 @@
           "nvidia/nemotron-nano-12b-v2-vl",
           "ibm-granite/granite-4.0-h-micro",
           "qwen/qwen3-vl-8b-instruct"
-        ]
-      },
-      {
-        "id": "moonshotai/kimi-k2",
-        "name": "MoonshotAI: Kimi K2 0711",
-        "description": "Kimi K2 Instruct is a large-scale Mixture-of-Experts (MoE) language model developed by Moonshot AI, featuring 1 trillion total parameters with 32 billion active per forward pass. It is optimized for agentic capabilities, including advanced tool use, reasoning, and code synthesis. Kimi K2 excels across a broad range of benchmarks, particularly in coding (LiveCodeBench, SWE-bench), reasoning (ZebraLogic, GPQA), and tool-use (Tau2, AceBench) tasks. It supports long-context inference up to 128K tokens and is designed with a novel training stack that includes the MuonClip optimizer for stable large-scale MoE training.",
-        "context_length": 63000,
-        "max_completion_tokens": 63000,
-        "pricing": {
-          "prompt": 1.4e-07,
-          "completion": 2.49e-06,
-          "request": 0.0,
-          "total_per_1k": 2.63e-06,
-          "categoria": "ultra_economico"
-        },
-        "scores": {
-          "traducao": 2.3,
-          "analise": 3.2,
-          "velocidade": 5.9,
-          "custo_beneficio": 3.98
-        },
-        "architecture": {
-          "modality": "text->text",
-          "input_modalities": [
-            "text"
-          ],
-          "output_modalities": [
-            "text"
-          ],
-          "tokenizer": "Other",
-          "instruct_type": null
-        },
-        "supported_parameters": [
-          "frequency_penalty",
-          "logit_bias",
-          "max_tokens",
-          "min_p",
-          "presence_penalty",
-          "repetition_penalty",
-          "response_format",
-          "seed",
-          "stop",
-          "structured_outputs",
-          "temperature",
-          "tool_choice",
-          "tools",
-          "top_k",
-          "top_p"
-        ],
-        "fallback_similar": [
-          "mistralai/voxtral-small-24b-2507",
-          "liquid/lfm2-8b-a1b",
-          "liquid/lfm-2.2-6b",
-          "deepcogito/cogito-v2-preview-llama-405b",
-          "google/gemini-2.5-flash-image"
         ]
       },
       {
@@ -12543,11 +12698,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3",
-          "qwen/qwen3-vl-235b-a22b-thinking",
-          "qwen/qwen3-vl-235b-a22b-instruct"
+          "relace/relace-apply-3"
         ]
       },
       {
@@ -13254,7 +13409,6 @@
         "supported_parameters": [
           "frequency_penalty",
           "logit_bias",
-          "logprobs",
           "max_tokens",
           "min_p",
           "presence_penalty",
@@ -13267,7 +13421,6 @@
           "tool_choice",
           "tools",
           "top_k",
-          "top_logprobs",
           "top_p"
         ],
         "fallback_similar": [
@@ -13695,6 +13848,60 @@
         ]
       },
       {
+        "id": "meta-llama/llama-3.2-3b-instruct",
+        "name": "Meta: Llama 3.2 3B Instruct",
+        "description": "Llama 3.2 3B is a 3-billion-parameter multilingual large language model, optimized for advanced natural language processing tasks like dialogue generation, reasoning, and summarization. Designed with the latest transformer architecture, it supports eight languages, including English, Spanish, and Hindi, and is adaptable for additional languages.\n\nTrained on 9 trillion tokens, the Llama 3.2 3B model excels in instruction-following, complex reasoning, and tool use. Its balanced performance makes it ideal for applications needing accuracy and efficiency in text generation across multilingual settings.\n\nClick here for the [original model card](https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/MODEL_CARD.md).\n\nUsage of this model is subject to [Meta's Acceptable Use Policy](https://www.llama.com/llama3/use-policy/).",
+        "context_length": 131072,
+        "max_completion_tokens": 16384,
+        "pricing": {
+          "prompt": 2e-08,
+          "completion": 2e-08,
+          "request": 0.0,
+          "total_per_1k": 4e-08,
+          "categoria": "ultra_economico"
+        },
+        "scores": {
+          "traducao": 3.3,
+          "analise": 2.8,
+          "velocidade": 8.6,
+          "custo_beneficio": 3.87
+        },
+        "architecture": {
+          "modality": "text->text",
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "tokenizer": "Llama3",
+          "instruct_type": "llama3"
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "logit_bias",
+          "max_tokens",
+          "min_p",
+          "presence_penalty",
+          "repetition_penalty",
+          "response_format",
+          "seed",
+          "stop",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_k",
+          "top_p"
+        ],
+        "fallback_similar": [
+          "openai/gpt-oss-safeguard-20b",
+          "nvidia/nemotron-nano-12b-v2-vl:free",
+          "nvidia/nemotron-nano-12b-v2-vl",
+          "ibm-granite/granite-4.0-h-micro",
+          "qwen/qwen3-vl-8b-instruct"
+        ]
+      },
+      {
         "id": "minimax/minimax-m2",
         "name": "MiniMax: MiniMax M2",
         "description": "MiniMax-M2 is a compact, high-efficiency large language model optimized for end-to-end coding and agentic workflows. With 10 billion activated parameters (230 billion total), it delivers near-frontier intelligence across general reasoning, tool use, and multi-step task execution while maintaining low latency and deployment efficiency.\n\nThe model excels in code generation, multi-file editing, compile-run-fix loops, and test-validated repair, showing strong results on SWE-Bench Verified, Multi-SWE-Bench, and Terminal-Bench. It also performs competitively in agentic evaluations such as BrowseComp and GAIA, effectively handling long-horizon planning, retrieval, and recovery from execution errors.\n\nBenchmarked by [Artificial Analysis](https://artificialanalysis.ai/models/minimax-m2), MiniMax-M2 ranks among the top open-source models for composite intelligence, spanning mathematics, science, and instruction-following. Its small activation footprint enables fast inference, high concurrency, and improved unit economics, making it well-suited for large-scale agents, developer assistants, and reasoning-driven applications that require responsiveness and cost efficiency.\n\nTo avoid degrading this model's performance, MiniMax highly recommends preserving reasoning between turns. Learn more about using reasoning_details to pass back reasoning in our [docs](https://openrouter.ai/docs/use-cases/reasoning-tokens#preserving-reasoning-blocks).",
@@ -13730,7 +13937,6 @@
           "logit_bias",
           "logprobs",
           "max_tokens",
-          "min_p",
           "presence_penalty",
           "reasoning",
           "repetition_penalty",
@@ -14045,11 +14251,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "mistralai/voxtral-small-24b-2507",
           "qwen/qwen3-vl-8b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3",
-          "qwen/qwen3-vl-235b-a22b-thinking"
+          "qwen/qwen3-vl-30b-a3b-instruct"
         ]
       },
       {
@@ -14096,11 +14302,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "mistralai/voxtral-small-24b-2507",
           "qwen/qwen3-vl-8b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3",
-          "qwen/qwen3-vl-235b-a22b-thinking"
+          "qwen/qwen3-vl-30b-a3b-instruct"
         ]
       },
       {
@@ -14251,11 +14457,68 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "amazon/nova-premier-v1",
           "qwen/qwen3-vl-8b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3",
-          "qwen/qwen3-vl-235b-a22b-thinking"
+          "qwen/qwen3-vl-30b-a3b-instruct"
+        ]
+      },
+      {
+        "id": "meta-llama/llama-3.1-8b-instruct",
+        "name": "Meta: Llama 3.1 8B Instruct",
+        "description": "Meta's latest class of model (Llama 3.1) launched with a variety of sizes & flavors. This 8B instruct-tuned version is fast and efficient.\n\nIt has demonstrated strong performance compared to leading closed-source models in human evaluations.\n\nTo read more about the model release, [click here](https://ai.meta.com/blog/meta-llama-3-1/). Usage of this model is subject to [Meta's Acceptable Use Policy](https://llama.meta.com/llama3/use-policy/).",
+        "context_length": 131072,
+        "max_completion_tokens": 16384,
+        "pricing": {
+          "prompt": 2e-08,
+          "completion": 3e-08,
+          "request": 0.0,
+          "total_per_1k": 5e-08,
+          "categoria": "ultra_economico"
+        },
+        "scores": {
+          "traducao": 3.2,
+          "analise": 2.8,
+          "velocidade": 8.1,
+          "custo_beneficio": 3.8
+        },
+        "architecture": {
+          "modality": "text->text",
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "tokenizer": "Llama3",
+          "instruct_type": "llama3"
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "logit_bias",
+          "logprobs",
+          "max_tokens",
+          "min_p",
+          "presence_penalty",
+          "repetition_penalty",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_k",
+          "top_logprobs",
+          "top_p"
+        ],
+        "fallback_similar": [
+          "openai/gpt-oss-safeguard-20b",
+          "nvidia/nemotron-nano-12b-v2-vl:free",
+          "nvidia/nemotron-nano-12b-v2-vl",
+          "ibm-granite/granite-4.0-h-micro",
+          "qwen/qwen3-vl-8b-instruct"
         ]
       },
       {
@@ -15101,63 +15364,6 @@
         ]
       },
       {
-        "id": "meta-llama/llama-3.2-3b-instruct",
-        "name": "Meta: Llama 3.2 3B Instruct",
-        "description": "Llama 3.2 3B is a 3-billion-parameter multilingual large language model, optimized for advanced natural language processing tasks like dialogue generation, reasoning, and summarization. Designed with the latest transformer architecture, it supports eight languages, including English, Spanish, and Hindi, and is adaptable for additional languages.\n\nTrained on 9 trillion tokens, the Llama 3.2 3B model excels in instruction-following, complex reasoning, and tool use. Its balanced performance makes it ideal for applications needing accuracy and efficiency in text generation across multilingual settings.\n\nClick here for the [original model card](https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/MODEL_CARD.md).\n\nUsage of this model is subject to [Meta's Acceptable Use Policy](https://www.llama.com/llama3/use-policy/).",
-        "context_length": 16384,
-        "max_completion_tokens": 16384,
-        "pricing": {
-          "prompt": 2e-08,
-          "completion": 2e-08,
-          "request": 0.0,
-          "total_per_1k": 4e-08,
-          "categoria": "ultra_economico"
-        },
-        "scores": {
-          "traducao": 2.9,
-          "analise": 2.4,
-          "velocidade": 8.6,
-          "custo_beneficio": 3.7
-        },
-        "architecture": {
-          "modality": "text->text",
-          "input_modalities": [
-            "text"
-          ],
-          "output_modalities": [
-            "text"
-          ],
-          "tokenizer": "Llama3",
-          "instruct_type": "llama3"
-        },
-        "supported_parameters": [
-          "frequency_penalty",
-          "logit_bias",
-          "logprobs",
-          "max_tokens",
-          "min_p",
-          "presence_penalty",
-          "repetition_penalty",
-          "response_format",
-          "seed",
-          "stop",
-          "structured_outputs",
-          "temperature",
-          "tool_choice",
-          "tools",
-          "top_k",
-          "top_logprobs",
-          "top_p"
-        ],
-        "fallback_similar": [
-          "mistralai/voxtral-small-24b-2507",
-          "liquid/lfm2-8b-a1b",
-          "liquid/lfm-2.2-6b",
-          "deepcogito/cogito-v2-preview-llama-405b",
-          "google/gemini-2.5-flash-image"
-        ]
-      },
-      {
         "id": "mistralai/mistral-small",
         "name": "Mistral Small",
         "description": "With 22 billion parameters, Mistral Small v24.09 offers a convenient mid-point between (Mistral NeMo 12B)[/mistralai/mistral-nemo] and (Mistral Large 2)[/mistralai/mistral-large], providing a cost-effective solution that can be deployed across various platforms and environments. It has better reasoning, exhibits more capabilities, can produce and reason about code, and is multiligual, supporting English, French, German, Italian, and Spanish.",
@@ -15453,7 +15659,6 @@
         "supported_parameters": [
           "frequency_penalty",
           "logit_bias",
-          "logprobs",
           "max_tokens",
           "min_p",
           "presence_penalty",
@@ -15461,10 +15666,8 @@
           "response_format",
           "seed",
           "stop",
-          "structured_outputs",
           "temperature",
           "top_k",
-          "top_logprobs",
           "top_p"
         ],
         "fallback_similar": [
@@ -15714,8 +15917,6 @@
         },
         "supported_parameters": [
           "frequency_penalty",
-          "logit_bias",
-          "logprobs",
           "max_tokens",
           "min_p",
           "presence_penalty",
@@ -15723,10 +15924,8 @@
           "response_format",
           "seed",
           "stop",
-          "structured_outputs",
           "temperature",
           "top_k",
-          "top_logprobs",
           "top_p"
         ],
         "fallback_similar": [
@@ -15841,63 +16040,6 @@
           "nvidia/nemotron-nano-12b-v2-vl",
           "ibm-granite/granite-4.0-h-micro",
           "qwen/qwen3-vl-8b-instruct"
-        ]
-      },
-      {
-        "id": "meta-llama/llama-3.1-8b-instruct",
-        "name": "Meta: Llama 3.1 8B Instruct",
-        "description": "Meta's latest class of model (Llama 3.1) launched with a variety of sizes & flavors. This 8B instruct-tuned version is fast and efficient.\n\nIt has demonstrated strong performance compared to leading closed-source models in human evaluations.\n\nTo read more about the model release, [click here](https://ai.meta.com/blog/meta-llama-3-1/). Usage of this model is subject to [Meta's Acceptable Use Policy](https://llama.meta.com/llama3/use-policy/).",
-        "context_length": 16384,
-        "max_completion_tokens": 16384,
-        "pricing": {
-          "prompt": 2e-08,
-          "completion": 3e-08,
-          "request": 0.0,
-          "total_per_1k": 5e-08,
-          "categoria": "ultra_economico"
-        },
-        "scores": {
-          "traducao": 2.8,
-          "analise": 2.4,
-          "velocidade": 8.1,
-          "custo_beneficio": 3.63
-        },
-        "architecture": {
-          "modality": "text->text",
-          "input_modalities": [
-            "text"
-          ],
-          "output_modalities": [
-            "text"
-          ],
-          "tokenizer": "Llama3",
-          "instruct_type": "llama3"
-        },
-        "supported_parameters": [
-          "frequency_penalty",
-          "logit_bias",
-          "logprobs",
-          "max_tokens",
-          "min_p",
-          "presence_penalty",
-          "repetition_penalty",
-          "response_format",
-          "seed",
-          "stop",
-          "structured_outputs",
-          "temperature",
-          "tool_choice",
-          "tools",
-          "top_k",
-          "top_logprobs",
-          "top_p"
-        ],
-        "fallback_similar": [
-          "mistralai/voxtral-small-24b-2507",
-          "liquid/lfm2-8b-a1b",
-          "liquid/lfm-2.2-6b",
-          "deepcogito/cogito-v2-preview-llama-405b",
-          "google/gemini-2.5-flash-image"
         ]
       },
       {
@@ -16934,8 +17076,6 @@
         },
         "supported_parameters": [
           "frequency_penalty",
-          "logit_bias",
-          "logprobs",
           "max_tokens",
           "min_p",
           "presence_penalty",
@@ -16948,7 +17088,6 @@
           "tool_choice",
           "tools",
           "top_k",
-          "top_logprobs",
           "top_p"
         ],
         "fallback_similar": [
@@ -18750,11 +18889,11 @@
           "top_p"
         ],
         "fallback_similar": [
+          "openrouter/polaris-alpha",
+          "moonshotai/kimi-k2-thinking",
           "qwen/qwen3-vl-8b-thinking",
           "qwen/qwen3-vl-8b-instruct",
-          "qwen/qwen3-vl-30b-a3b-thinking",
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          "relace/relace-apply-3"
+          "qwen/qwen3-vl-30b-a3b-thinking"
         ]
       },
       {
@@ -20403,6 +20542,52 @@
       ]
     },
     {
+      "id": "openrouter/polaris-alpha",
+      "name": "Polaris Alpha",
+      "description": "This is a cloaked model provided to the community to gather feedback. A powerful, general-purpose model that excels across real-world tasks, with standout performance in coding, tool calling, and instruction following.\n\n**Note:** All prompts and completions for this model are logged by the provider and may be used to improve the model.",
+      "context_length": 256000,
+      "max_completion_tokens": 128000,
+      "pricing": {
+        "prompt": 0.0,
+        "completion": 0.0,
+        "request": 0.0,
+        "total_per_1k": 0.0,
+        "categoria": "free"
+      },
+      "scores": {
+        "traducao": 2.7,
+        "analise": 3.4,
+        "velocidade": 5.0,
+        "custo_beneficio": 8.0
+      },
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": [
+          "text",
+          "image"
+        ],
+        "output_modalities": [
+          "text"
+        ],
+        "tokenizer": "Other",
+        "instruct_type": null
+      },
+      "supported_parameters": [
+        "max_tokens",
+        "response_format",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "fallback_similar": [
+        "moonshotai/kimi-k2-thinking",
+        "qwen/qwen3-vl-8b-thinking",
+        "qwen/qwen3-vl-30b-a3b-instruct",
+        "relace/relace-apply-3",
+        "qwen/qwen3-vl-235b-a22b-thinking"
+      ]
+    },
+    {
       "id": "nvidia/nemotron-nano-12b-v2-vl:free",
       "name": "NVIDIA: Nemotron Nano 12B 2 VL (free)",
       "description": "NVIDIA Nemotron Nano 2 VL is a 12-billion-parameter open multimodal reasoning model designed for video understanding and document intelligence. It introduces a hybrid Transformer-Mamba architecture, combining transformer-level accuracy with Mamba’s memory-efficient sequence modeling for significantly higher throughput and lower latency.\n\nThe model supports inputs of text and multi-image documents, producing natural-language outputs. It is trained on high-quality NVIDIA-curated synthetic datasets optimized for optical-character recognition, chart reasoning, and multimodal comprehension.\n\nNemotron Nano 2 VL achieves leading results on OCRBench v2 and scores ≈ 74 average across MMMU, MathVista, AI2D, OCRBench, OCR-Reasoning, ChartQA, DocVQA, and Video-MME—surpassing prior open VL baselines. With Efficient Video Sampling (EVS), it handles long-form videos while reducing inference cost.\n\nOpen-weights, training data, and fine-tuning recipes are released under a permissive NVIDIA open license, with deployment supported across NeMo, NIM, and major inference runtimes.",
@@ -20750,11 +20935,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -20794,11 +20979,11 @@
         "temperature"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
+        "moonshotai/kimi-k2-thinking",
         "mistralai/voxtral-small-24b-2507",
         "liquid/lfm2-8b-a1b",
-        "liquid/lfm-2.2-6b",
-        "deepcogito/cogito-v2-preview-llama-405b",
-        "google/gemini-2.5-flash-image"
+        "liquid/lfm-2.2-6b"
       ]
     },
     {
@@ -21799,11 +21984,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "google/gemini-2.5-flash-image",
         "anthropic/claude-sonnet-4.5",
-        "google/gemini-2.5-flash-preview-09-2025",
-        "google/gemini-2.5-flash-lite-preview-09-2025"
+        "google/gemini-2.5-flash-preview-09-2025"
       ]
     },
     {
@@ -23439,6 +23624,60 @@
       ]
     },
     {
+      "id": "deepseek/deepseek-chat",
+      "name": "DeepSeek: DeepSeek V3",
+      "description": "DeepSeek-V3 is the latest model from the DeepSeek team, building upon the instruction following and coding abilities of the previous versions. Pre-trained on nearly 15 trillion tokens, the reported evaluations reveal that the model outperforms other open-source models and rivals leading closed-source models.\n\nFor model details, please visit [the DeepSeek-V3 repo](https://github.com/deepseek-ai/DeepSeek-V3) for more information, or see the [launch announcement](https://api-docs.deepseek.com/news/news1226).",
+      "context_length": 163840,
+      "max_completion_tokens": 163840,
+      "pricing": {
+        "prompt": 3e-07,
+        "completion": 1.2e-06,
+        "request": 0.0,
+        "total_per_1k": 1.5e-06,
+        "categoria": "ultra_economico"
+      },
+      "scores": {
+        "traducao": 8.7,
+        "analise": 9.4,
+        "velocidade": 5.0,
+        "custo_beneficio": 6.37
+      },
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": [
+          "text"
+        ],
+        "output_modalities": [
+          "text"
+        ],
+        "tokenizer": "DeepSeek",
+        "instruct_type": null
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "fallback_similar": [
+        "perplexity/sonar-pro-search",
+        "openai/gpt-oss-safeguard-20b",
+        "nvidia/nemotron-nano-12b-v2-vl:free",
+        "nvidia/nemotron-nano-12b-v2-vl",
+        "minimax/minimax-m2:free"
+      ]
+    },
+    {
       "id": "deepseek/deepseek-v3.2-exp",
       "name": "DeepSeek: DeepSeek V3.2 Exp",
       "description": "DeepSeek-V3.2-Exp is an experimental large language model released by DeepSeek as an intermediate step between V3.1 and future architectures. It introduces DeepSeek Sparse Attention (DSA), a fine-grained sparse attention mechanism designed to improve training and inference efficiency in long-context scenarios while maintaining output quality. Users can control the reasoning behaviour with the `reasoning` `enabled` boolean. [Learn more in our docs](https://openrouter.ai/docs/use-cases/reasoning-tokens#enable-reasoning-with-default-config)\n\nThe model was trained under conditions aligned with V3.1-Terminus to enable direct comparison. Benchmarking shows performance roughly on par with V3.1 across reasoning, coding, and agentic tool-use tasks, with minor tradeoffs and gains depending on the domain. This release focuses on validating architectural optimizations for extended context lengths rather than advancing raw task accuracy, making it primarily a research-oriented model for exploring efficient transformer designs.",
@@ -23486,60 +23725,6 @@
         "tools",
         "top_k",
         "top_logprobs",
-        "top_p"
-      ],
-      "fallback_similar": [
-        "perplexity/sonar-pro-search",
-        "openai/gpt-oss-safeguard-20b",
-        "nvidia/nemotron-nano-12b-v2-vl:free",
-        "nvidia/nemotron-nano-12b-v2-vl",
-        "minimax/minimax-m2:free"
-      ]
-    },
-    {
-      "id": "deepseek/deepseek-chat",
-      "name": "DeepSeek: DeepSeek V3",
-      "description": "DeepSeek-V3 is the latest model from the DeepSeek team, building upon the instruction following and coding abilities of the previous versions. Pre-trained on nearly 15 trillion tokens, the reported evaluations reveal that the model outperforms other open-source models and rivals leading closed-source models.\n\nFor model details, please visit [the DeepSeek-V3 repo](https://github.com/deepseek-ai/DeepSeek-V3) for more information, or see the [launch announcement](https://api-docs.deepseek.com/news/news1226).",
-      "context_length": 163840,
-      "max_completion_tokens": 163840,
-      "pricing": {
-        "prompt": 3e-07,
-        "completion": 8.5e-07,
-        "request": 0.0,
-        "total_per_1k": 1.15e-06,
-        "categoria": "ultra_economico"
-      },
-      "scores": {
-        "traducao": 8.7,
-        "analise": 9.4,
-        "velocidade": 5.0,
-        "custo_beneficio": 6.33
-      },
-      "architecture": {
-        "modality": "text->text",
-        "input_modalities": [
-          "text"
-        ],
-        "output_modalities": [
-          "text"
-        ],
-        "tokenizer": "DeepSeek",
-        "instruct_type": null
-      },
-      "supported_parameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "min_p",
-        "presence_penalty",
-        "repetition_penalty",
-        "response_format",
-        "seed",
-        "stop",
-        "structured_outputs",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_k",
         "top_p"
       ],
       "fallback_similar": [
@@ -25603,11 +25788,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -25654,11 +25839,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "anthropic/claude-haiku-4.5",
         "google/gemini-2.5-flash-preview-09-2025",
-        "google/gemini-2.5-flash-lite-preview-09-2025",
-        "qwen/qwen-plus-2025-07-28"
+        "google/gemini-2.5-flash-lite-preview-09-2025"
       ]
     },
     {
@@ -25757,11 +25942,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-instruct",
         "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3",
-        "qwen/qwen3-vl-235b-a22b-thinking"
+        "qwen/qwen3-vl-30b-a3b-instruct"
       ]
     },
     {
@@ -25808,11 +25993,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "anthropic/claude-haiku-4.5",
         "anthropic/claude-sonnet-4.5",
-        "google/gemini-2.5-flash-preview-09-2025",
-        "google/gemini-2.5-flash-lite-preview-09-2025"
+        "google/gemini-2.5-flash-preview-09-2025"
       ]
     },
     {
@@ -25911,11 +26096,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -26079,11 +26264,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -26158,10 +26343,11 @@
       "architecture": {
         "modality": "text+image->text",
         "input_modalities": [
-          "file",
-          "image",
           "text",
-          "audio"
+          "image",
+          "file",
+          "audio",
+          "video"
         ],
         "output_modalities": [
           "text"
@@ -26183,11 +26369,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "google/gemini-2.5-flash-image",
         "anthropic/claude-sonnet-4.5",
-        "google/gemini-2.5-flash-preview-09-2025",
-        "google/gemini-2.5-flash-lite-preview-09-2025"
+        "google/gemini-2.5-flash-preview-09-2025"
       ]
     },
     {
@@ -26442,11 +26628,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "anthropic/claude-sonnet-4.5",
         "google/gemini-2.5-flash-preview-09-2025",
         "google/gemini-2.5-flash-lite-preview-09-2025",
-        "qwen/qwen-plus-2025-07-28",
-        "qwen/qwen-plus-2025-07-28:thinking"
+        "qwen/qwen-plus-2025-07-28"
       ]
     },
     {
@@ -26497,6 +26683,61 @@
         "minimax/minimax-m2",
         "anthropic/claude-haiku-4.5",
         "openai/o3-deep-research"
+      ]
+    },
+    {
+      "id": "moonshotai/kimi-linear-48b-a3b-instruct",
+      "name": "MoonshotAI: Kimi Linear 48B A3B Instruct",
+      "description": "Kimi Linear is a hybrid linear attention architecture that outperforms traditional full attention methods across various contexts, including short, long, and reinforcement learning (RL) scaling regimes. At its core is Kimi Delta Attention (KDA)—a refined version of Gated DeltaNet that introduces a more efficient gating mechanism to optimize the use of finite-state RNN memory.\n\nKimi Linear achieves superior performance and hardware efficiency, especially for long-context tasks. It reduces the need for large KV caches by up to 75% and boosts decoding throughput by up to 6x for contexts as long as 1M tokens.",
+      "context_length": 1048576,
+      "max_completion_tokens": 1048576,
+      "pricing": {
+        "prompt": 3e-07,
+        "completion": 6e-07,
+        "request": 0.0,
+        "total_per_1k": 9e-07,
+        "categoria": "ultra_economico"
+      },
+      "scores": {
+        "traducao": 3.0,
+        "analise": 3.4,
+        "velocidade": 8.6,
+        "custo_beneficio": 4.47
+      },
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": [
+          "text"
+        ],
+        "output_modalities": [
+          "text"
+        ],
+        "tokenizer": "Other",
+        "instruct_type": null
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "fallback_similar": [
+        "moonshotai/kimi-k2-thinking",
+        "amazon/nova-premier-v1",
+        "anthropic/claude-sonnet-4.5",
+        "google/gemini-2.5-flash-preview-09-2025",
+        "google/gemini-2.5-flash-lite-preview-09-2025"
       ]
     },
     {
@@ -26601,6 +26842,58 @@
       ]
     },
     {
+      "id": "moonshotai/kimi-k2-thinking",
+      "name": "MoonshotAI: Kimi K2 Thinking",
+      "description": "Kimi K2 Thinking is Moonshot AI’s most advanced open reasoning model to date, extending the K2 series into agentic, long-horizon reasoning. Built on the trillion-parameter Mixture-of-Experts (MoE) architecture introduced in Kimi K2, it activates 32 billion parameters per forward pass and supports 256 k-token context windows. The model is optimized for persistent step-by-step thought, dynamic tool invocation, and complex reasoning workflows that span hundreds of turns. It interleaves step-by-step reasoning with tool use, enabling autonomous research, coding, and writing that can persist for hundreds of sequential actions without drift.\n\nIt sets new open-source benchmarks on HLE, BrowseComp, SWE-Multilingual, and LiveCodeBench, while maintaining stable multi-agent behavior through 200–300 tool calls. Built on a large-scale MoE architecture with MuonClip optimization, it combines strong reasoning depth with high inference efficiency for demanding agentic and analytical tasks.",
+      "context_length": 262144,
+      "max_completion_tokens": 262144,
+      "pricing": {
+        "prompt": 6e-07,
+        "completion": 2.5e-06,
+        "request": 0.0,
+        "total_per_1k": 3.1e-06,
+        "categoria": "ultra_economico"
+      },
+      "scores": {
+        "traducao": 3.3,
+        "analise": 5.2,
+        "velocidade": 4.9,
+        "custo_beneficio": 4.46
+      },
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": [
+          "text"
+        ],
+        "output_modalities": [
+          "text"
+        ],
+        "tokenizer": "Other",
+        "instruct_type": null
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
+        "openrouter/polaris-alpha",
+        "qwen/qwen3-vl-8b-thinking",
+        "qwen/qwen3-vl-30b-a3b-instruct",
+        "relace/relace-apply-3"
+      ]
+    },
+    {
       "id": "qwen/qwen3-vl-30b-a3b-instruct",
       "name": "Qwen: Qwen3 VL 30B A3B Instruct",
       "description": "Qwen3-VL-30B-A3B-Instruct is a multimodal model that unifies strong text generation with visual understanding for images and videos. Its Instruct variant optimizes instruction-following for general multimodal tasks. It excels in perception of real-world/synthetic categories, 2D/3D spatial grounding, and long-form visual comprehension, achieving competitive multimodal benchmark results. For agentic use, it handles multi-image multi-turn instructions, video timeline alignments, GUI automation, and visual coding from sketches to debugged UI. Text performance matches flagship Qwen3 models, suiting document AI, OCR, UI assistance, spatial tasks, and agent research.",
@@ -26651,11 +26944,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "relace/relace-apply-3",
-        "qwen/qwen3-vl-235b-a22b-thinking"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -26749,11 +27042,11 @@
         "tools"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "openai/gpt-oss-safeguard-20b",
         "openai/gpt-5-image-mini",
-        "openai/gpt-5-image",
-        "openai/o3-deep-research"
+        "openai/gpt-5-image"
       ]
     },
     {
@@ -26883,7 +27176,8 @@
           "file",
           "image",
           "text",
-          "audio"
+          "audio",
+          "video"
         ],
         "output_modalities": [
           "text"
@@ -26905,11 +27199,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "google/gemini-2.5-flash-image",
         "anthropic/claude-sonnet-4.5",
-        "google/gemini-2.5-flash-preview-09-2025",
-        "google/gemini-2.5-flash-lite-preview-09-2025"
+        "google/gemini-2.5-flash-preview-09-2025"
       ]
     },
     {
@@ -26958,11 +27252,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "minimax/minimax-m2:free",
         "minimax/minimax-m2",
-        "anthropic/claude-sonnet-4.5",
-        "google/gemini-2.5-flash-preview-09-2025"
+        "anthropic/claude-sonnet-4.5"
       ]
     },
     {
@@ -27012,11 +27306,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "google/gemini-2.5-flash-image",
         "anthropic/claude-sonnet-4.5",
-        "google/gemini-2.5-flash-preview-09-2025",
-        "google/gemini-2.5-flash-lite-preview-09-2025"
+        "google/gemini-2.5-flash-preview-09-2025"
       ]
     },
     {
@@ -27044,7 +27338,8 @@
           "text",
           "image",
           "file",
-          "audio"
+          "audio",
+          "video"
         ],
         "output_modalities": [
           "text"
@@ -27066,11 +27361,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "google/gemini-2.5-flash-image",
         "anthropic/claude-sonnet-4.5",
-        "google/gemini-2.5-flash-preview-09-2025",
-        "google/gemini-2.5-flash-lite-preview-09-2025"
+        "google/gemini-2.5-flash-preview-09-2025"
       ]
     },
     {
@@ -27121,11 +27416,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -27150,10 +27445,11 @@
       "architecture": {
         "modality": "text+image->text",
         "input_modalities": [
-          "file",
-          "image",
           "text",
-          "audio"
+          "image",
+          "file",
+          "audio",
+          "video"
         ],
         "output_modalities": [
           "text"
@@ -27175,11 +27471,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "google/gemini-2.5-flash-image",
         "anthropic/claude-sonnet-4.5",
-        "google/gemini-2.5-flash-preview-09-2025",
-        "google/gemini-2.5-flash-lite-preview-09-2025"
+        "google/gemini-2.5-flash-preview-09-2025"
       ]
     },
     {
@@ -27268,11 +27564,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -27384,11 +27680,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -27492,9 +27788,9 @@
       ]
     },
     {
-      "id": "mistralai/mistral-7b-instruct-v0.3",
-      "name": "Mistral: Mistral 7B Instruct v0.3",
-      "description": "A high-performing, industry-standard 7.3B parameter model, with optimizations for speed and context length.\n\nAn improved version of [Mistral 7B Instruct v0.2](/models/mistralai/mistral-7b-instruct-v0.2), with the following changes:\n\n- Extended vocabulary to 32768\n- Supports v3 Tokenizer\n- Supports function calling\n\nNOTE: Support for function calling depends on the provider.",
+      "id": "mistralai/mistral-7b-instruct",
+      "name": "Mistral: Mistral 7B Instruct",
+      "description": "A high-performing, industry-standard 7.3B parameter model, with optimizations for speed and context length.\n\n*Mistral 7B Instruct has multiple version variants, and this is intended to be the latest version.*",
       "context_length": 32768,
       "max_completion_tokens": 16384,
       "pricing": {
@@ -27546,9 +27842,9 @@
       ]
     },
     {
-      "id": "mistralai/mistral-7b-instruct",
-      "name": "Mistral: Mistral 7B Instruct",
-      "description": "A high-performing, industry-standard 7.3B parameter model, with optimizations for speed and context length.\n\n*Mistral 7B Instruct has multiple version variants, and this is intended to be the latest version.*",
+      "id": "mistralai/mistral-7b-instruct-v0.3",
+      "name": "Mistral: Mistral 7B Instruct v0.3",
+      "description": "A high-performing, industry-standard 7.3B parameter model, with optimizations for speed and context length.\n\nAn improved version of [Mistral 7B Instruct v0.2](/models/mistralai/mistral-7b-instruct-v0.2), with the following changes:\n\n- Extended vocabulary to 32768\n- Supports v3 Tokenizer\n- Supports function calling\n\nNOTE: Support for function calling depends on the provider.",
       "context_length": 32768,
       "max_completion_tokens": 16384,
       "pricing": {
@@ -27694,11 +27990,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3",
-        "qwen/qwen3-vl-235b-a22b-thinking",
-        "qwen/qwen3-vl-235b-a22b-instruct"
+        "relace/relace-apply-3"
       ]
     },
     {
@@ -27747,11 +28043,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3",
-        "qwen/qwen3-vl-235b-a22b-thinking",
-        "qwen/qwen3-vl-235b-a22b-instruct"
+        "relace/relace-apply-3"
       ]
     },
     {
@@ -27797,11 +28093,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3",
-        "qwen/qwen3-vl-235b-a22b-thinking",
-        "qwen/qwen3-vl-235b-a22b-instruct"
+        "relace/relace-apply-3"
       ]
     },
     {
@@ -28193,7 +28489,8 @@
           "image",
           "file",
           "text",
-          "audio"
+          "audio",
+          "video"
         ],
         "output_modalities": [
           "text"
@@ -28215,11 +28512,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "google/gemini-2.5-flash-image",
         "anthropic/claude-sonnet-4.5",
-        "google/gemini-2.5-flash-lite-preview-09-2025",
-        "qwen/qwen-plus-2025-07-28"
+        "google/gemini-2.5-flash-lite-preview-09-2025"
       ]
     },
     {
@@ -28266,11 +28563,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -28394,10 +28691,11 @@
       "architecture": {
         "modality": "text+image->text",
         "input_modalities": [
-          "file",
-          "image",
           "text",
-          "audio"
+          "image",
+          "file",
+          "audio",
+          "video"
         ],
         "output_modalities": [
           "text"
@@ -28419,11 +28717,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "google/gemini-2.5-flash-image",
         "anthropic/claude-sonnet-4.5",
-        "google/gemini-2.5-flash-preview-09-2025",
-        "qwen/qwen-plus-2025-07-28"
+        "google/gemini-2.5-flash-preview-09-2025"
       ]
     },
     {
@@ -28478,11 +28776,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -28532,11 +28830,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "google/gemini-2.5-flash-image",
         "anthropic/claude-sonnet-4.5",
-        "google/gemini-2.5-flash-preview-09-2025",
-        "google/gemini-2.5-flash-lite-preview-09-2025"
+        "google/gemini-2.5-flash-preview-09-2025"
       ]
     },
     {
@@ -28738,11 +29036,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "google/gemini-2.5-flash-image",
         "anthropic/claude-sonnet-4.5",
-        "google/gemini-2.5-flash-preview-09-2025",
-        "google/gemini-2.5-flash-lite-preview-09-2025"
+        "google/gemini-2.5-flash-preview-09-2025"
       ]
     },
     {
@@ -28785,11 +29083,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3",
-        "qwen/qwen3-vl-235b-a22b-thinking",
-        "qwen/qwen3-vl-235b-a22b-instruct"
+        "relace/relace-apply-3"
       ]
     },
     {
@@ -28940,11 +29238,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "anthropic/claude-sonnet-4.5",
         "google/gemini-2.5-flash-preview-09-2025",
-        "google/gemini-2.5-flash-lite-preview-09-2025",
-        "qwen/qwen-plus-2025-07-28"
+        "google/gemini-2.5-flash-lite-preview-09-2025"
       ]
     },
     {
@@ -29241,11 +29539,11 @@
         "tools"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "openai/gpt-oss-safeguard-20b",
         "openai/gpt-5-image-mini",
-        "openai/gpt-5-image",
-        "openai/o3-deep-research"
+        "openai/gpt-5-image"
       ]
     },
     {
@@ -29400,11 +29698,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -29451,11 +29749,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3",
-        "qwen/qwen3-vl-235b-a22b-thinking",
-        "qwen/qwen3-vl-235b-a22b-instruct"
+        "qwen/qwen3-vl-30b-a3b-instruct"
       ]
     },
     {
@@ -29590,11 +29888,11 @@
         "temperature"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3",
-        "qwen/qwen3-vl-235b-a22b-thinking",
-        "qwen/qwen3-vl-235b-a22b-instruct"
+        "relace/relace-apply-3"
       ]
     },
     {
@@ -29697,11 +29995,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3",
-        "qwen/qwen3-vl-235b-a22b-thinking",
-        "qwen/qwen3-vl-235b-a22b-instruct"
+        "qwen/qwen3-vl-30b-a3b-instruct"
       ]
     },
     {
@@ -29746,11 +30044,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -30020,11 +30318,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -30078,11 +30376,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -30130,11 +30428,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "google/gemini-2.5-flash-image",
         "anthropic/claude-sonnet-4.5",
-        "google/gemini-2.5-flash-preview-09-2025",
-        "google/gemini-2.5-flash-lite-preview-09-2025"
+        "google/gemini-2.5-flash-preview-09-2025"
       ]
     },
     {
@@ -30189,6 +30487,61 @@
         "liquid/lfm-2.2-6b",
         "deepcogito/cogito-v2-preview-llama-405b",
         "baidu/ernie-4.5-21b-a3b-thinking"
+      ]
+    },
+    {
+      "id": "moonshotai/kimi-k2",
+      "name": "MoonshotAI: Kimi K2 0711",
+      "description": "Kimi K2 Instruct is a large-scale Mixture-of-Experts (MoE) language model developed by Moonshot AI, featuring 1 trillion total parameters with 32 billion active per forward pass. It is optimized for agentic capabilities, including advanced tool use, reasoning, and code synthesis. Kimi K2 excels across a broad range of benchmarks, particularly in coding (LiveCodeBench, SWE-bench), reasoning (ZebraLogic, GPQA), and tool-use (Tau2, AceBench) tasks. It supports long-context inference up to 128K tokens and is designed with a novel training stack that includes the MuonClip optimizer for stable large-scale MoE training.",
+      "context_length": 131072,
+      "max_completion_tokens": null,
+      "pricing": {
+        "prompt": 5e-07,
+        "completion": 2.4e-06,
+        "request": 0.0,
+        "total_per_1k": 2.8999999999999998e-06,
+        "categoria": "ultra_economico"
+      },
+      "scores": {
+        "traducao": 2.5,
+        "analise": 3.4,
+        "velocidade": 5.9,
+        "custo_beneficio": 4.09
+      },
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": [
+          "text"
+        ],
+        "output_modalities": [
+          "text"
+        ],
+        "tokenizer": "Other",
+        "instruct_type": null
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
+        "moonshotai/kimi-k2-thinking",
+        "openai/gpt-oss-safeguard-20b",
+        "nvidia/nemotron-nano-12b-v2-vl:free",
+        "nvidia/nemotron-nano-12b-v2-vl"
       ]
     },
     {
@@ -30281,11 +30634,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "minimax/minimax-m2:free",
         "minimax/minimax-m2",
-        "anthropic/claude-sonnet-4.5",
-        "google/gemini-2.5-flash-preview-09-2025"
+        "anthropic/claude-sonnet-4.5"
       ]
     },
     {
@@ -30382,11 +30735,11 @@
         "tools"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "openai/gpt-oss-safeguard-20b",
         "openai/gpt-5-image-mini",
-        "openai/gpt-5-image",
-        "openai/o3-deep-research"
+        "openai/gpt-5-image"
       ]
     },
     {
@@ -30574,11 +30927,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
         "amazon/nova-premier-v1",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -30615,18 +30968,14 @@
       "supported_parameters": [
         "frequency_penalty",
         "logit_bias",
-        "logprobs",
         "max_tokens",
         "min_p",
         "presence_penalty",
         "repetition_penalty",
-        "response_format",
         "seed",
         "stop",
-        "structured_outputs",
         "temperature",
         "top_k",
-        "top_logprobs",
         "top_p"
       ],
       "fallback_similar": [
@@ -30924,11 +31273,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "amazon/nova-premier-v1",
         "qwen/qwen3-vl-8b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3",
-        "qwen/qwen3-vl-235b-a22b-thinking"
+        "qwen/qwen3-vl-30b-a3b-instruct"
       ]
     },
     {
@@ -31033,11 +31382,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -31233,11 +31582,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "moonshotai/kimi-linear-48b-a3b-instruct",
+        "moonshotai/kimi-k2-thinking",
         "openai/gpt-oss-safeguard-20b",
         "nvidia/nemotron-nano-12b-v2-vl:free",
-        "nvidia/nemotron-nano-12b-v2-vl",
-        "ibm-granite/granite-4.0-h-micro",
-        "qwen/qwen3-vl-8b-instruct"
+        "nvidia/nemotron-nano-12b-v2-vl"
       ]
     },
     {
@@ -31389,11 +31738,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-8b-instruct",
-        "qwen/qwen3-vl-30b-a3b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3"
+        "qwen/qwen3-vl-30b-a3b-thinking"
       ]
     },
     {
@@ -31644,11 +31993,11 @@
         "stop"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-30b-a3b-instruct",
-        "qwen/qwen3-vl-235b-a22b-thinking",
-        "qwen/qwen3-vl-235b-a22b-instruct",
-        "qwen/qwen3-max"
+        "qwen/qwen3-vl-235b-a22b-thinking"
       ]
     },
     {
@@ -31699,61 +32048,6 @@
         "nvidia/nemotron-nano-12b-v2-vl",
         "ibm-granite/granite-4.0-h-micro",
         "qwen/qwen3-vl-8b-instruct"
-      ]
-    },
-    {
-      "id": "moonshotai/kimi-k2",
-      "name": "MoonshotAI: Kimi K2 0711",
-      "description": "Kimi K2 Instruct is a large-scale Mixture-of-Experts (MoE) language model developed by Moonshot AI, featuring 1 trillion total parameters with 32 billion active per forward pass. It is optimized for agentic capabilities, including advanced tool use, reasoning, and code synthesis. Kimi K2 excels across a broad range of benchmarks, particularly in coding (LiveCodeBench, SWE-bench), reasoning (ZebraLogic, GPQA), and tool-use (Tau2, AceBench) tasks. It supports long-context inference up to 128K tokens and is designed with a novel training stack that includes the MuonClip optimizer for stable large-scale MoE training.",
-      "context_length": 63000,
-      "max_completion_tokens": 63000,
-      "pricing": {
-        "prompt": 1.4e-07,
-        "completion": 2.49e-06,
-        "request": 0.0,
-        "total_per_1k": 2.63e-06,
-        "categoria": "ultra_economico"
-      },
-      "scores": {
-        "traducao": 2.3,
-        "analise": 3.2,
-        "velocidade": 5.9,
-        "custo_beneficio": 3.98
-      },
-      "architecture": {
-        "modality": "text->text",
-        "input_modalities": [
-          "text"
-        ],
-        "output_modalities": [
-          "text"
-        ],
-        "tokenizer": "Other",
-        "instruct_type": null
-      },
-      "supported_parameters": [
-        "frequency_penalty",
-        "logit_bias",
-        "max_tokens",
-        "min_p",
-        "presence_penalty",
-        "repetition_penalty",
-        "response_format",
-        "seed",
-        "stop",
-        "structured_outputs",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_k",
-        "top_p"
-      ],
-      "fallback_similar": [
-        "mistralai/voxtral-small-24b-2507",
-        "liquid/lfm2-8b-a1b",
-        "liquid/lfm-2.2-6b",
-        "deepcogito/cogito-v2-preview-llama-405b",
-        "google/gemini-2.5-flash-image"
       ]
     },
     {
@@ -32323,11 +32617,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "qwen/qwen3-vl-8b-thinking",
         "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3",
-        "qwen/qwen3-vl-235b-a22b-thinking",
-        "qwen/qwen3-vl-235b-a22b-instruct"
+        "relace/relace-apply-3"
       ]
     },
     {
@@ -33034,7 +33328,6 @@
       "supported_parameters": [
         "frequency_penalty",
         "logit_bias",
-        "logprobs",
         "max_tokens",
         "min_p",
         "presence_penalty",
@@ -33047,7 +33340,6 @@
         "tool_choice",
         "tools",
         "top_k",
-        "top_logprobs",
         "top_p"
       ],
       "fallback_similar": [
@@ -33475,6 +33767,60 @@
       ]
     },
     {
+      "id": "meta-llama/llama-3.2-3b-instruct",
+      "name": "Meta: Llama 3.2 3B Instruct",
+      "description": "Llama 3.2 3B is a 3-billion-parameter multilingual large language model, optimized for advanced natural language processing tasks like dialogue generation, reasoning, and summarization. Designed with the latest transformer architecture, it supports eight languages, including English, Spanish, and Hindi, and is adaptable for additional languages.\n\nTrained on 9 trillion tokens, the Llama 3.2 3B model excels in instruction-following, complex reasoning, and tool use. Its balanced performance makes it ideal for applications needing accuracy and efficiency in text generation across multilingual settings.\n\nClick here for the [original model card](https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/MODEL_CARD.md).\n\nUsage of this model is subject to [Meta's Acceptable Use Policy](https://www.llama.com/llama3/use-policy/).",
+      "context_length": 131072,
+      "max_completion_tokens": 16384,
+      "pricing": {
+        "prompt": 2e-08,
+        "completion": 2e-08,
+        "request": 0.0,
+        "total_per_1k": 4e-08,
+        "categoria": "ultra_economico"
+      },
+      "scores": {
+        "traducao": 3.3,
+        "analise": 2.8,
+        "velocidade": 8.6,
+        "custo_beneficio": 3.87
+      },
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": [
+          "text"
+        ],
+        "output_modalities": [
+          "text"
+        ],
+        "tokenizer": "Llama3",
+        "instruct_type": "llama3"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "fallback_similar": [
+        "openai/gpt-oss-safeguard-20b",
+        "nvidia/nemotron-nano-12b-v2-vl:free",
+        "nvidia/nemotron-nano-12b-v2-vl",
+        "ibm-granite/granite-4.0-h-micro",
+        "qwen/qwen3-vl-8b-instruct"
+      ]
+    },
+    {
       "id": "minimax/minimax-m2",
       "name": "MiniMax: MiniMax M2",
       "description": "MiniMax-M2 is a compact, high-efficiency large language model optimized for end-to-end coding and agentic workflows. With 10 billion activated parameters (230 billion total), it delivers near-frontier intelligence across general reasoning, tool use, and multi-step task execution while maintaining low latency and deployment efficiency.\n\nThe model excels in code generation, multi-file editing, compile-run-fix loops, and test-validated repair, showing strong results on SWE-Bench Verified, Multi-SWE-Bench, and Terminal-Bench. It also performs competitively in agentic evaluations such as BrowseComp and GAIA, effectively handling long-horizon planning, retrieval, and recovery from execution errors.\n\nBenchmarked by [Artificial Analysis](https://artificialanalysis.ai/models/minimax-m2), MiniMax-M2 ranks among the top open-source models for composite intelligence, spanning mathematics, science, and instruction-following. Its small activation footprint enables fast inference, high concurrency, and improved unit economics, making it well-suited for large-scale agents, developer assistants, and reasoning-driven applications that require responsiveness and cost efficiency.\n\nTo avoid degrading this model's performance, MiniMax highly recommends preserving reasoning between turns. Learn more about using reasoning_details to pass back reasoning in our [docs](https://openrouter.ai/docs/use-cases/reasoning-tokens#preserving-reasoning-blocks).",
@@ -33510,7 +33856,6 @@
         "logit_bias",
         "logprobs",
         "max_tokens",
-        "min_p",
         "presence_penalty",
         "reasoning",
         "repetition_penalty",
@@ -33825,11 +34170,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "mistralai/voxtral-small-24b-2507",
         "qwen/qwen3-vl-8b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3",
-        "qwen/qwen3-vl-235b-a22b-thinking"
+        "qwen/qwen3-vl-30b-a3b-instruct"
       ]
     },
     {
@@ -33876,11 +34221,11 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "mistralai/voxtral-small-24b-2507",
         "qwen/qwen3-vl-8b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3",
-        "qwen/qwen3-vl-235b-a22b-thinking"
+        "qwen/qwen3-vl-30b-a3b-instruct"
       ]
     },
     {
@@ -34031,11 +34376,68 @@
         "top_p"
       ],
       "fallback_similar": [
+        "openrouter/polaris-alpha",
+        "moonshotai/kimi-k2-thinking",
         "amazon/nova-premier-v1",
         "qwen/qwen3-vl-8b-thinking",
-        "qwen/qwen3-vl-30b-a3b-instruct",
-        "relace/relace-apply-3",
-        "qwen/qwen3-vl-235b-a22b-thinking"
+        "qwen/qwen3-vl-30b-a3b-instruct"
+      ]
+    },
+    {
+      "id": "meta-llama/llama-3.1-8b-instruct",
+      "name": "Meta: Llama 3.1 8B Instruct",
+      "description": "Meta's latest class of model (Llama 3.1) launched with a variety of sizes & flavors. This 8B instruct-tuned version is fast and efficient.\n\nIt has demonstrated strong performance compared to leading closed-source models in human evaluations.\n\nTo read more about the model release, [click here](https://ai.meta.com/blog/meta-llama-3-1/). Usage of this model is subject to [Meta's Acceptable Use Policy](https://llama.meta.com/llama3/use-policy/).",
+      "context_length": 131072,
+      "max_completion_tokens": 16384,
+      "pricing": {
+        "prompt": 2e-08,
+        "completion": 3e-08,
+        "request": 0.0,
+        "total_per_1k": 5e-08,
+        "categoria": "ultra_economico"
+      },
+      "scores": {
+        "traducao": 3.2,
+        "analise": 2.8,
+        "velocidade": 8.1,
+        "custo_beneficio": 3.8
+      },
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": [
+          "text"
+        ],
+        "output_modalities": [
+          "text"
+        ],
+        "tokenizer": "Llama3",
+        "instruct_type": "llama3"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "fallback_similar": [
+        "openai/gpt-oss-safeguard-20b",
+        "nvidia/nemotron-nano-12b-v2-vl:free",
+        "nvidia/nemotron-nano-12b-v2-vl",
+        "ibm-granite/granite-4.0-h-micro",
+        "qwen/qwen3-vl-8b-instruct"
       ]
     },
     {
@@ -34881,63 +35283,6 @@
       ]
     },
     {
-      "id": "meta-llama/llama-3.2-3b-instruct",
-      "name": "Meta: Llama 3.2 3B Instruct",
-      "description": "Llama 3.2 3B is a 3-billion-parameter multilingual large language model, optimized for advanced natural language processing tasks like dialogue generation, reasoning, and summarization. Designed with the latest transformer architecture, it supports eight languages, including English, Spanish, and Hindi, and is adaptable for additional languages.\n\nTrained on 9 trillion tokens, the Llama 3.2 3B model excels in instruction-following, complex reasoning, and tool use. Its balanced performance makes it ideal for applications needing accuracy and efficiency in text generation across multilingual settings.\n\nClick here for the [original model card](https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/MODEL_CARD.md).\n\nUsage of this model is subject to [Meta's Acceptable Use Policy](https://www.llama.com/llama3/use-policy/).",
-      "context_length": 16384,
-      "max_completion_tokens": 16384,
-      "pricing": {
-        "prompt": 2e-08,
-        "completion": 2e-08,
-        "request": 0.0,
-        "total_per_1k": 4e-08,
-        "categoria": "ultra_economico"
-      },
-      "scores": {
-        "traducao": 2.9,
-        "analise": 2.4,
-        "velocidade": 8.6,
-        "custo_beneficio": 3.7
-      },
-      "architecture": {
-        "modality": "text->text",
-        "input_modalities": [
-          "text"
-        ],
-        "output_modalities": [
-          "text"
-        ],
-        "tokenizer": "Llama3",
-        "instruct_type": "llama3"
-      },
-      "supported_parameters": [
-        "frequency_penalty",
-        "logit_bias",
-        "logprobs",
-        "max_tokens",
-        "min_p",
-        "presence_penalty",
-        "repetition_penalty",
-        "response_format",
-        "seed",
-        "stop",
-        "structured_outputs",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_k",
-        "top_logprobs",
-        "top_p"
-      ],
-      "fallback_similar": [
-        "mistralai/voxtral-small-24b-2507",
-        "liquid/lfm2-8b-a1b",
-        "liquid/lfm-2.2-6b",
-        "deepcogito/cogito-v2-preview-llama-405b",
-        "google/gemini-2.5-flash-image"
-      ]
-    },
-    {
       "id": "mistralai/mistral-small",
       "name": "Mistral Small",
       "description": "With 22 billion parameters, Mistral Small v24.09 offers a convenient mid-point between (Mistral NeMo 12B)[/mistralai/mistral-nemo] and (Mistral Large 2)[/mistralai/mistral-large], providing a cost-effective solution that can be deployed across various platforms and environments. It has better reasoning, exhibits more capabilities, can produce and reason about code, and is multiligual, supporting English, French, German, Italian, and Spanish.",
@@ -35233,7 +35578,6 @@
       "supported_parameters": [
         "frequency_penalty",
         "logit_bias",
-        "logprobs",
         "max_tokens",
         "min_p",
         "presence_penalty",
@@ -35241,10 +35585,8 @@
         "response_format",
         "seed",
         "stop",
-        "structured_outputs",
         "temperature",
         "top_k",
-        "top_logprobs",
         "top_p"
       ],
       "fallback_similar": [
@@ -35494,8 +35836,6 @@
       },
       "supported_parameters": [
         "frequency_penalty",
-        "logit_bias",
-        "logprobs",
         "max_tokens",
         "min_p",
         "presence_penalty",
@@ -35503,10 +35843,8 @@
         "response_format",
         "seed",
         "stop",
-        "structured_outputs",
         "temperature",
         "top_k",
-        "top_logprobs",
         "top_p"
       ],
       "fallback_similar": [
@@ -35621,63 +35959,6 @@
         "nvidia/nemotron-nano-12b-v2-vl",
         "ibm-granite/granite-4.0-h-micro",
         "qwen/qwen3-vl-8b-instruct"
-      ]
-    },
-    {
-      "id": "meta-llama/llama-3.1-8b-instruct",
-      "name": "Meta: Llama 3.1 8B Instruct",
-      "description": "Meta's latest class of model (Llama 3.1) launched with a variety of sizes & flavors. This 8B instruct-tuned version is fast and efficient.\n\nIt has demonstrated strong performance compared to leading closed-source models in human evaluations.\n\nTo read more about the model release, [click here](https://ai.meta.com/blog/meta-llama-3-1/). Usage of this model is subject to [Meta's Acceptable Use Policy](https://llama.meta.com/llama3/use-policy/).",
-      "context_length": 16384,
-      "max_completion_tokens": 16384,
-      "pricing": {
-        "prompt": 2e-08,
-        "completion": 3e-08,
-        "request": 0.0,
-        "total_per_1k": 5e-08,
-        "categoria": "ultra_economico"
-      },
-      "scores": {
-        "traducao": 2.8,
-        "analise": 2.4,
-        "velocidade": 8.1,
-        "custo_beneficio": 3.63
-      },
-      "architecture": {
-        "modality": "text->text",
-        "input_modalities": [
-          "text"
-        ],
-        "output_modalities": [
-          "text"
-        ],
-        "tokenizer": "Llama3",
-        "instruct_type": "llama3"
-      },
-      "supported_parameters": [
-        "frequency_penalty",
-        "logit_bias",
-        "logprobs",
-        "max_tokens",
-        "min_p",
-        "presence_penalty",
-        "repetition_penalty",
-        "response_format",
-        "seed",
-        "stop",
-        "structured_outputs",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_k",
-        "top_logprobs",
-        "top_p"
-      ],
-      "fallback_similar": [
-        "mistralai/voxtral-small-24b-2507",
-        "liquid/lfm2-8b-a1b",
-        "liquid/lfm-2.2-6b",
-        "deepcogito/cogito-v2-preview-llama-405b",
-        "google/gemini-2.5-flash-image"
       ]
     },
     {
@@ -36714,8 +36995,6 @@
       },
       "supported_parameters": [
         "frequency_penalty",
-        "logit_bias",
-        "logprobs",
         "max_tokens",
         "min_p",
         "presence_penalty",
@@ -36728,7 +37007,6 @@
         "tool_choice",
         "tools",
         "top_k",
-        "top_logprobs",
         "top_p"
       ],
       "fallback_similar": [
