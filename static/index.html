@@ -7887,6 +7887,29 @@
                         if (data.sucesso) {
                             // Armazenar as chaves existentes (mascaradas)
                             this.api_keys_existentes = data.chaves;
+
+                            // Popular os campos de entrada com os valores mascarados
+                            if (data.chaves.perplexity_api_key) {
+                                this.api_keys.perplexity_api_key = data.chaves.perplexity_api_key;
+                            }
+                            if (data.chaves.jina_api_key) {
+                                this.api_keys.jina_api_key = data.chaves.jina_api_key;
+                            }
+                            if (data.chaves.tavily_api_key) {
+                                this.api_keys.tavily_api_key = data.chaves.tavily_api_key;
+                            }
+                            if (data.chaves.serper_api_key) {
+                                this.api_keys.serper_api_key = data.chaves.serper_api_key;
+                            }
+                            if (data.chaves.exa_api_key) {
+                                this.api_keys.exa_api_key = data.chaves.exa_api_key;
+                            }
+                            if (data.chaves.openai_api_key) {
+                                this.api_keys.openai_api_key = data.chaves.openai_api_key;
+                            }
+                            if (data.chaves.openrouter_api_key) {
+                                this.api_keys.openrouter_api_key = data.chaves.openrouter_api_key;
+                            }
                         }
                     } catch (erro) {
                         console.error('Erro ao carregar chaves de API:', erro);
