@@ -3538,6 +3538,7 @@
     </div>
 
     <script>
+        // Version: 2025-01-08-v3 (Force cache refresh)
         window.app = function() {
             return {
                 fase_atual: 0,
@@ -7985,10 +7986,10 @@
         document.addEventListener('alpine:initialized', () => {
             console.log('[Alpine] Initialized event fired');
 
-            // Tentar múltiplas formas de acessar a instância Alpine
-            setTimeout(() => {
+            // Tentar múltiplas formas de acessar a instância Alpine com retry
+            const tryExposeGlobalMethods = (attempt = 1, maxAttempts = 5) => {
                 const appEl = document.getElementById('app');
-                console.log('[Alpine] #app bound (delayed check):', !!appEl?.__x);
+                console.log(`[Alpine] Attempt ${attempt}/${maxAttempts} - #app bound:`, !!appEl?.__x);
 
                 // Expor métodos globalmente para uso em onclick
                 if (appEl?.__x) {
@@ -8013,10 +8014,17 @@
                     // Fazer window.app funcionar tanto como função (para Alpine) quanto como objeto (para onclick)
                     window.app = Object.assign(appFunction, appProxy);
                     console.log('[Alpine] Global methods exposed successfully');
+                } else if (attempt < maxAttempts) {
+                    // Tentar novamente após um delay maior
+                    console.warn(`[Alpine] Retrying in ${attempt * 50}ms...`);
+                    setTimeout(() => tryExposeGlobalMethods(attempt + 1, maxAttempts), attempt * 50);
                 } else {
-                    console.error('[Alpine] Failed to get app instance');
+                    console.error('[Alpine] Failed to get app instance after', maxAttempts, 'attempts');
                 }
-            }, 100);
+            };
+
+            // Começar tentativas após delay inicial
+            setTimeout(() => tryExposeGlobalMethods(), 100);
         });
 
         document.addEventListener('DOMContentLoaded', function() {
