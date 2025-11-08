@@ -3721,7 +3721,7 @@
     </div>
 
     <script>
-        // Version: 2025-01-08-v3 (Force cache refresh)
+        // Version: 2025-01-08-v4 (Alpine @click fix)
         window.app = function() {
             return {
                 fase_atual: 0,
@@ -8130,12 +8130,12 @@
                                 ${falha.analisando ? `
                                     <span class="text-purple-600 italic">⏳ Analisando...</span>
                                 ` : falha.praticas === null ? `
-                                    <button onclick="window.app.analisar_falha_fase2(${falha.falha_id})"
+                                    <button @click="analisar_falha_fase2(${falha.falha_id})"
                                             class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-medium">
                                         🔍 Analisar
                                     </button>
                                 ` : `
-                                    <button onclick="window.app.analisar_falha_fase2(${falha.falha_id}, true)"
+                                    <button @click="analisar_falha_fase2(${falha.falha_id}, true)"
                                             class="text-purple-600 hover:text-purple-900 font-medium">
                                         🔄 Reprocessar
                                     </button>
@@ -8287,23 +8287,28 @@
                 console.log(`[Alpine] Attempt ${attempt}/${maxAttempts} - #app bound:`, !!appEl?.__x);
 
                 // Expor métodos globalmente para uso em onclick
-                if (appEl?.__x) {
-                    window.appInstance = appEl.__x.$data;
-                } else if (window.Alpine && window.Alpine.$data) {
-                    window.appInstance = window.Alpine.$data('app');
+                let alpineData = null;
+
+                if (appEl?.__x?.$data) {
+                    alpineData = appEl.__x.$data;
+                } else if (appEl?.__x) {
+                    // Algumas versões do Alpine usam __x diretamente
+                    alpineData = appEl.__x;
                 }
 
-                if (window.appInstance) {
+                if (alpineData) {
+                    window.appInstance = alpineData;
+
                     // Salvar a função original antes de sobrescrever
                     const appFunction = window.app;
 
                     // Criar objeto de proxies globais para métodos usados em HTML renderizado
                     const appProxy = {
-                        alternar_expansao_fase1: (id) => window.appInstance.alternar_expansao_fase1(id),
-                        mudar_pagina_fontes_fase1: (id, page) => window.appInstance.mudar_pagina_fontes_fase1(id, page),
-                        analisar_falha_fase2: (id, force) => window.appInstance.analisar_falha_fase2(id, force),
-                        abrir_modal_resultados_pesquisa: (id, titulo, pilar) => window.appInstance.abrir_modal_resultados_pesquisa(id, titulo, pilar),
-                        abrir_detalhes_priorizacao: (id) => window.appInstance.abrir_detalhes_priorizacao(id)
+                        alternar_expansao_fase1: (id) => alpineData.alternar_expansao_fase1(id),
+                        mudar_pagina_fontes_fase1: (id, page) => alpineData.mudar_pagina_fontes_fase1(id, page),
+                        analisar_falha_fase2: (id, force) => alpineData.analisar_falha_fase2(id, force),
+                        abrir_modal_resultados_pesquisa: (id, titulo, pilar) => alpineData.abrir_modal_resultados_pesquisa(id, titulo, pilar),
+                        abrir_detalhes_priorizacao: (id) => alpineData.abrir_detalhes_priorizacao(id)
                     };
 
                     // Fazer window.app funcionar tanto como função (para Alpine) quanto como objeto (para onclick)
