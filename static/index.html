@@ -4009,7 +4009,12 @@
                         if (this.fase_atual === 1) this.carregar_dados_pesquisa();
                         if (this.fase_atual === 2) this.carregar_documentos();
                         if (this.fase_atual === 3) this.carregar_dados_priorizacao();
-                        if (this.fase_atual === 4 && this.boas_praticas_subfase === 1) this.carregar_falhas_fase1();
+                        if (this.fase_atual === 4 && this.boas_praticas_subfase === 1) {
+                            // Usar $nextTick para garantir que o Alpine esteja pronto
+                            this.$nextTick(() => {
+                                this.carregar_falhas_fase1();
+                            });
+                        }
 
                         setInterval(() => this.carregar_stats(), 5000);
                     } catch (e) {
