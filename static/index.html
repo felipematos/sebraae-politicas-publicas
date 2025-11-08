@@ -9,8 +9,6 @@
     <title>Sebrae Nacional - Políticas Públicas de Inovação</title>
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script defer src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="/static/css/styles.css">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -46,7 +44,7 @@
     </script>
 </head>
 <body class="bg-gray-50 text-gray-900" style="padding-top: 0 !important; margin-top: 0 !important;">
-    <div id="app" class="min-h-screen" x-data="app()" x-init="inicializar()" x-cloak>
+    <div id="app" class="min-h-screen" x-data="app()" x-init="inicializar()">
         <!-- Container de Notificações -->
         <div id="notificacoes-container" class="fixed top-4 right-4 z-[9999] space-y-2" style="max-width: 400px;"></div>
 
@@ -231,7 +229,6 @@
                     </button>
                 </div>
             </div>
-        </div>
 
         <!-- Modal de Arquivos Duplicados -->
         <div id="duplicados-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="fechar_duplicados_modal()" x-show="duplicados_modal_aberto" x-cloak>
@@ -3542,7 +3539,7 @@
     </div>
 
     <script>
-        function app() {
+        window.app = function() {
             return {
                 fase_atual: 0,
                 fases: [
@@ -3965,8 +3962,8 @@
 
                 async inicializar() {
                     try {
-                        // Expor app globalmente para onclick handlers
-                        window.app = this;
+                        // Expor instância do app globalmente para onclick handlers (mantém a função)
+                        window.appInstance = this;
 
                         // Carregar configurações de análise em lote do localStorage
                         const configSalva = localStorage.getItem('config_analise_lote');
@@ -7950,6 +7947,56 @@
                 }
             };
         }
+    </script>
+    <!-- Alpine.js - load after DOM and app() are ready -->
+    <script>
+        // Prevent Alpine from auto-starting
+        document.addEventListener('alpine:initializing', () => {
+            console.log('[Alpine] Initializing event fired');
+        });
+
+        document.addEventListener('alpine:initialized', () => {
+            console.log('[Alpine] Initialized event fired');
+            const appEl = document.getElementById('app');
+            console.log('[Alpine] #app bound:', !!appEl?.__x);
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verify app() function exists
+            if (typeof window.app !== 'function') {
+                console.error('[Alpine Init] window.app is not a function!', typeof window.app);
+                return;
+            }
+
+            console.log('[Alpine Init] app() function verified, loading Alpine...');
+
+            // Prevent Alpine auto-start and register component properly
+            window.deferLoadingAlpine = callback => {
+                console.log('[Alpine Init] deferLoadingAlpine callback triggered');
+                window.Alpine = callback();
+
+                // Register the app component using Alpine.data()
+                console.log('[Alpine Init] Registering app component with Alpine.data()');
+                window.Alpine.data('app', window.app);
+
+                // Now start Alpine
+                console.log('[Alpine Init] Starting Alpine after registration');
+                window.Alpine.start();
+            };
+
+            // Load Alpine collapse plugin
+            const collapseScript = document.createElement('script');
+            collapseScript.src = 'https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js';
+            collapseScript.onload = function() {
+                console.log('[Alpine Init] Collapse plugin loaded');
+
+                // Load Alpine core
+                const alpineScript = document.createElement('script');
+                alpineScript.src = 'https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js';
+                document.body.appendChild(alpineScript);
+            };
+            document.body.appendChild(collapseScript);
+        });
     </script>
 </body>
 </html>
