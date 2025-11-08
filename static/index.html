@@ -3063,12 +3063,12 @@
                 <!-- Sub-navegação de Fases -->
                 <div class="bg-white rounded-lg shadow p-4">
                     <div class="flex gap-2 flex-wrap">
-                        <button @click="boas_praticas_subfase = 1; $nextTick(() => { if (typeof carregar_falhas_fase1 === 'function') carregar_falhas_fase1(); })"
+                        <button @click="boas_praticas_subfase = 1; $nextTick(() => carregar_falhas_fase1())"
                                 :class="boas_praticas_subfase === 1 ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                                 class="px-4 py-2 rounded-lg font-medium transition-colors">
                             Fase I - Filtro de Fontes
                         </button>
-                        <button @click="boas_praticas_subfase = 2; $nextTick(() => { if (typeof carregar_falhas_fase2 === 'function') carregar_falhas_fase2(); })"
+                        <button @click="boas_praticas_subfase = 2; $nextTick(() => carregar_falhas_fase2())"
                                 :class="boas_praticas_subfase === 2 ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                                 class="px-4 py-2 rounded-lg font-medium transition-colors">
                             Fase II - Detecção de Boas Práticas
@@ -3855,7 +3855,7 @@
                     if (idx === 1) this.carregar_dados_pesquisa();
                     if (idx === 2) this.carregar_documentos();
                     if (idx === 3) this.carregar_dados_priorizacao();
-                    if (idx === 4) this.carregar_falhas_priorizadas_inicial();
+                    if (idx === 4 && this.boas_praticas_subfase === 1) this.carregar_falhas_fase1();
                 },
 
                 get_hash_from_fase(idx) {
@@ -4009,7 +4009,7 @@
                         if (this.fase_atual === 1) this.carregar_dados_pesquisa();
                         if (this.fase_atual === 2) this.carregar_documentos();
                         if (this.fase_atual === 3) this.carregar_dados_priorizacao();
-                        if (this.fase_atual === 4) this.carregar_falhas_priorizadas_inicial();
+                        if (this.fase_atual === 4 && this.boas_praticas_subfase === 1) this.carregar_falhas_fase1();
 
                         setInterval(() => this.carregar_stats(), 5000);
                     } catch (e) {
@@ -7956,8 +7956,39 @@
 
         document.addEventListener('alpine:initialized', () => {
             console.log('[Alpine] Initialized event fired');
-            const appEl = document.getElementById('app');
-            console.log('[Alpine] #app bound:', !!appEl?.__x);
+
+            // Tentar múltiplas formas de acessar a instância Alpine
+            setTimeout(() => {
+                const appEl = document.getElementById('app');
+                console.log('[Alpine] #app bound (delayed check):', !!appEl?.__x);
+
+                // Expor métodos globalmente para uso em onclick
+                if (appEl?.__x) {
+                    window.appInstance = appEl.__x.$data;
+                } else if (window.Alpine && window.Alpine.$data) {
+                    window.appInstance = window.Alpine.$data('app');
+                }
+
+                if (window.appInstance) {
+                    // Salvar a função original antes de sobrescrever
+                    const appFunction = window.app;
+
+                    // Criar objeto de proxies globais para métodos usados em HTML renderizado
+                    const appProxy = {
+                        alternar_expansao_fase1: (id) => window.appInstance.alternar_expansao_fase1(id),
+                        mudar_pagina_fontes_fase1: (id, page) => window.appInstance.mudar_pagina_fontes_fase1(id, page),
+                        analisar_falha_fase2: (id, force) => window.appInstance.analisar_falha_fase2(id, force),
+                        abrir_modal_resultados_pesquisa: (id, titulo, pilar) => window.appInstance.abrir_modal_resultados_pesquisa(id, titulo, pilar),
+                        abrir_detalhes_priorizacao: (id) => window.appInstance.abrir_detalhes_priorizacao(id)
+                    };
+
+                    // Fazer window.app funcionar tanto como função (para Alpine) quanto como objeto (para onclick)
+                    window.app = Object.assign(appFunction, appProxy);
+                    console.log('[Alpine] Global methods exposed successfully');
+                } else {
+                    console.error('[Alpine] Failed to get app instance');
+                }
+            }, 100);
         });
 
         document.addEventListener('DOMContentLoaded', function() {
