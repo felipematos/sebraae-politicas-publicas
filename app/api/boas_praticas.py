@@ -1250,9 +1250,13 @@ async def estimar_custo_analise_fase2(
         # Usar modelo padrão se não especificado
         modelo_usar = modelo or "google/gemini-2.0-flash-exp:free"
 
-        # Obter fontes disponíveis
-        fontes = await obter_fontes_por_falha(falha_id)
-        num_fontes = len(fontes)
+        # Obter TODAS as fontes disponíveis (mesma lógica da análise real)
+        resultados_pesquisa = await get_resultados_by_falha(falha_id)
+        documentos_base = await obter_fontes_por_falha(falha_id)
+
+        num_resultados = len(resultados_pesquisa)
+        num_documentos = len([d for d in documentos_base if d.get('fonte_tipo') == 'documento'])
+        num_fontes = num_resultados + num_documentos
 
         # Estimar tokens (aproximação)
         # Contexto base: ~500 tokens
@@ -1290,6 +1294,8 @@ async def estimar_custo_analise_fase2(
             "falha_id": falha_id,
             "modelo": modelo_usar,
             "num_fontes": num_fontes,
+            "num_resultados_pesquisa": num_resultados,
+            "num_documentos_base": num_documentos,
             "tokens_estimados": tokens_estimados,
             "custo_estimado_usd": round(custo_estimado, 4),
             "custo_estimado_formatado": f"${custo_estimado:.4f} USD",

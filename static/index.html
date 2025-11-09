@@ -8094,10 +8094,13 @@
 
                         // Confirmar com usuário
                         const custo_msg = estimativa.is_gratuito ? 'GRÁTIS' : estimativa.custo_estimado_formatado;
-                        const confirmar = confirm(
+                        const fontes_msg = estimativa.num_resultados_pesquisa && estimativa.num_documentos_base
+                            ? `${estimativa.num_fontes} fontes (${estimativa.num_resultados_pesquisa} pesquisas + ${estimativa.num_documentos_base} docs)`
+                            : `${estimativa.num_fontes} fontes`;
+                        const confirmar = await window.confirm(
                             `Analisar Falha #${falha_id}\n\n` +
                             `Modelo: ${this.modelo_llm_fase2.nome}\n` +
-                            `Fontes: ${estimativa.num_fontes}\n` +
+                            `Fontes: ${fontes_msg}\n` +
                             `Tempo estimado: ${estimativa.tempo_estimado_formatado}\n` +
                             `Custo estimado: ${custo_msg}\n\n` +
                             `Deseja continuar?`
@@ -8106,7 +8109,7 @@
                         if (!confirmar) return;
 
                         this.falhas_fase2[falhaIdx].analisando = true;
-                        this.fase2_status = `Analisando falha ${falha_id} com ${this.modelo_llm_fase2.nome}...`;
+                        this.fase2_status = `🔍 Analisando falha ${falha_id} (${fontes_msg}) com ${this.modelo_llm_fase2.nome}... Tempo estimado: ${estimativa.tempo_estimado_formatado}`;
                         this.renderizar_tabela_fase2();
 
                         const res = await fetch(`/api/boas-praticas/fase2/analisar/${falha_id}?reprocessar=${reprocessar}&modelo=${encodeURIComponent(this.modelo_llm_fase2.id)}`, {
