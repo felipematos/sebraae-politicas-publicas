@@ -4302,6 +4302,32 @@
                     this.alerta_aberto = false;
                 },
 
+                // Método auxiliar para alerta (compatível com async/await)
+                async alerta(titulo, mensagem) {
+                    return new Promise((resolve) => {
+                        this.alerta_titulo = titulo;
+                        this.alerta_mensagem = mensagem;
+                        this.alerta_aberto = true;
+                        // Resolver quando fechar (usando um MutationObserver ou timeout)
+                        const checkClosed = setInterval(() => {
+                            if (!this.alerta_aberto) {
+                                clearInterval(checkClosed);
+                                resolve();
+                            }
+                        }, 100);
+                    });
+                },
+
+                // Método auxiliar para confirmação (compatível com async/await)
+                async confirmar(titulo, mensagem) {
+                    return new Promise((resolve) => {
+                        this.confirmacao_titulo = titulo;
+                        this.confirmacao_mensagem = mensagem;
+                        this.confirmacao_resolve = resolve;
+                        this.confirmacao_aberta = true;
+                    });
+                },
+
                 // Prompt methods
                 mostrar_prompt(titulo, mensagem, valorPadrao, callback) {
                     this.prompt_titulo = titulo;
