@@ -1167,13 +1167,21 @@ Return ONLY a JSON object with:
         resultado_heuristico["modelo_usado"] = "Heurística (fallback)"
         return resultado_heuristico
 
-    async def _chamar_modelo(self, modelo: str, prompt: str) -> str:
+    async def _chamar_modelo(
+        self,
+        modelo: str,
+        prompt: str,
+        temperature: float = 0.3,
+        max_tokens: int = 500
+    ) -> str:
         """
         Chama um modelo específico da OpenRouter
 
         Args:
             modelo: Nome do modelo
             prompt: Prompt para o modelo
+            temperature: Temperatura para geração (0.0-1.0)
+            max_tokens: Máximo de tokens na resposta
 
         Returns:
             Resposta do modelo
@@ -1191,9 +1199,9 @@ Return ONLY a JSON object with:
         data = {
             "model": modelo,
             "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.3,  # Baixa temperatura para traduções consistentes
-            "max_tokens": 500,
-            "timeout": 30,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "timeout": 60,  # Aumentado para análises mais longas
         }
 
         async with self.session.post(

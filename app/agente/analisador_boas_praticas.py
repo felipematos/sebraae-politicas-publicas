@@ -53,7 +53,7 @@ class AnalisadorBoasPraticas:
                 modelo_usar = modelo or "google/gemini-2.0-flash-exp:free"
 
                 async with OpenRouterClient() as client:
-                    resposta = await client.chamar_modelo(
+                    resposta = await client._chamar_modelo(
                         modelo=modelo_usar,
                         prompt=prompt,
                         temperature=0.3,
@@ -83,10 +83,30 @@ class AnalisadorBoasPraticas:
 
         IMPORTANTE: Para garantir acurácia multilíngue, prioriza traduções
         para português quando disponíveis.
+
+        Seleciona as melhores fontes baseado em:
+        - Confiança (confidence_score)
+        - Presença de implementação
+        - Presença de métricas
+        - Se é do Sebrae (prioridade)
         """
+        # Ordenar fontes por qualidade antes de limitar
+        fontes_ordenadas = sorted(
+            fontes,
+            key=lambda f: (
+                f.get('is_sebrae', False),  # Sebrae primeiro
+                f.get('tem_metricas', False),  # Com métricas
+                f.get('tem_implementacao', False),  # Com implementação
+                f.get('confidence_score', 0.0)  # Maior confiança
+            ),
+            reverse=True
+        )
+
         contexto_parts = []
 
-        for idx, fonte in enumerate(fontes[:15], 1):  # Limitar a 15 fontes
+        # Aumentado de 15 para 50 fontes para análise mais completa
+        # Modelos como Gemini 2.0 Flash suportam 1M+ tokens
+        for idx, fonte in enumerate(fontes_ordenadas[:50], 1):
             fonte_tipo = fonte.get('fonte_tipo', 'documento')
 
             # Priorizar traduções para português quando disponíveis
