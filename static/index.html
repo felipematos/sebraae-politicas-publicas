@@ -421,6 +421,18 @@
                     </div>
                 </div>
 
+                <!-- Aviso de Mudança de Modelo -->
+                <div x-show="config_kb.modelo_embedding !== modelo_embedding_original"
+                     class="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-6">
+                    <p class="font-semibold text-gray-900 mb-2">⚠️ Modelo Alterado</p>
+                    <div class="space-y-2 text-sm text-gray-700">
+                        <p>• O modelo de embedding foi alterado</p>
+                        <p>• <strong>Será necessário reindexar todos os documentos</strong> para aplicar o novo modelo</p>
+                        <p>• A reindexação consumirá créditos de API novamente</p>
+                        <p>• Use o botão <strong class="text-orange-700">"Reindexar Tudo"</strong> após salvar</p>
+                    </div>
+                </div>
+
                 <!-- Informações sobre Custos -->
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                     <p class="font-semibold text-gray-900 mb-2">💡 Informações sobre Custos</p>
@@ -529,7 +541,7 @@
                             class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-medium transition">
                         Cancelar
                     </button>
-                    <button @click="salvar_tags()"
+                    <button @click="documentos_selecionados.length > 0 ? salvar_tags_lote() : salvar_tags()"
                             class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
                         ✓ Salvar Tags
                     </button>
@@ -2574,10 +2586,14 @@
                                 <span>Configurações</span>
                             </button>
                             <button @click="confirmar_reindexar_tudo()"
-                                    class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium flex items-center gap-2 transition"
-                                    :disabled="documentos.length === 0">
+                                    :class="modelo_embedding_mudou
+                                        ? 'px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium flex items-center gap-2 transition animate-pulse border-2 border-yellow-400'
+                                        : 'px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium flex items-center gap-2 transition'"
+                                    :disabled="documentos.length === 0"
+                                    :title="modelo_embedding_mudou ? '⚠️ Modelo alterado! Reindexação necessária para aplicar o novo modelo.' : 'Reindexar todos os documentos'">
                                 <span>🔄</span>
-                                <span>Reindexar Tudo</span>
+                                <span x-text="modelo_embedding_mudou ? 'Reindexar Agora!' : 'Reindexar Tudo'"></span>
+                                <span x-show="modelo_embedding_mudou" class="text-yellow-300 font-bold">⚠️</span>
                             </button>
                         </div>
                         <p class="text-gray-600 mt-1">Faça upload de documentos (DOCX, PDF) para criar uma base de conhecimento vetorial</p>
@@ -3838,6 +3854,8 @@
                 config_kb: {
                     modelo_embedding: 'text-embedding-3-small'
                 },
+                modelo_embedding_original: 'text-embedding-3-small',
+                modelo_embedding_mudou: false,
                 modelos_embedding_loading: true,
                 modelos_openai: {},
                 modelos_jina: {},
@@ -4361,10 +4379,15 @@
                         if (configKBSalva) {
                             try {
                                 this.config_kb = { ...this.config_kb, ...JSON.parse(configKBSalva) };
+                                // Salvar modelo original
+                                this.modelo_embedding_original = this.config_kb.modelo_embedding;
                                 console.log('✓ Configurações de KB carregadas:', this.config_kb);
                             } catch (e) {
                                 console.warn('Erro ao carregar configurações de KB:', e);
                             }
+                        } else {
+                            // Se não houver config salva, usar o modelo padrão como original
+                            this.modelo_embedding_original = this.config_kb.modelo_embedding;
                         }
 
                         // Carregar página baseada na URL
@@ -6581,8 +6604,20 @@
 
                 salvar_config_kb() {
                     try {
+                        // Detectar mudança de modelo
+                        const modelo_mudou = this.config_kb.modelo_embedding !== this.modelo_embedding_original;
+
                         // Salvar no localStorage
                         localStorage.setItem('config_kb', JSON.stringify(this.config_kb));
+
+                        // Atualizar flag de mudança
+                        this.modelo_embedding_mudou = modelo_mudou;
+
+                        // Se o modelo mudou, atualizar o original
+                        if (modelo_mudou) {
+                            console.log(`⚠️ Modelo de embedding alterado de "${this.modelo_embedding_original}" para "${this.config_kb.modelo_embedding}"`);
+                            console.log('🔄 Será necessário reindexar os documentos para aplicar o novo modelo');
+                        }
 
                         // Fechar modal
                         this.modal_kb_config_aberto = false;
@@ -6647,7 +6682,7 @@
                     }
                 },
 
-                async salvar_tags() {
+async salvar_tags() {
                     try {
                         const res = await fetch(`/api/knowledge-base/documentos/${encodeURIComponent(this.documento_tags_editando)}/tags`, {
                             method: 'PUT',
@@ -6679,6 +6714,147 @@
                         }
                     } catch (e) {
                         console.error('Erro ao salvar tags:', e);
+                    }
+                },
+
+                async gerenciar_tags_lote() {
+                    try {
+                        if (this.documentos_selecionados.length === 0) {
+                            await this.alerta('⚠️ Aviso', 'Selecione ao menos um documento para gerenciar tags.');
+                            return;
+                        }
+
+                        // Preparar modal para edição em lote
+                        this.documento_tags_editando = `${this.documentos_selecionados.length} documento(s)`;
+
+                        // Coletar todas as tags dos documentos selecionados
+                        const todasTags = new Set();
+                        this.documentos_selecionados.forEach(nome => {
+                            const doc = this.documentos.find(d => d.nome === nome);
+                            if (doc && doc.tags) {
+                                doc.tags.forEach(tag => todasTags.add(tag));
+                            }
+                        });
+
+                        this.tags_selecionadas = Array.from(todasTags);
+                        this.nova_tag = '';
+
+                        // Carregar tags disponíveis
+                        await this.carregar_tags_disponiveis();
+
+                        // Abrir modal (vai usar o mesmo modal de tags)
+                        this.modal_tags_aberto = true;
+                    } catch (e) {
+                        console.error('Erro ao abrir gerenciamento de tags em lote:', e);
+                        await this.alerta('❌ Erro', 'Erro ao abrir gerenciamento de tags.');
+                    }
+                },
+
+                async salvar_tags_lote() {
+                    try {
+                        let sucesso = 0;
+                        let erros = 0;
+
+                        // Salvar tags para cada documento selecionado
+                        for (const nome of this.documentos_selecionados) {
+                            try {
+                                const res = await fetch(`/api/knowledge-base/documentos/${encodeURIComponent(nome)}/tags`, {
+                                    method: 'PUT',
+                                    headers: {'Content-Type': 'application/json'},
+                                    body: JSON.stringify(this.tags_selecionadas)
+                                });
+
+                                if (res.ok) {
+                                    // Atualizar documento local
+                                    const doc = this.documentos.find(d => d.nome === nome);
+                                    if (doc) {
+                                        doc.tags = [...this.tags_selecionadas];
+                                    }
+                                    sucesso++;
+                                } else {
+                                    erros++;
+                                }
+                            } catch (e) {
+                                console.error(`Erro ao salvar tags de ${nome}:`, e);
+                                erros++;
+                            }
+                        }
+
+                        // Atualizar lista filtrada
+                        this.documentos_filtrados = this.documentos_filtrados.map(d =>
+                            this.documentos_selecionados.includes(d.nome) ? {...d, tags: [...this.tags_selecionadas]} : d
+                        );
+
+                        // Renderizar novamente
+                        this.renderizar_documentos();
+
+                        // Fechar modal
+                        this.modal_tags_aberto = false;
+
+                        // Limpar seleção
+                        this.documentos_selecionados = [];
+
+                        // Mostrar resultado
+                        if (erros === 0) {
+                            console.log(`✓ Tags atualizadas em ${sucesso} documento(s)`);
+                        } else {
+                            await this.alerta('⚠️ Aviso', `Tags atualizadas em ${sucesso} documento(s), ${erros} erro(s).`);
+                        }
+                    } catch (e) {
+                        console.error('Erro ao salvar tags em lote:', e);
+                        await this.alerta('❌ Erro', 'Erro ao salvar tags.');
+                    }
+                },
+
+                async confirmar_reindexar_tudo() {
+                    try {
+                        if (this.documentos.length === 0) {
+                            await this.alerta('⚠️ Aviso', 'Não há documentos para reindexar.');
+                            return;
+                        }
+
+                        const confirmado = await this.confirmar(
+                            '🔄 Reindexar Todos os Documentos',
+                            `Deseja reindexar todos os ${this.documentos.length} documento(s)?<br><br>` +
+                            `<strong>Modelo atual:</strong> ${this.config_kb.modelo_embedding || 'text-embedding-3-small'}<br><br>` +
+                            `Esta operação irá:<br>` +
+                            `• Remover todos os vetores existentes<br>` +
+                            `• Gerar novos embeddings para cada documento<br>` +
+                            `• Consumir créditos de API<br><br>` +
+                            `<strong class="text-orange-700">⚠️ Isso pode levar vários minutos e consumir créditos de API.</strong>`
+                        );
+
+                        if (confirmado) {
+                            await this.reindexar_tudo();
+                        }
+                    } catch (e) {
+                        console.error('Erro ao confirmar reindexação:', e);
+                    }
+                },
+
+                async reindexar_tudo() {
+                    try {
+                        await this.alerta(
+                            '🔄 Reindexação',
+                            `A funcionalidade de reindexação ainda está em desenvolvimento.<br><br>` +
+                            `Em breve você poderá reindexar todos os documentos com o modelo selecionado.`
+                        );
+
+                        // TODO: Implementar endpoint backend para reindexação
+                        // const res = await fetch('/api/knowledge-base/reindexar-tudo', {
+                        //     method: 'POST',
+                        //     headers: {'Content-Type': 'application/json'},
+                        //     body: JSON.stringify({
+                        //         modelo: this.config_kb.modelo_embedding
+                        //     })
+                        // });
+
+                        // Quando a reindexação for implementada, resetar a flag:
+                        // this.modelo_embedding_original = this.config_kb.modelo_embedding;
+                        // this.modelo_embedding_mudou = false;
+                    } catch (e) {
+                        console.error('Erro ao reindexar:', e);
+                        await this.alerta('❌ Erro', 'Erro ao reindexar documentos.');
                     }
                 },
 
