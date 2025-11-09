@@ -341,36 +341,83 @@
                 <!-- Seleção de Modelo de Embedding -->
                 <div class="bg-gray-50 rounded-lg p-5 mb-6">
                     <p class="text-sm font-semibold text-gray-700 mb-4">🤖 Modelo de Embedding</p>
-                    <div class="space-y-3">
-                        <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-blue-50 transition"
-                               :class="config_kb.modelo_embedding === 'text-embedding-3-small' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'">
-                            <input type="radio" name="embedding-model" value="text-embedding-3-small"
-                                   x-model="config_kb.modelo_embedding" class="mt-1 mr-3">
-                            <div class="flex-1">
-                                <p class="font-semibold text-gray-800">OpenAI text-embedding-3-small</p>
-                                <p class="text-sm text-gray-600 mt-1">Modelo compacto e eficiente para embeddings de texto</p>
-                                <div class="mt-2 space-y-1 text-xs">
-                                    <p class="text-green-700 font-medium">💰 Custo: R$ 0,0001 por 1.000 tokens (~R$ 0,01 por 10 páginas)</p>
-                                    <p class="text-gray-600">📊 Dimensões: 1.536</p>
-                                    <p class="text-gray-600">⚡ Performance: Alta velocidade e qualidade</p>
-                                </div>
-                            </div>
-                        </label>
 
-                        <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-purple-50 transition opacity-50"
-                               :class="config_kb.modelo_embedding === 'text-embedding-3-large' ? 'border-purple-500 bg-purple-50' : 'border-gray-200'">
-                            <input type="radio" name="embedding-model" value="text-embedding-3-large"
-                                   x-model="config_kb.modelo_embedding" class="mt-1 mr-3" disabled>
-                            <div class="flex-1">
-                                <p class="font-semibold text-gray-800">OpenAI text-embedding-3-large <span class="text-xs text-gray-500">(Em breve)</span></p>
-                                <p class="text-sm text-gray-600 mt-1">Modelo premium para máxima qualidade de embeddings</p>
-                                <div class="mt-2 space-y-1 text-xs">
-                                    <p class="text-orange-700 font-medium">💰 Custo: R$ 0,00065 por 1.000 tokens (~R$ 0,065 por 10 páginas)</p>
-                                    <p class="text-gray-600">📊 Dimensões: 3.072</p>
-                                    <p class="text-gray-600">⚡ Performance: Máxima qualidade, velocidade moderada</p>
+                    <!-- Loading State -->
+                    <div x-show="modelos_embedding_loading" class="text-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                        <p class="text-sm text-gray-500 mt-2">Carregando modelos...</p>
+                    </div>
+
+                    <!-- Tabs: OpenAI e Jina -->
+                    <div x-show="!modelos_embedding_loading" class="mb-4">
+                        <div class="flex gap-2 border-b border-gray-200">
+                            <button @click="tab_embedding_provider = 'openai'"
+                                    :class="tab_embedding_provider === 'openai' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-gray-600'"
+                                    class="px-4 py-2 transition">
+                                OpenAI
+                            </button>
+                            <button @click="tab_embedding_provider = 'jina'"
+                                    :class="tab_embedding_provider === 'jina' ? 'border-b-2 border-purple-600 text-purple-600 font-semibold' : 'text-gray-600'"
+                                    class="px-4 py-2 transition">
+                                Jina AI
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Modelos OpenAI -->
+                    <div x-show="!modelos_embedding_loading && tab_embedding_provider === 'openai'" class="space-y-3">
+                        <template x-for="(info, modelo_id) in modelos_openai" :key="modelo_id">
+                            <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer transition"
+                                   :class="[
+                                       config_kb.modelo_embedding === modelo_id ? 'border-blue-500 bg-blue-50' : 'border-gray-200',
+                                       info.disponivel ? 'hover:bg-blue-50' : 'opacity-50 cursor-not-allowed'
+                                   ]">
+                                <input type="radio" name="embedding-model" :value="modelo_id"
+                                       x-model="config_kb.modelo_embedding"
+                                       :disabled="!info.disponivel"
+                                       class="mt-1 mr-3">
+                                <div class="flex-1">
+                                    <p class="font-semibold text-gray-800" x-text="info.nome_exibicao"></p>
+                                    <p class="text-sm text-gray-600 mt-1" x-text="info.descricao"></p>
+                                    <div class="mt-2 space-y-1 text-xs">
+                                        <p class="text-green-700 font-medium" x-text="'💰 ' + info.custo_estimado_brl"></p>
+                                        <p class="text-gray-600" x-text="'📊 Dimensões: ' + info.dimensoes.toLocaleString('pt-BR')"></p>
+                                        <p class="text-gray-600" x-text="'⚡ ' + info.performance"></p>
+                                        <span x-show="info.recomendado" class="inline-block bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium mt-1">
+                                            ✓ Recomendado
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                        </label>
+                            </label>
+                        </template>
+                    </div>
+
+                    <!-- Modelos Jina -->
+                    <div x-show="!modelos_embedding_loading && tab_embedding_provider === 'jina'" class="space-y-3">
+                        <template x-for="(info, modelo_id) in modelos_jina" :key="modelo_id">
+                            <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer transition"
+                                   :class="[
+                                       config_kb.modelo_embedding === modelo_id ? 'border-purple-500 bg-purple-50' : 'border-gray-200',
+                                       info.disponivel ? 'hover:bg-purple-50' : 'opacity-50 cursor-not-allowed'
+                                   ]">
+                                <input type="radio" name="embedding-model" :value="modelo_id"
+                                       x-model="config_kb.modelo_embedding"
+                                       :disabled="!info.disponivel"
+                                       class="mt-1 mr-3">
+                                <div class="flex-1">
+                                    <p class="font-semibold text-gray-800" x-text="info.nome_exibicao"></p>
+                                    <p class="text-sm text-gray-600 mt-1" x-text="info.descricao"></p>
+                                    <div class="mt-2 space-y-1 text-xs">
+                                        <p class="text-green-700 font-medium" x-text="'💰 ' + info.custo_estimado_brl"></p>
+                                        <p class="text-gray-600" x-text="'📊 Dimensões: ' + info.dimensoes.toLocaleString('pt-BR')"></p>
+                                        <p class="text-gray-600" x-text="'⚡ ' + info.performance"></p>
+                                        <span x-show="info.recomendado" class="inline-block bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium mt-1">
+                                            ✓ Recomendado
+                                        </span>
+                                    </div>
+                                </div>
+                            </label>
+                        </template>
                     </div>
                 </div>
 
@@ -2519,12 +2566,18 @@
             <section x-show="fase_atual === 2" class="space-y-6">
                 <div class="flex justify-between items-center">
                     <div class="flex-1">
-                        <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-4 flex-wrap">
                             <h2 class="text-3xl font-bold">2. Base de Conhecimento</h2>
                             <button @click="modal_kb_config_aberto = true"
                                     class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium flex items-center gap-2 transition">
                                 <span>⚙️</span>
                                 <span>Configurações</span>
+                            </button>
+                            <button @click="confirmar_reindexar_tudo()"
+                                    class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium flex items-center gap-2 transition"
+                                    :disabled="documentos.length === 0">
+                                <span>🔄</span>
+                                <span>Reindexar Tudo</span>
                             </button>
                         </div>
                         <p class="text-gray-600 mt-1">Faça upload de documentos (DOCX, PDF) para criar uma base de conhecimento vetorial</p>
@@ -2616,6 +2669,9 @@
                             <span x-text="documentos_selecionados.length"></span> documento(s) selecionado(s)
                         </span>
                         <div class="space-x-2">
+                            <button @click="gerenciar_tags_lote()" class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                                🏷️ Gerenciar Tags
+                            </button>
                             <button @click="remover_selecionados()" class="px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700">
                                 🗑️ Remover Selecionados
                             </button>
@@ -3782,6 +3838,10 @@
                 config_kb: {
                     modelo_embedding: 'text-embedding-3-small'
                 },
+                modelos_embedding_loading: true,
+                modelos_openai: {},
+                modelos_jina: {},
+                tab_embedding_provider: 'openai',
                 modal_tags_aberto: false,
                 documento_tags_editando: '',
                 tags_disponiveis: [],
@@ -4316,6 +4376,7 @@
                         });
 
                         await this.carregar_stats();
+                        await this.carregar_modelos_embedding();
                         if (this.fase_atual === 0) this.carregar_dados_pesquisa();
                         if (this.fase_atual === 1) this.carregar_dados_pesquisa();
                         if (this.fase_atual === 2) this.carregar_documentos();
@@ -4385,6 +4446,50 @@
                         this.stats.total_processando = 0;
                         this.stats.total_concluidas = 0;
                         this.percentual_processamento = 0;
+                    }
+                },
+
+                async carregar_modelos_embedding() {
+                    try {
+                        this.modelos_embedding_loading = true;
+                        const res = await fetch('/api/config/modelos-embedding');
+                        if (res.ok) {
+                            const response = await res.json();
+                            if (response.sucesso) {
+                                this.modelos_openai = response.modelos_openai || {};
+                                this.modelos_jina = response.modelos_jina || {};
+                                console.log('✓ Modelos de embedding carregados:', {
+                                    openai: Object.keys(this.modelos_openai).length,
+                                    jina: Object.keys(this.modelos_jina).length
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Erro ao carregar modelos de embedding:', e);
+                    } finally {
+                        this.modelos_embedding_loading = false;
+                    }
+                },
+
+                async carregar_kb_stats() {
+                    try {
+                        const res = await fetch('/api/knowledge-base/estatisticas');
+                        if (res.ok) {
+                            const response = await res.json();
+                            this.stats.total_documentos = response.total_documentos || 0;
+                            this.stats.total_indexados = response.total_indexados || 0;
+                            this.stats.total_vetores = response.total_vetores || 0;
+                            console.log('✓ Estatísticas KB carregadas:', {
+                                documentos: this.stats.total_documentos,
+                                indexados: this.stats.total_indexados,
+                                vetores: this.stats.total_vetores
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Erro ao carregar estatísticas KB:', e);
+                        this.stats.total_documentos = 0;
+                        this.stats.total_indexados = 0;
+                        this.stats.total_vetores = 0;
                     }
                 },
 
@@ -6593,6 +6698,9 @@
                             this.documentos_filtrados = [];
                             this.renderizar_documentos();
                         }
+
+                        // Carregar estatísticas KB
+                        await this.carregar_kb_stats();
                     } catch (e) {
                         console.error('Erro ao carregar documentos:', e);
                     }

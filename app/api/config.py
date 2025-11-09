@@ -419,6 +419,44 @@ async def set_test_mode_limit(limit: int) -> Dict[str, Any]:
     }
 
 
+# ==================== MODELOS DE EMBEDDING ====================
+
+@router.get("/config/modelos-embedding")
+async def get_modelos_embedding() -> Dict[str, Any]:
+    """
+    Retorna lista de modelos de embedding disponíveis (OpenAI e Jina)
+
+    Returns:
+        Lista de modelos com informações de custo e performance
+    """
+    try:
+        from app.vector.modelos_embedding import (
+            MODELOS_EMBEDDING,
+            get_modelos_por_provider,
+            get_modelos_recomendados,
+            EmbeddingProvider
+        )
+
+        # Organizar modelos por provedor
+        modelos_openai = get_modelos_por_provider(EmbeddingProvider.OPENAI)
+        modelos_jina = get_modelos_por_provider(EmbeddingProvider.JINA)
+        modelos_recomendados = get_modelos_recomendados()
+
+        return {
+            "sucesso": True,
+            "modelos": MODELOS_EMBEDDING,
+            "modelos_openai": modelos_openai,
+            "modelos_jina": modelos_jina,
+            "modelos_recomendados": modelos_recomendados,
+            "total_modelos": len(MODELOS_EMBEDDING)
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao obter modelos de embedding: {str(e)}"
+        )
+
+
 # ==================== ESTATÍSTICAS ====================
 
 @router.get("/stats")
