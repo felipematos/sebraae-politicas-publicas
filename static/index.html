@@ -52,13 +52,43 @@
         <div id="confirmacao-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="fechar_confirmacao()" x-show="confirmacao_aberta" x-cloak>
             <div class="bg-white rounded-lg p-6 max-w-sm" @click.stop>
                 <h3 class="text-lg font-bold mb-2" x-text="confirmacao_titulo"></h3>
-                <p class="text-gray-600 mb-6" x-text="confirmacao_mensagem"></p>
+                <p class="text-gray-600 mb-6 whitespace-pre-wrap" x-text="confirmacao_mensagem"></p>
                 <div class="flex gap-3 justify-end">
                     <button @click="fechar_confirmacao()" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded font-medium">
                         Cancelar
                     </button>
                     <button @click="executar_confirmacao()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-medium">
                         Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Container de Alerta Modal -->
+        <div id="alerta-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="fechar_alerta()" x-show="alerta_aberto" x-cloak>
+            <div class="bg-white rounded-lg p-6 max-w-sm" @click.stop>
+                <h3 class="text-lg font-bold mb-2" x-text="alerta_titulo"></h3>
+                <p class="text-gray-600 mb-6 whitespace-pre-wrap" x-text="alerta_mensagem"></p>
+                <div class="flex justify-end">
+                    <button @click="fechar_alerta()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium">
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Container de Prompt Modal -->
+        <div id="prompt-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center" @click.self="fechar_prompt()" x-show="prompt_aberto" x-cloak>
+            <div class="bg-white rounded-lg p-6 max-w-sm" @click.stop>
+                <h3 class="text-lg font-bold mb-2" x-text="prompt_titulo"></h3>
+                <p class="text-gray-600 mb-4 whitespace-pre-wrap" x-text="prompt_mensagem"></p>
+                <input type="text" x-model="prompt_valor" @keydown.enter="executar_prompt()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                <div class="flex gap-3 justify-end">
+                    <button @click="fechar_prompt()" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded font-medium">
+                        Cancelar
+                    </button>
+                    <button @click="executar_prompt()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium">
+                        OK
                     </button>
                 </div>
             </div>
@@ -3783,6 +3813,20 @@
                 destacada_temp: false,
                 justificativa_temp: '',
                 confirmacao_aberta: false,
+                confirmacao_titulo: '',
+                confirmacao_mensagem: '',
+                confirmacao_callback: null,
+                confirmacao_resolve: null,  // Para confirm() retornar Promise
+                // Alert dialog
+                alerta_aberto: false,
+                alerta_titulo: '',
+                alerta_mensagem: '',
+                // Prompt dialog
+                prompt_aberto: false,
+                prompt_titulo: '',
+                prompt_mensagem: '',
+                prompt_valor: '',
+                prompt_callback: null,
                 modal_analise_aberto: false,
                 falha_analise: null,
                 config_analise: {
@@ -4147,20 +4191,89 @@
 
                 fechar_confirmacao() {
                     this.confirmacao_aberta = false;
+                    // Se foi um confirm() com Promise, resolver como false (cancelado)
+                    if (this.confirmacao_resolve) {
+                        this.confirmacao_resolve(false);
+                        this.confirmacao_resolve = null;
+                    }
                     this.confirmacao_callback = null;
                 },
 
                 executar_confirmacao() {
-                    if (this.confirmacao_callback) {
+                    // Se foi um confirm() com Promise, resolver como true
+                    if (this.confirmacao_resolve) {
+                        this.confirmacao_resolve(true);
+                        this.confirmacao_resolve = null;
+                    }
+                    // Se foi um callback tradicional, executar
+                    else if (this.confirmacao_callback) {
                         this.confirmacao_callback();
                     }
-                    this.fechar_confirmacao();
+                    this.confirmacao_aberta = false;
+                    this.confirmacao_callback = null;
+                },
+
+                // Alert methods
+                mostrar_alerta(titulo, mensagem) {
+                    this.alerta_titulo = titulo;
+                    this.alerta_mensagem = mensagem;
+                    this.alerta_aberto = true;
+                },
+
+                fechar_alerta() {
+                    this.alerta_aberto = false;
+                },
+
+                // Prompt methods
+                mostrar_prompt(titulo, mensagem, valorPadrao, callback) {
+                    this.prompt_titulo = titulo;
+                    this.prompt_mensagem = mensagem;
+                    this.prompt_valor = valorPadrao || '';
+                    this.prompt_callback = callback;
+                    this.prompt_aberto = true;
+                },
+
+                fechar_prompt() {
+                    this.prompt_aberto = false;
+                    if (this.prompt_callback) {
+                        this.prompt_callback(null);  // Cancelado
+                    }
+                    this.prompt_callback = null;
+                },
+
+                executar_prompt() {
+                    if (this.prompt_callback) {
+                        this.prompt_callback(this.prompt_valor);
+                    }
+                    this.prompt_aberto = false;
+                    this.prompt_callback = null;
                 },
 
                 async inicializar() {
                     try {
                         // Expor instância do app globalmente para onclick handlers (mantém a função)
                         window.appInstance = this;
+
+                        // Substituir dialogs nativos do JavaScript por versões HTML
+                        // Compatível com Playwright e outros testes automatizados
+                        window.alert = (mensagem) => {
+                            this.mostrar_alerta('Aviso', String(mensagem || ''));
+                        };
+
+                        window.confirm = (mensagem) => {
+                            return new Promise((resolve) => {
+                                this.confirmacao_titulo = 'Confirmação';
+                                this.confirmacao_mensagem = String(mensagem || '');
+                                this.confirmacao_resolve = resolve;
+                                this.confirmacao_aberta = true;
+                            });
+                        };
+
+                        window.prompt = (mensagem, valorPadrao) => {
+                            return new Promise((resolve) => {
+                                this.mostrar_prompt('Entrada', String(mensagem || ''), valorPadrao || '', resolve);
+                            });
+                        };
 
                         // Carregar configurações de análise em lote do localStorage
                         const configSalva = localStorage.getItem('config_analise_lote');

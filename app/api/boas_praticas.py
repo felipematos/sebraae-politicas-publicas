@@ -398,9 +398,36 @@ async def analisar_falha_fase2(
             await limpar_boas_praticas_fase(falha_id, 'fase_2')
             logger.info(f"Práticas existentes limpas para reprocessamento")
 
-        # 1. Obter fontes básicas
-        fontes = await obter_fontes_por_falha(falha_id)
-        logger.info(f"Obtidas {len(fontes)} fontes para análise")
+        # 1. Obter TODAS as fontes disponíveis (resultados de pesquisa + documentos)
+        # Diferente de obter_fontes_por_falha() que retorna apenas fontes salvas em priorizacoes_fontes
+        resultados_pesquisa = await get_resultados_by_falha(falha_id)
+        documentos_base = await obter_fontes_por_falha(falha_id)
+
+        # Formatar fontes para análise
+        fontes = []
+
+        # Adicionar resultados de pesquisa
+        for resultado in resultados_pesquisa:
+            fontes.append({
+                'fonte_tipo': 'pesquisa',
+                'fonte_id': resultado.get('id'),
+                'fonte_titulo': resultado.get('titulo'),
+                'fonte_descricao': resultado.get('descricao'),
+                'fonte_url': resultado.get('fonte_url'),
+                'fonte_conteudo': resultado.get('conteudo_completo'),
+                'confidence_score': resultado.get('confidence_score', 0.5),
+                'pais_origem': resultado.get('pais_origem'),
+                'idioma': resultado.get('idioma'),
+                'titulo_pt': resultado.get('titulo_pt'),
+                'descricao_pt': resultado.get('descricao_pt')
+            })
+
+        # Adicionar documentos da base (se houver)
+        for doc in documentos_base:
+            if doc.get('fonte_tipo') == 'documento':
+                fontes.append(doc)
+
+        logger.info(f"Obtidas {len(fontes)} fontes para análise ({len(resultados_pesquisa)} resultados + {len([d for d in documentos_base if d.get('fonte_tipo') == 'documento'])} documentos)")
 
         if not fontes:
             logger.warning(f"Nenhuma fonte disponível para falha {falha_id}")
